@@ -37,8 +37,10 @@ fi
 # 2. cloudflared
 if ! command -v cloudflared >/dev/null; then
     echo "==> installing cloudflared"
-    curl -fsSL https://pkg.cloudflare.com/install.sh | bash
-    apt-get install -y cloudflared
+    arch=$(dpkg --print-architecture)
+    curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${arch}.deb" -o /tmp/cloudflared.deb
+    dpkg -i /tmp/cloudflared.deb
+    rm -f /tmp/cloudflared.deb
 fi
 
 # 3. Claude Code CLI (for the agent runner)
