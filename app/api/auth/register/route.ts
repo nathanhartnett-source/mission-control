@@ -94,7 +94,14 @@ export async function POST(req: NextRequest) {
     const msg = e instanceof Error ? e.message : "";
     if (msg === "USERNAME_TAKEN" || msg === "EMAIL_TAKEN") {
       audit("register_blocked", { reason: msg.toLowerCase(), ip, ua, username: body.username });
-      // Generic response to avoid leaking which one collided.
+      fanout({
+        source: "auth",
+        type: "auth.registration.duplicate",
+        severity: "warn",
+        title: `Registration retry blocked: ${body.username}`,
+        message: `Reason: ${msg}. Email: ${body.email}. IP: ${ip}.\nClear the existing user from data/users.json if this is a stuck pending row.`,
+        context: { username: body.username, email: body.email, ip, reason: msg },
+      }).catch(() => {});
       return NextResponse.json(GENERIC_OK);
     }
     audit("register_blocked", { reason: "internal_error", ip, ua, error: msg });
