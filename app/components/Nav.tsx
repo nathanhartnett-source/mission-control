@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useBranding } from "@/lib/use-branding";
 
-const NON_ADMIN_NAV_ALLOW = new Set<string>(["/", "/agents", "/projects", "/todo", "/wiki", "/download"]);
+const NON_ADMIN_NAV_ALLOW = new Set<string>(["/", "/agents", "/projects", "/wiki", "/download"]);
 
 function Icon({ d, size = 20 }: { d: string; size?: number }) {
   return (
@@ -35,7 +35,6 @@ const MOBILE_ITEMS = [
   { href: "/",              label: "Home",    icon: "home" },
   { href: "/agents",        label: "Agents",  icon: "person" },
   { href: "/projects",      label: "Projects", icon: "business" },
-  { href: "/todo",          label: "To-Do",   icon: "runs", nonAdminOnly: true },
   { href: "/wiki",          label: "Wiki",    icon: "wiki" },
   { href: "/notifications", label: "Alerts",  icon: "support" },
   { href: "/download",      label: "Apps",    icon: "apps" },
@@ -46,7 +45,6 @@ const SIDEBAR_ITEMS = [
   { href: "/",              label: "Home",          icon: "home" },
   { href: "/agents",        label: "Agents",        icon: "person" },
   { href: "/projects",      label: "Projects",      icon: "business" },
-  { href: "/todo",          label: "To-Do",         icon: "runs", nonAdminOnly: true },
   { href: "/wiki",          label: "Wiki",          icon: "wiki" },
   { href: "/notifications", label: "Notifications", icon: "support" },
   { href: "/download",      label: "Apps",          icon: "apps" },
