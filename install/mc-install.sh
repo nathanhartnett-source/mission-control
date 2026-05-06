@@ -13,6 +13,8 @@
 #   MC_USER         — system user MC runs under (default: root)
 #   MC_HOME         — install dir (default: /root/mission-control)
 #   MC_PORT         — local port (default: 3030)
+#   MC_AGENT_NAME   — display name for the single user agent (default: Assistant)
+#   MC_BRAND_NAME   — site/brand name (default: Mission Control)
 
 set -euo pipefail
 
@@ -65,6 +67,27 @@ USER_BIN="/$([[ $MC_USER == root ]] && echo root || echo home/$MC_USER)/bin"
 sudo -u "$MC_USER" -H mkdir -p "$USER_BIN"
 install -m 0755 "$MC_HOME/install/mc-user-agent-runner.sh" "$USER_BIN/mc-user-agent-runner.sh"
 chown "$MC_USER:$MC_USER" "$USER_BIN/mc-user-agent-runner.sh"
+
+# 5b. Seed .env.production with client-mode defaults (idempotent — appends only missing keys)
+ENV_FILE="$MC_HOME/.env.production"
+touch "$ENV_FILE"
+chown "$MC_USER:$MC_USER" "$ENV_FILE"
+chmod 600 "$ENV_FILE"
+ensure_env() {
+    local key="$1" val="$2"
+    grep -q "^${key}=" "$ENV_FILE" || echo "${key}=${val}" >> "$ENV_FILE"
+}
+ensure_env MC_CLIENT_MODE 1
+ensure_env MC_AGENT_NAME "${MC_AGENT_NAME:-Assistant}"
+ensure_env MC_BRAND_NAME "${MC_BRAND_NAME:-Mission Control}"
+ensure_env MC_RUNNER_ME /usr/local/bin/mc-user-agent-runner.sh
+ensure_env MC_ADMIN_API_TOKEN "$(openssl rand -hex 32)"
+ensure_env SESSION_COOKIE_SECRET "$(openssl rand -hex 32)"
+
+# 5c. Install OBT-style runner into /usr/local/bin so MC_RUNNER_ME resolves
+if [[ -f "$MC_HOME/install/runners/obt/mc-user-agent-runner.sh" ]]; then
+    install -m 0755 "$MC_HOME/install/runners/obt/mc-user-agent-runner.sh" /usr/local/bin/mc-user-agent-runner.sh
+fi
 
 # 6. Build
 echo "==> npm install + build"
