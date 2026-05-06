@@ -1,0 +1,136 @@
+{
+  "weekA": {
+    "monday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "VR cardio session 1 (10am)", "person": "nathan" },
+      { "name": "VR cardio session 2 (1pm)", "person": "nathan" },
+      { "name": "VR cardio session 3 (3pm)", "person": "nathan" },
+      { "name": "Pamela Reif abs (morning)", "person": "tessa" },
+      { "name": "Walk or movement (any time)", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" },
+      { "name": "Dry body brush before shower", "person": "tessa" },
+      { "name": "Skincare routine AM + PM", "person": "tessa" }
+    ],
+    "tuesday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "Push-ups (10am)", "person": "nathan" },
+      { "name": "Push-ups (1pm)", "person": "nathan" },
+      { "name": "Push-ups (3pm)", "person": "nathan" },
+      { "name": "Pamela Reif abs (morning)", "person": "tessa" },
+      { "name": "Lower body / glute workout (any)", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" },
+      { "name": "Dry body brush before shower", "person": "tessa" },
+      { "name": "Skincare routine AM + PM", "person": "tessa" }
+    ],
+    "wednesday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "VR cardio session 1 (10am)", "person": "nathan" },
+      { "name": "VR cardio session 2 (1pm)", "person": "nathan" },
+      { "name": "VR cardio session 3 (3pm)", "person": "nathan" },
+      { "name": "Pamela Reif abs (morning)", "person": "tessa" },
+      { "name": "Walk or movement (any time)", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" },
+      { "name": "Dry body brush before shower", "person": "tessa" },
+      { "name": "Skincare routine AM + PM", "person": "tessa" }
+    ],
+    "thursday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "Push-ups (10am)", "person": "nathan" },
+      { "name": "Push-ups (1pm)", "person": "nathan" },
+      { "name": "Push-ups (3pm)", "person": "nathan" },
+      { "name": "Pamela Reif abs (morning)", "person": "tessa" },
+      { "name": "Lower body / glute workout (any)", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" },
+      { "name": "Dry body brush before shower", "person": "tessa" },
+      { "name": "Skincare routine AM + PM", "person": "tessa" }
+    ],
+    "friday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "VR cardio session 1 (10am)", "person": "nathan" },
+      { "name": "VR cardio session 2 (1pm)", "person": "nathan" },
+      { "name": "VR cardio session 3 (3pm)", "person": "nathan" },
+      { "name": "Pamela Reif abs (morning)", "person": "tessa" },
+      { "name": "Walk or movement (any time)", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" },
+      { "name": "Dry body brush before shower", "person": "tessa" },
+      { "name": "Skincare routine AM + PM", "person": "tessa" }
+    ],
+    "saturday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "Active rest — walk, swim, stretch", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" }
+    ],
+    "sunday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "Active rest — walk, swim, stretch", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" }
+    ]
+  },
+  "weekB": {
+    "monday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "Push-ups (10am)", "person": "nathan" },
+      { "name": "Push-ups (1pm)", "person": "nathan" },
+      { "name": "Push-ups (3pm)", "person": "nathan" },
+      { "name": "Pamela Reif abs (morning)", "person": "tessa" },
+      { "name": "Walk or movement (any time)", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" },
+      { "name": "Dry body brush before shower", "person": "tessa" },
+      { "name": "Skincare routine AM + PM", "person": "tessa" }
+    ],
+    "tuesday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "VR cardio session 1 (10am)", "person": "nathan" },
+      { "name": "VR cardio session 2 (1pm)", "person": "nathan" },
+      { "name": "VR cardio session 3 (3pm)", "person": "nathan" },
+      { "name": "Pamela Reif abs (morning)", "person": "tessa" },
+      { "name": "Lower body / glute workout (any)", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" },
+      { "name": "Dry body brush before shower", "person": "tessa" },
+      { "name": "Skincare routine AM + PM", "person": "tessa" }
+    ],
+    "wednesday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "Push-ups (10am)", "person": "nathan" },
+      { "name": "Push-ups (1pm)", "person": "nathan" },
+      { "name": "Push-ups (3pm)", "person": "nathan" },
+      { "name": "Pamela Reif abs (morning)", "person": "tessa" },
+      { "name": "Walk or movement (any time)", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" },
+      { "name": "Dry body brush before shower", "person": "tessa" },
+      { "name": "Skincare routine AM + PM", "person": "tessa" }
+    ],
+    "thursday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "VR cardio session 1 (10am)", "person": "nathan" },
+      { "name": "VR cardio session 2 (1pm)", "person": "nathan" },
+      { "name": "VR cardio session 3 (3pm)", "person": "nathan" },
+      { "name": "Pamela Reif abs (morning)", "person": "tessa" },
+      { "name": "Lower body / glute workout (any)", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" },
+      { "name": "Dry body brush before shower", "person": "tessa" },
+      { "name": "Skincare routine AM + PM", "person": "tessa" }
+    ],
+    "friday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "Push-ups (10am)", "person": "nathan" },
+      { "name": "Push-ups (1pm)", "person": "nathan" },
+      { "name": "Push-ups (3pm)", "person": "nathan" },
+      { "name": "Pamela Reif abs (morning)", "person": "tessa" },
+      { "name": "Walk or movement (any time)", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" },
+      { "name": "Dry body brush before shower", "person": "tessa" },
+      { "name": "Skincare routine AM + PM", "person": "tessa" }
+    ],
+    "saturday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "Active rest — walk, swim, stretch", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" }
+    ],
+    "sunday": [
+      { "name": "Protein + creatine shake ✓ (12pm)", "person": "nathan" },
+      { "name": "Active rest — walk, swim, stretch", "person": "tessa" },
+      { "name": "Stretch / Recovery session", "person": "tessa" }
+    ]
+  }
+}

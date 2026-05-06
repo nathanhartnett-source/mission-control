@@ -1,0 +1,22 @@
+{
+  "name": "Tessa",
+  "age": 43,
+  "heightCm": 165,
+  "weightKg": 55,
+  "bmr": 1205,
+  "tdee": 1657,
+  "targets": {
+    "calories": 1750,
+    "proteinG": 100,
+    "carbsG": 210,
+    "fatG": 55
+  },
+  "workoutBurnMap": [
+    { "matchKeywords": ["pamela reif", "pamela"], "kcal": 150, "label": "Pamela Reif abs" },
+    { "matchKeywords": ["lower body", "glute"], "kcal": 200, "label": "Lower body/glutes" },
+    { "matchKeywords": ["walk or movement", "walk or"], "kcal": 120, "label": "Walk/movement" },
+    { "matchKeywords": ["active rest", "swim", "stretch"], "kcal": 80, "label": "Active rest" }
+  ],
+  "stepsPerKcal": 0.031,
+  "updatedAt": "2026-03-23"
+}

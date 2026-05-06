@@ -1,0 +1,14 @@
+{
+  "waterGoalL": 2.5,
+  "calorieGoal": 1800,
+  "proteinGoal": 120,
+  "fatGoal": 60,
+  "carbGoal": 180,
+  "moduleColors": {
+    "water": null,
+    "fitness": null,
+    "nutrition": null,
+    "global": null,
+    "cycle": "#ec4899"
+  }
+}

@@ -1,0 +1,711 @@
+[
+  {
+    "description": "Eating window starts at lunch — nothing before midday",
+    "person": "nathan",
+    "loggedAt": "2026-03-22T08:06:00+10:00"
+  },
+  {
+    "description": "I had half a wood fired thin crust pizza for lunch",
+    "person": "nathan",
+    "loggedAt": "2026-03-22T06:59:17.393Z"
+  },
+  {
+    "person": "nathan",
+    "description": "Salmon",
+    "identifiedFoods": [],
+    "estimatedCalories": 0,
+    "macros": {
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0
+    },
+    "notes": "Gemini analysis failed: ApiError: {\"error\":{\"code\":404,\"message\":\"This model models/gemini-2.0-flash is no longer available to new users. Please update your code to use a newer model for the latest features and improvements.\",\"status\":\"NOT_FOUND\"}}",
+    "loggedAt": "2026-03-22T18:50:43+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Salmon",
+    "identifiedFoods": [
+      "Pan-fried/Baked Salmon Fillet (with skin)",
+      "Brown Rice",
+      "Savory Glaze/Sauce (e.g., soy-based with oil)"
+    ],
+    "estimatedCalories": 710,
+    "macros": {
+      "protein": 35,
+      "carbs": 61,
+      "fat": 39
+    },
+    "notes": "The salmon fillet is a generous portion, likely pan-fried or baked with the skin on. It is served over a substantial amount of what appears to be brown rice, which is coated in a glossy, savory sauce that adds significant calories and fat.",
+    "loggedAt": "2026-03-22T19:00:25+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Rice cake x2 with peanut butter (100%) \r\nBlack coffee",
+    "identifiedFoods": [
+      "Rice cake",
+      "Peanut butter",
+      "Black coffee"
+    ],
+    "estimatedCalories": 403,
+    "macros": {
+      "protein": 15.5,
+      "carbs": 25.5,
+      "fat": 28.5
+    },
+    "notes": "Estimates are based on 2 standard rice cakes (approx. 10g each), and approximately 3.5 tablespoons of 100% natural peanut butter (approx. 56g total). Black coffee calories and macros are considered negligible.",
+    "loggedAt": "2026-03-23T09:58:16+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "1x dried mango\r\n1x strawberry\r\n1/2 muesli bar",
+    "identifiedFoods": [
+      "1/2 Muesli Bar (with chocolate drizzle)",
+      "1 Dried Mango slice",
+      "1 Strawberry"
+    ],
+    "estimatedCalories": 139,
+    "macros": {
+      "protein": 1.6,
+      "carbs": 27.9,
+      "fat": 2.5
+    },
+    "notes": "Only the muesli bar is visible in the provided photo. The dried mango and strawberry are included in the analysis based on the user's description.",
+    "loggedAt": "2026-03-23T10:00:00+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Ham, cheese, brown rice and wrap",
+    "loggedAt": "2026-03-23T13:35:33+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Chicken breast",
+    "loggedAt": "2026-03-23T15:08:23+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Protein shake and creatine",
+    "loggedAt": "2026-03-23T15:09:57+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Glass of red wine",
+    "identifiedFoods": [
+      "Red wine"
+    ],
+    "estimatedCalories": 125,
+    "macros": {
+      "protein": 0.1,
+      "carbs": 3.8,
+      "fat": 0
+    },
+    "notes": "Based on a standard 5 oz (147ml) serving of red wine. Actual values may vary slightly depending on the specific type of wine.",
+    "loggedAt": "2026-03-23T15:49:10+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Glass of red wine",
+    "identifiedFoods": [
+      "Red wine"
+    ],
+    "estimatedCalories": 125,
+    "macros": {
+      "protein": 0,
+      "carbs": 4,
+      "fat": 0
+    },
+    "notes": "Estimates are for a standard 5 fl oz (147 ml) glass of red wine, assuming an average alcohol content (12-14% ABV) and minimal residual sugar. Calories primarily come from alcohol.",
+    "loggedAt": "2026-03-23T15:50:57+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "200g lamb, a bit of potato",
+    "identifiedFoods": [
+      "Lamb",
+      "Potato"
+    ],
+    "estimatedCalories": 570,
+    "macros": {
+      "protein": 60.4,
+      "carbs": 24,
+      "fat": 26.1
+    },
+    "notes": "Estimated 200g of cooked lean lamb (e.g., leg or loin, trimmed, roasted/grilled). 'A bit of potato' was estimated as 120g of plain cooked potato (e.g., boiled or baked, without skin or added fat).",
+    "loggedAt": "2026-03-23T18:43:35+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Half baked a potato with cheese and lamb",
+    "identifiedFoods": [
+      "Lamb",
+      "Baked Potato",
+      "Cheese"
+    ],
+    "estimatedCalories": 765,
+    "macros": {
+      "protein": 62,
+      "carbs": 34,
+      "fat": 41
+    },
+    "notes": "A generous serving of sliced lamb, likely leg or loin, cooked to medium-rare to medium, served over pieces of baked potato with melted cheese. The lamb portion appears to be around 175g cooked weight, the potato around 170g cooked, and the cheese approximately 35g.",
+    "loggedAt": "2026-03-23T19:04:02+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "2 squares Cadbury old gold run and raisin plots a twinning chai tea bag with a dash of milk",
+    "identifiedFoods": [
+      "Cadbury Old Gold Rum & Raisin Dark Chocolate",
+      "Chai Tea",
+      "Milk"
+    ],
+    "estimatedCalories": 115,
+    "macros": {
+      "protein": 1.7,
+      "carbs": 11.7,
+      "fat": 6.6
+    },
+    "notes": "Assumptions: '2 squares Cadbury old gold run and raisin plots' is interpreted as 2 squares (~20g) of Cadbury Old Gold dark chocolate with a rum and raisin flavour. A 'dash of milk' is estimated as 15ml (1 tablespoon) of semi-skimmed milk. Chai tea from a tea bag is considered to have negligible calories and macros.",
+    "loggedAt": "2026-03-23T19:42:04+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Cup of black tea",
+    "identifiedFoods": [
+      "Black Tea"
+    ],
+    "estimatedCalories": 2,
+    "macros": {
+      "protein": 0.2,
+      "carbs": 0.4,
+      "fat": 0
+    },
+    "notes": "These estimates are for a standard 8 fl oz (240ml) cup of plain black tea, without any added milk, sugar, or other sweeteners/flavorings. The caloric and macronutrient content of plain black tea is negligible.",
+    "loggedAt": "2026-03-24T06:10:40+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Brown rice cakes with peanut butter",
+    "identifiedFoods": [
+      "Brown Rice Cakes",
+      "Peanut Butter"
+    ],
+    "estimatedCalories": 213,
+    "macros": {
+      "protein": 7,
+      "carbs": 20,
+      "fat": 12
+    },
+    "notes": "Meal includes 2 brown rice cakes, with approximately 1.5 tablespoons of peanut butter spread on one.",
+    "loggedAt": "2026-03-24T07:32:56+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Black coffee",
+    "identifiedFoods": [
+      "Black coffee"
+    ],
+    "estimatedCalories": 2,
+    "macros": {
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0
+    },
+    "notes": "A standard 8 oz cup of black coffee contains negligible calories and macronutrients.",
+    "loggedAt": "2026-03-24T07:33:04+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "2 eggs, 100g lamb, 4 slices of ham, a small amount of cheddar cheese",
+    "identifiedFoods": [
+      "Eggs",
+      "Lamb",
+      "Ham",
+      "Cheddar cheese"
+    ],
+    "estimatedCalories": 670,
+    "macros": {
+      "protein": 66,
+      "carbs": 4,
+      "fat": 43
+    },
+    "notes": "Estimates based on: 2 large eggs (~100g); 100g cooked lean lamb; 4 slices of standard deli ham (~80g total); a small amount of cheddar cheese (~28g or 1 oz).",
+    "loggedAt": "2026-03-24T12:55:50+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Lunch was a wrap with brown rice and lamb and a slice of cheese",
+    "identifiedFoods": [
+      "Wrap",
+      "Brown Rice",
+      "Lamb",
+      "Cheese"
+    ],
+    "estimatedCalories": 480,
+    "macros": {
+      "protein": 38,
+      "carbs": 35,
+      "fat": 28
+    },
+    "notes": "Corrected: mini white wrap (not full size), only 2 tbsp brown rice",
+    "loggedAt": "2026-03-24T16:06:25+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Snack was a Greek yoghurt cake, attached the recipe for you",
+    "identifiedFoods": [
+      "Greek yogurt cake"
+    ],
+    "estimatedCalories": 45,
+    "macros": {
+      "protein": 4,
+      "carbs": 3,
+      "fat": 1.5
+    },
+    "notes": "Corrected: 1 slice of 10 from small cake with 2 tbsp flour total",
+    "loggedAt": "2026-03-24T16:07:13+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Snack 1 piece of dried mango and cheese and crackers packet (3 pieces of cheese slice with 3 rice crackers)",
+    "identifiedFoods": [
+      "Dried mango",
+      "Cheese slices",
+      "Rice crackers"
+    ],
+    "estimatedCalories": 490,
+    "macros": {
+      "protein": 22,
+      "carbs": 41,
+      "fat": 28
+    },
+    "notes": "Estimates are based on the following standard assumptions: 1 piece of dried mango is approximately 20g. Each cheese slice is approximately 25g (e.g., cheddar type). Each rice cracker is approximately 10g.",
+    "loggedAt": "2026-03-24T16:08:56+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Glass of red wine",
+    "identifiedFoods": [
+      "Red wine"
+    ],
+    "estimatedCalories": 125,
+    "macros": {
+      "protein": 0,
+      "carbs": 3,
+      "fat": 0
+    },
+    "notes": "Estimates based on a standard 5 fl oz (150ml) glass of dry red wine. Calories primarily come from alcohol content, with minimal carbs from residual sugar.",
+    "loggedAt": "2026-03-24T16:09:19+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Protein shake",
+    "identifiedFoods": [
+      "Protein powder",
+      "Liquid (e.g., water, milk, or plant-based milk)"
+    ],
+    "estimatedCalories": 188,
+    "macros": {
+      "protein": 30,
+      "carbs": 8,
+      "fat": 4
+    },
+    "notes": "Estimates for a standard protein shake, typically made with one scoop of protein powder (20-30g protein) and a moderate amount of liquid (like water or low-calorie milk). Values can vary significantly based on the type of protein powder, the liquid used, and any additional ingredients (e.g., fruit, nut butter, sweeteners). This estimate assumes a common protein powder blended with a low-calorie liquid.",
+    "loggedAt": "2026-03-24T16:53:43+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Glass of red wine + big handful of mixed salted nuts",
+    "identifiedFoods": [
+      "Red wine",
+      "Mixed salted nuts"
+    ],
+    "estimatedCalories": 431,
+    "macros": {
+      "protein": 10,
+      "carbs": 14,
+      "fat": 28
+    },
+    "notes": "Estimation is based on a standard 5 oz (147ml) glass of dry red wine (~125 kcal) and a 'big handful' interpreted as approximately 1.75 oz (50g) of mixed salted nuts (~306 kcal). Calorie and macro values for nuts can vary significantly based on the specific mix.",
+    "loggedAt": "2026-03-24T18:24:50+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Omelette. 2 eggs, 100g lamb",
+    "identifiedFoods": [
+      "Eggs",
+      "Lamb"
+    ],
+    "estimatedCalories": 364,
+    "macros": {
+      "protein": 40,
+      "carbs": 1,
+      "fat": 22
+    },
+    "notes": "Assumed 2 large eggs (~50g each) and 100g of lean, cooked lamb (e.g., roasted leg or loin). No cooking oil or butter was added for the omelette in this estimation.",
+    "loggedAt": "2026-03-24T18:54:00+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Dinner omelette, I made it with 6 eggs, 200g lamb, 2 fresh chillies, 12 feta cubes, handful of grated tasty cheese, a tablespoon of Greek yoghurt. \r\n\r\nI had just under half of the attached picture.",
+    "identifiedFoods": [
+      "Eggs",
+      "Lamb",
+      "Fresh Chillies",
+      "Feta Cheese",
+      "Tasty Cheese",
+      "Greek Yoghurt",
+      "Cooking Oil (estimated)"
+    ],
+    "estimatedCalories": 882,
+    "macros": {
+      "protein": 57.5,
+      "carbs": 5.3,
+      "fat": 67.5
+    },
+    "notes": "The calculation is based on 6 large eggs, 200g of pan-fried ground lamb (80/20), 180g of feta cheese (12 cubes estimated at 15g each), 60g of grated tasty cheese (cheddar type, as a 'handful'), 1 tablespoon (15g) of full-fat Greek yoghurt, and 1 tablespoon (14g) of olive oil for cooking. The 2 fresh chillies contribute negligible calories/macros. The portion consumed, 'just under half', was estimated at 45% of the total omelette.",
+    "loggedAt": "2026-03-24T19:34:21+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "1 piece of the yoghurt cake (you have the recipe details already) + black coffee",
+    "identifiedFoods": [
+      "Yoghurt Cake",
+      "Black Coffee"
+    ],
+    "estimatedCalories": 53,
+    "macros": {
+      "fat": 1.7,
+      "protein": 2.7,
+      "carbs": 5
+    },
+    "notes": "Corrected: 1 slice of Tessa yoghurt cake (Greek yoghurt ~500g, 2 eggs, 2 tbsp flour, 2 tbsp honey, 12 slices = ~51 cal/slice) + black coffee 2 cal",
+    "loggedAt": "2026-03-25T07:25:11+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "1 piece of the yoghurt cake (you have the recipe details already) + black coffee",
+    "identifiedFoods": [
+      "Yoghurt Cake (1 piece)",
+      "Black Coffee"
+    ],
+    "estimatedCalories": 53,
+    "macros": {
+      "fat": 1.7,
+      "protein": 2.7,
+      "carbs": 5
+    },
+    "notes": "Corrected: 1 slice of Tessa yoghurt cake (Greek yoghurt ~500g, 2 eggs, 2 tbsp flour, 2 tbsp honey, 12 slices = ~51 cal/slice) + black coffee 2 cal",
+    "loggedAt": "2026-03-25T07:27:55+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "lamb and potato gems",
+    "identifiedFoods": [
+      "lamb",
+      "potato gems"
+    ],
+    "estimatedCalories": 550,
+    "macros": {
+      "protein": 40,
+      "carbs": 22,
+      "fat": 34
+    },
+    "notes": "Estimates are based on 140g (approx. 5oz) cooked lean lamb (e.g., roasted leg or loin) and 100g (approx. 10-12 pieces) potato gems.",
+    "loggedAt": "2026-03-25T12:41:47+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "5 potato gems and 2 small sliced thick cut pieces of left over roast lamb",
+    "identifiedFoods": [
+      "Potato Gems",
+      "Roast Lamb"
+    ],
+    "estimatedCalories": 319,
+    "macros": {
+      "protein": 26.3,
+      "carbs": 10.5,
+      "fat": 19
+    },
+    "notes": "Estimates are based on 5 potato gems weighing approximately 50g (using data for tater tots) and 2 small, thick-cut pieces of roast lamb weighing approximately 90g. Lamb nutritional data assumes cooked leg with moderate fat content.",
+    "loggedAt": "2026-03-25T16:50:16+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "Cheese and crackers (rice crackers and dairy works cheese) packet which contains 3 pieces",
+    "identifiedFoods": [
+      "Rice crackers",
+      "Dairyworks cheese (assumed cheddar-type)"
+    ],
+    "estimatedCalories": 190,
+    "macros": {
+      "protein": 7,
+      "carbs": 20,
+      "fat": 8
+    },
+    "notes": "Estimation assumes 3 standard plain rice crackers (approx. 8g each, 24g total) and a proportional amount of Dairyworks cheddar-type cheese (approx. 25g total) for the '3 pieces' in a packet. Actual values may vary based on specific cracker brand/size and cheese type/formulation.",
+    "loggedAt": "2026-03-25T16:51:22+10:00"
+  },
+  {
+    "person": "tessa",
+    "description": "2 red wines + 2 yoghurt cake slices (check recipe I have you yesterday)",
+    "identifiedFoods": [
+      "Red Wine",
+      "Yoghurt Cake Slices"
+    ],
+    "estimatedCalories": 352,
+    "macros": {
+      "fat": 3.4,
+      "protein": 5.4,
+      "carbs": 16
+    },
+    "notes": "Corrected: 2 glasses red wine (~250 cal, 6g carbs) + 2 yoghurt cake slices (~102 cal, 10g carbs). Cake recipe: Greek yoghurt ~500g, 2 eggs, 2 tbsp flour, 2 tbsp honey, 12 slices total.",
+    "loggedAt": "2026-03-25T16:51:58+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "250g Beef mince with some cheese and lettuce",
+    "identifiedFoods": [
+      "Beef mince (250g)",
+      "Cheese",
+      "Lettuce"
+    ],
+    "estimatedCalories": 750,
+    "macros": {
+      "protein": 79,
+      "carbs": 2,
+      "fat": 47
+    },
+    "notes": "Estimates based on: 250g cooked 85% lean ground beef; 30g (approx. 1 oz or 2 slices) cheddar cheese; and a small serving of lettuce. Calorie and macro values for lettuce are minimal and are included in the totals.",
+    "loggedAt": "2026-03-25T20:22:44+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Beef mince with a bit of pastry",
+    "identifiedFoods": [
+      "Beef mince",
+      "Pastry"
+    ],
+    "estimatedCalories": 550,
+    "macros": {
+      "protein": 37,
+      "carbs": 25,
+      "fat": 34
+    },
+    "notes": "Estimates are based on a standard serving of 125g cooked lean beef mince (approx. 10% fat) and 60g of shortcrust pastry. 'A bit of pastry' is interpreted as a moderate portion, such as a small pie lid or a couple of small pastry pieces.",
+    "loggedAt": "2026-03-26T18:53:54+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "150g pork shoulder and an egg",
+    "identifiedFoods": [
+      "Pork Shoulder (150g)",
+      "Egg (1 large)"
+    ],
+    "estimatedCalories": 434,
+    "macros": {
+      "protein": 37.5,
+      "carbs": 0.4,
+      "fat": 30.1
+    },
+    "notes": "Pork shoulder is estimated as raw, separable lean and fat. Egg is estimated as one large (approx. 50g).",
+    "loggedAt": "2026-03-26T18:54:25+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Beef burger",
+    "identifiedFoods": [
+      "Beef Patty",
+      "Hamburger Bun",
+      "Cheddar Cheese Slice",
+      "Ketchup",
+      "Mustard",
+      "Mayonnaise",
+      "Lettuce",
+      "Tomato",
+      "Onion",
+      "Pickles"
+    ],
+    "estimatedCalories": 815,
+    "macros": {
+      "protein": 48,
+      "carbs": 46,
+      "fat": 53
+    },
+    "notes": "Estimate based on a standard 1/3 lb (5 oz) 80/20 beef patty, a white hamburger bun, one slice of cheddar cheese, and common condiments (ketchup, mustard, light mayo). Excludes any sides or drinks.",
+    "loggedAt": "2026-03-28T21:07:59+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Chicken and pork curry",
+    "identifiedFoods": [
+      "Chicken",
+      "Pork",
+      "Coconut Milk",
+      "Cooking Oil",
+      "Onions",
+      "Garlic",
+      "Ginger",
+      "Curry Spices"
+    ],
+    "estimatedCalories": 790,
+    "macros": {
+      "protein": 64,
+      "carbs": 16,
+      "fat": 53
+    },
+    "notes": "This estimate is based on a standard single serving, including approximately 4 oz (cooked) chicken, 4 oz (cooked) pork, and about 1 cup of a rich, coconut milk-based curry sauce. The calorie and macro content can vary significantly based on the specific cuts of meat, the amount of oil used, and the richness of the curry sauce (e.g., full-fat vs. light coconut milk). This estimate does NOT include any accompaniments such as rice, naan, or other side dishes.",
+    "loggedAt": "2026-03-28T21:08:23+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "chicken breast, lettuce, slice of cheese",
+    "identifiedFoods": [
+      "chicken breast",
+      "lettuce",
+      "slice of cheese"
+    ],
+    "estimatedCalories": 283,
+    "macros": {
+      "protein": 38.5,
+      "carbs": 1.5,
+      "fat": 13
+    },
+    "notes": "Estimates are based on a 4oz (112g) cooked boneless, skinless chicken breast, 1 cup shredded lettuce, and 1 slice (1oz/28g) of cheddar cheese. Calorie and macro values can vary based on specific types and preparation.",
+    "loggedAt": "2026-03-30T14:15:44+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Protein shake",
+    "identifiedFoods": [
+      "Protein Powder",
+      "Water (assumed liquid base)"
+    ],
+    "estimatedCalories": 130,
+    "macros": {
+      "protein": 25,
+      "carbs": 3,
+      "fat": 2
+    },
+    "notes": "Estimates are for one standard scoop (approx. 30-35g) of typical whey protein powder mixed with water. Actual values may vary based on the specific brand and type of protein powder. Using milk or adding other ingredients (e.g., fruit, nut butter) would significantly increase calories and alter macronutrients.",
+    "loggedAt": "2026-03-30T14:50:45+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Chicken breast, lettuce, slice of cheese, protein shake",
+    "identifiedFoods": [
+      "Chicken breast",
+      "Lettuce",
+      "Slice of cheese",
+      "Protein shake"
+    ],
+    "estimatedCalories": 410,
+    "macros": {
+      "protein": 64,
+      "carbs": 5,
+      "fat": 14
+    },
+    "notes": "Estimates based on: 4oz (112g) cooked chicken breast, 1 cup lettuce, 1 slice (28g) cheddar cheese, and 1 scoop standard whey protein shake mixed with water.",
+    "loggedAt": "2026-03-31T14:01:17+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "beef curry with brown rice",
+    "identifiedFoods": [
+      "Beef",
+      "Curry Sauce (including coconut milk, oil, vegetables)",
+      "Brown Rice"
+    ],
+    "estimatedCalories": 890,
+    "macros": {
+      "protein": 37,
+      "carbs": 55,
+      "fat": 53
+    },
+    "notes": "Estimates assume a standard serving of 1 cup cooked brown rice and one generous serving of beef curry. The curry portion is estimated to contain approximately 4 oz (112g) cooked lean beef, about 1/2 cup (120ml) full-fat coconut milk, and 1 tablespoon of cooking oil, along with other typical curry vegetables and spices.",
+    "loggedAt": "2026-03-31T18:44:43+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Lots of Beef and chicken",
+    "identifiedFoods": [
+      "Beef",
+      "Chicken"
+    ],
+    "estimatedCalories": 890,
+    "macros": {
+      "protein": 137,
+      "carbs": 0,
+      "fat": 39
+    },
+    "notes": "Estimates assume 8 oz (half a pound) of lean beef (e.g., sirloin steak) and 8 oz (half a pound) of boneless, skinless chicken breast, both cooked. 'Lots of' is subjective, so these are generous but standard large serving sizes.",
+    "loggedAt": "2026-04-01T18:54:39+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Chicken breast",
+    "identifiedFoods": [],
+    "estimatedCalories": 0,
+    "macros": {
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0
+    },
+    "notes": "Gemini text analysis failed: ApiError: {\"error\":{\"code\":400,\"message\":\"API key expired. Please renew the API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key expired. Please renew the API key.\"}]}}",
+    "loggedAt": "2026-04-02T17:00:16+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "Chicken breast",
+    "identifiedFoods": [],
+    "estimatedCalories": 0,
+    "macros": {
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0
+    },
+    "notes": "Gemini text analysis failed: ApiError: {\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}",
+    "loggedAt": "2026-04-02T18:59:30+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "chicken breast",
+    "identifiedFoods": [],
+    "estimatedCalories": 0,
+    "macros": {
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0
+    },
+    "notes": "Gemini text analysis failed: ApiError: {\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}",
+    "loggedAt": "2026-04-02T19:00:03+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "chicken breast",
+    "identifiedFoods": [],
+    "estimatedCalories": 0,
+    "macros": {
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0
+    },
+    "notes": "Gemini text analysis failed: ApiError: {\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}",
+    "loggedAt": "2026-04-02T19:01:42+10:00"
+  },
+  {
+    "person": "nathan",
+    "description": "chicken breast",
+    "identifiedFoods": [
+      "chicken breast"
+    ],
+    "estimatedCalories": 165,
+    "macros": {
+      "protein": 31,
+      "carbs": 0,
+      "fat": 3.6
+    },
+    "notes": "Estimated for one standard serving of 4 oz (113g) cooked, boneless, skinless chicken breast.",
+    "loggedAt": "2026-04-02T19:02:16+10:00"
+  }
+]

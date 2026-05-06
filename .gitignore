@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.next.*/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+data/users.json
+data/alerts.jsonl
+data/auth-audit.jsonl
+data/personal/
+data/agent-chat/
+*.zip
+*:Zone.Identifier

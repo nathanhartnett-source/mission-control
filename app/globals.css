@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Bento tokens — mirrors BentoFrame */
+  --bento-page-bg: #0a0a0a;
+  --bento-card-bg: #131313;
+  --bento-card-bg-elev: #1a1a1a;
+  --bento-border: #262626;
+  --bento-border-soft: rgba(255, 255, 255, 0.08);
+  --bento-accent: #fafafa;
+  --bento-accent-soft: rgba(255, 255, 255, 0.1);
+  --bento-text-primary: #fafafa;
+  --bento-text-secondary: #a0a0a0;
+  --bento-text-muted: rgba(255, 255, 255, 0.4);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ── Bento masonry ───────────────────────────────────────────────────
+   CSS-columns masonry — each card fills vertical space under its
+   column-mates, no grid-row-height gaps. Tradeoff: card order flows
+   top-down-then-across (column-major). Drag & drop lets the user
+   reorder without touching the CSS.
+*/
+.bento-masonry {
+  column-width: 340px;
+  column-gap: 18px;
+  column-fill: balance;
+}
+.bento-masonry > * {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+  margin-bottom: 18px;
+}
+@media (max-width: 720px) {
+  .bento-masonry {
+    column-width: auto;
+    column-count: 1;
+  }
+}
+/* Drag feedback */
+.bento-masonry > *[data-dragging="1"] {
+  opacity: 0.35;
+  transform: scale(0.98);
+}
+.bento-masonry > *[data-drop-target="1"] {
+  outline: 2px dashed var(--bento-accent, rgba(255,255,255,0.6));
+  outline-offset: 4px;
+}
+
+/* ── Flip card (gear → settings) ─────────────────────────────────── */
+.flip-card {
+  position: relative;
+  perspective: 1400px;
+  transition: height 0.55s cubic-bezier(.4, .0, .2, 1);
+}
+.flip-card > .flip-face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: transform 0.55s cubic-bezier(.4, .0, .2, 1), opacity 0.3s ease;
+  transform-style: preserve-3d;
+}
+.flip-card > .flip-front { transform: rotateY(0deg); }
+.flip-card > .flip-back  { transform: rotateY(180deg); }
+.flip-card[data-flipped="true"] > .flip-front { transform: rotateY(-180deg); }
+.flip-card[data-flipped="true"] > .flip-back  { transform: rotateY(0deg); }
+.flip-card:not([data-flipped="true"]) > .flip-back { pointer-events: none; }
+.flip-card[data-flipped="true"] > .flip-front { pointer-events: none; }
+
+/* ── Tap microanim ───────────────────────────────────────────────── */
+.bento-tap {
+  transition: background-color 0.12s cubic-bezier(0.2, 0.7, 0.3, 1),
+              border-color 0.12s cubic-bezier(0.2, 0.7, 0.3, 1),
+              color 0.12s cubic-bezier(0.2, 0.7, 0.3, 1),
+              box-shadow 0.12s cubic-bezier(0.2, 0.7, 0.3, 1),
+              opacity 0.12s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+/* Keep press feedback without any transform, so dense project modules don't
+   shimmer or micro-jitter while the page is being scrolled. */
+.bento-tap:not(:disabled):active { opacity: 0.82; }
+@media (prefers-reduced-motion: reduce) {
+  .bento-tap,
+  .bento-tap:not(:disabled):active { transition: none; opacity: 1; }
+}
+
+/* Slim, dark, hover-revealing scrollbar for chat-like surfaces.
+   Apply with class="scroll-pretty". Firefox uses scrollbar-color/width;
+   WebKit (Chrome/Safari/Edge) uses ::-webkit-scrollbar. */
+.scroll-pretty {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+}
+.scroll-pretty::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-pretty::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-pretty::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.15s ease;
+}
+.scroll-pretty:hover::-webkit-scrollbar-thumb,
+.scroll-pretty::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+  background-clip: padding-box;
+}
+.scroll-pretty::-webkit-scrollbar-corner {
+  background: transparent;
+}

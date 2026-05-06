@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+# mc-agent-runner.sh — adapter for Claude-Code-backed MC /agents tab agents.
+#
+# Watches the per-agent inbox dir for `mc-agent-<agent>-*.json` envelopes
+# (spec: ~/wiki/concepts/mc-agents-tab.md), invokes `claude -p` with the
+# message text + agent-specific state dir / model, and writes a response
+# envelope back to ~/wiki/_outbox/mc-agent/.
+#
+# Designed to be run every minute by cron, one cron line per agent:
+#   * * * * * /home/nathan/bin/mc-agent-runner.sh ava
+#   * * * * * /home/nathan/bin/mc-agent-runner.sh mia
+#   * * * * * /home/nathan/bin/mc-agent-runner.sh overseer
+#
+# (Ash uses a different runtime — see ~/.hermes/scripts/mc-agent-bridge.py and
+# the "MC agent bridge" Hermes job.)
+
+set -uo pipefail
+
+AGENT="${1:-}"
+[[ -z "$AGENT" ]] && { echo "usage: $0 <ava|mia|overseer>" >&2; exit 2; }
+
+case "$AGENT" in
+    ava)
+        INBOX="$HOME/.claude/channels/discord/inbox"
+        STATE_DIR="$HOME/.claude"
+        DISCORD_DIR="$HOME/.claude/channels/discord"
+        MODEL=""
+        ;;
+    mia)
+        INBOX="$HOME/.claude/channels/discord-b/inbox"
+        STATE_DIR="$HOME/mia-workspace"
+        DISCORD_DIR="$HOME/.claude/channels/discord-b"
+        MODEL=""
+        ;;
+    overseer)
+        INBOX="$HOME/.claude/channels/discord-os/inbox"
+        STATE_DIR="$HOME/overseer-workspace"
+        DISCORD_DIR="$HOME/.claude/channels/discord-os"
+        MODEL="claude-opus-4-7"
+        ;;
+    *)
+        echo "unknown agent: $AGENT" >&2; exit 2
+        ;;
+esac
+
+OUTBOX="$HOME/wiki/_outbox/mc-agent"
+LOG="/tmp/mc-agent-runner-${AGENT}.log"
+LOCK="/tmp/mc-agent-runner-${AGENT}.lock"
+CLAUDE="${CLAUDE_BIN:-$HOME/.npm-global/bin/claude}"
+[[ ! -x "$CLAUDE" ]] && CLAUDE="$(command -v claude 2>/dev/null)"
+
+mkdir -p "$OUTBOX" "$INBOX"
+
+exec 9>"$LOCK"
+if ! flock -n 9; then
+    echo "[$(date +%FT%T%z)] another instance running, exiting" >> "$LOG"
+    exit 0
+fi
+
+[[ ! -d "$INBOX" ]] && exit 0
+
+mapfile -t FILES < <(find "$INBOX" -maxdepth 1 -type f -name "mc-agent-${AGENT}-*.json" -printf '%T@ %p\n' 2>/dev/null | sort -n | awk '{print $2}')
+[[ ${#FILES[@]} -eq 0 ]] && exit 0
+
+echo "[$(date +%FT%T%z)] processing ${#FILES[@]} envelope(s) for $AGENT" >> "$LOG"
+
+for f in "${FILES[@]}"; do
+    [[ ! -f "$f" ]] && continue
+    CORR="$(python3 -c "import json; print(json.load(open('$f')).get('corr_id',''))" 2>/dev/null)"
+    [[ -z "$CORR" ]] && { echo "[$(date +%FT%T%z)] no corr_id in $f, skipping" >> "$LOG"; rm -f "$f"; continue; }
+
+    TEXT="$(python3 -c "import json; print(json.load(open('$f')).get('text',''))" 2>/dev/null)"
+    [[ -z "$TEXT" ]] && { echo "[$(date +%FT%T%z)] empty text in $CORR, skipping" >> "$LOG"; rm -f "$f"; continue; }
+
+    RUN_TS="$(date -u +%FT%TZ)"
+    cat > "$OUTBOX/mc-agent-${CORR}-running.json" <<JSON
+{
+  "schema": "mc-agent-response/v1",
+  "corr_id": "$CORR",
+  "agent": "$AGENT",
+  "ts": "$RUN_TS",
+  "state": "running"
+}
+JSON
+
+    START="$(date +%s)"
+    set +e
+    if [[ -n "$MODEL" ]]; then
+        RESP="$(cd "$STATE_DIR" 2>/dev/null; DISCORD_STATE_DIR="$DISCORD_DIR" timeout 180 "$CLAUDE" -p --model "$MODEL" --output-format text 2>/tmp/mc-agent-runner-${AGENT}.stderr <<< "$TEXT")"
+    else
+        RESP="$(cd "$STATE_DIR" 2>/dev/null; DISCORD_STATE_DIR="$DISCORD_DIR" timeout 180 "$CLAUDE" -p --output-format text 2>/tmp/mc-agent-runner-${AGENT}.stderr <<< "$TEXT")"
+    fi
+    EC=$?
+    set -e
+    END="$(date +%s)"
+    ELAPSED_MS=$(( (END - START) * 1000 ))
+    DONE_TS="$(date -u +%FT%TZ)"
+
+    if [[ $EC -eq 0 && -n "$RESP" ]]; then
+        export CORR DONE_TS RESP ELAPSED_MS AGENT
+        python3 -c "
+import json, os
+out = {
+  'schema': 'mc-agent-response/v1',
+  'corr_id': os.environ['CORR'],
+  'agent': os.environ['AGENT'],
+  'ts': os.environ['DONE_TS'],
+  'state': 'done',
+  'text': os.environ['RESP'],
+  'elapsed_ms': int(os.environ['ELAPSED_MS']),
+  'error': None,
+}
+with open('$OUTBOX/mc-agent-${CORR}-done.json', 'w') as f:
+    json.dump(out, f, indent=2)
+"
+        echo "[$(date +%FT%T%z)] done $CORR in ${ELAPSED_MS}ms" >> "$LOG"
+    else
+        ERR="$(tail -c 500 /tmp/mc-agent-runner-${AGENT}.stderr 2>/dev/null || echo "exit $EC")"
+        export CORR DONE_TS ERR ELAPSED_MS EC AGENT
+        python3 -c "
+import json, os
+out = {
+  'schema': 'mc-agent-response/v1',
+  'corr_id': os.environ['CORR'],
+  'agent': os.environ['AGENT'],
+  'ts': os.environ['DONE_TS'],
+  'state': 'error',
+  'elapsed_ms': int(os.environ['ELAPSED_MS']),
+  'error': f\"exit {os.environ['EC']}: {os.environ['ERR'][:400]}\",
+}
+with open('$OUTBOX/mc-agent-${CORR}-error.json', 'w') as f:
+    json.dump(out, f, indent=2)
+"
+        echo "[$(date +%FT%T%z)] error $CORR ec=$EC" >> "$LOG"
+    fi
+
+    rm -f "$OUTBOX/mc-agent-${CORR}-running.json"
+    rm -f "$f"
+done
