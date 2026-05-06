@@ -148,6 +148,69 @@ export default function SettingsPage() {
     }
   }
 
+  // --- Change password ---
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  async function changePassword() {
+    setPwMsg(null);
+    if (pwNew.length < 8) { setPwMsg({ kind: "err", text: "New password must be at least 8 characters." }); return; }
+    if (pwNew !== pwConfirm) { setPwMsg({ kind: "err", text: "New passwords don't match." }); return; }
+    setPwBusy(true);
+    try {
+      const r = await fetch("/api/me/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d?.ok) {
+        setPwMsg({ kind: "ok", text: "Password updated." });
+        setPwCurrent(""); setPwNew(""); setPwConfirm("");
+      } else {
+        const reason = d?.error === "wrong_password" ? "Current password is wrong."
+          : d?.error === "too_short" ? "New password must be at least 8 characters."
+          : "Couldn't change password.";
+        setPwMsg({ kind: "err", text: reason });
+      }
+    } catch {
+      setPwMsg({ kind: "err", text: "Network error" });
+    } finally {
+      setPwBusy(false);
+    }
+  }
+
+  // --- Pending approvals (admin) ---
+  type PendingUser = { id: string; username: string; email: string; createdAt: string };
+  const [pending, setPending] = useState<PendingUser[]>([]);
+  const [pendingBusy, setPendingBusy] = useState<string | null>(null);
+  const [pendingErr, setPendingErr] = useState<string | null>(null);
+
+  async function loadPending() {
+    try {
+      const r = await fetch("/api/admin/users/pending");
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d?.ok) setPending(d.users || []);
+    } catch { /* ignore */ }
+  }
+  useEffect(() => { if (isAdmin) loadPending(); }, [isAdmin]);
+
+  async function decide(id: string, action: "approve" | "deny") {
+    setPendingErr(null);
+    setPendingBusy(id);
+    try {
+      const r = await fetch(`/api/admin/users/${id}/${action}`, { method: "POST" });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.ok) setPendingErr(d?.error || `${action} failed`);
+      await loadPending();
+    } finally {
+      setPendingBusy(null);
+    }
+  }
+
   const update = (k: keyof Theme, v: string) => {
     setTheme((t) => ({ ...t, [k]: v }));
   };
@@ -276,6 +339,88 @@ export default function SettingsPage() {
             </button>
             {brandSaved && <span className="text-xs text-emerald-400">Saved — refresh to see everywhere</span>}
           </div>
+        </section>
+      )}
+
+      <section className="mb-6 space-y-3 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Change password</h2>
+        <div className="grid gap-3 sm:max-w-sm">
+          <input
+            type="password"
+            value={pwCurrent}
+            onChange={(e) => setPwCurrent(e.target.value)}
+            placeholder="Current password"
+            autoComplete="current-password"
+            className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-indigo-500"
+          />
+          <input
+            type="password"
+            value={pwNew}
+            onChange={(e) => setPwNew(e.target.value)}
+            placeholder="New password (min 8 chars)"
+            autoComplete="new-password"
+            className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-indigo-500"
+          />
+          <input
+            type="password"
+            value={pwConfirm}
+            onChange={(e) => setPwConfirm(e.target.value)}
+            placeholder="Confirm new password"
+            autoComplete="new-password"
+            className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-indigo-500"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={changePassword}
+            disabled={pwBusy || !pwCurrent || !pwNew}
+            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium"
+          >
+            {pwBusy ? "Saving…" : "Update password"}
+          </button>
+          {pwMsg && (
+            <span className={`text-xs ${pwMsg.kind === "ok" ? "text-emerald-400" : "text-red-400"}`}>{pwMsg.text}</span>
+          )}
+        </div>
+      </section>
+
+      {isAdmin && (
+        <section className="mb-6 space-y-3 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Pending approvals</h2>
+            <button
+              onClick={loadPending}
+              className="text-xs text-slate-400 hover:text-slate-200"
+            >Refresh</button>
+          </div>
+          {pending.length === 0 ? (
+            <p className="text-xs text-slate-500">No pending registrations.</p>
+          ) : (
+            <ul className="divide-y divide-slate-800/70">
+              {pending.map((u) => (
+                <li key={u.id} className="py-3 flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-slate-200 truncate">{u.username}</div>
+                    <div className="text-xs text-slate-500 truncate">{u.email}</div>
+                    <div className="text-[11px] text-slate-600">{new Date(u.createdAt).toLocaleString()}</div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => decide(u.id, "approve")}
+                      disabled={pendingBusy === u.id}
+                      className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium"
+                    >Approve</button>
+                    <button
+                      onClick={() => decide(u.id, "deny")}
+                      disabled={pendingBusy === u.id}
+                      className="px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-medium border border-slate-700"
+                    >Deny</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {pendingErr && <p className="text-xs text-red-400">{pendingErr}</p>}
         </section>
       )}
 

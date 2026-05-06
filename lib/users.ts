@@ -314,3 +314,44 @@ export async function bootstrapAdminIfEmpty(): Promise<void> {
 export function findAdminEmails(): string[] {
   return read().users.filter(u => u.isAdmin && u.status === "active").map(u => u.email);
 }
+
+export function listPending(): User[] {
+  return read().users.filter(u => u.status === "pending");
+}
+
+export function approveById(userId: string, approvedBy: string): User | null {
+  const store = read();
+  const u = store.users.find(x => x.id === userId);
+  if (!u) return null;
+  u.status = "active";
+  u.approvedAt = new Date().toISOString();
+  u.approvedBy = approvedBy;
+  for (const t of store.tokens) if (t.userId === userId) t.used = true;
+  write(store);
+  try { provisionWorkspace(u.username); } catch (e) { console.error("[users] provisionWorkspace failed", e); }
+  return u;
+}
+
+export function denyById(userId: string, deniedBy: string): User | null {
+  const store = read();
+  const u = store.users.find(x => x.id === userId);
+  if (!u) return null;
+  u.status = "denied";
+  u.deniedAt = new Date().toISOString();
+  u.approvedBy = deniedBy;
+  for (const t of store.tokens) if (t.userId === userId) t.used = true;
+  write(store);
+  return u;
+}
+
+export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ ok: true } | { ok: false; reason: "wrong_password" | "too_short" | "not_found" }> {
+  if ((newPassword || "").length < 8) return { ok: false, reason: "too_short" };
+  const store = read();
+  const u = store.users.find(x => x.id === userId);
+  if (!u) return { ok: false, reason: "not_found" };
+  const ok = await bcrypt.compare(currentPassword || "", u.passwordHash);
+  if (!ok) return { ok: false, reason: "wrong_password" };
+  u.passwordHash = await bcrypt.hash(newPassword, 12);
+  write(store);
+  return { ok: true };
+}
