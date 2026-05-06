@@ -185,7 +185,16 @@ export function readHistory(limit = 100): AlertEvent[] {
   }).filter(Boolean) as AlertEvent[];
 }
 
-function loadWebhookUrl(): string | null {
+function loadWebhookUrl(eventType?: string): string | null {
+  // Per-event override: approvals can route to a dedicated webhook so an
+  // OBT/Allhart split is just an env var, not a code change.
+  if (eventType === "auth.registration.pending") {
+    const approval = (process.env.MC_APPROVAL_DISCORD_WEBHOOK || "").trim();
+    if (approval.startsWith("https://")) return approval;
+  }
+  // Direct env URL (used on hosts without the keys/ file, e.g. OBT VPS).
+  const envUrl = (process.env.MC_ALERTS_WEBHOOK_URL || "").trim();
+  if (envUrl.startsWith("https://")) return envUrl;
   try {
     const raw = fs.readFileSync(WEBHOOK_PATH, "utf-8").trim();
     if (raw.startsWith("https://")) return raw;
@@ -209,7 +218,7 @@ function formatForDiscord(evt: AlertEvent): { content: string } {
 
 /* Fire Discord webhook. Returns true on success, false on skip/failure. */
 async function fireDiscord(evt: AlertEvent): Promise<boolean> {
-  const url = loadWebhookUrl();
+  const url = loadWebhookUrl(evt.type);
   if (!url) return false;
   try {
     const res = await fetch(url, {
