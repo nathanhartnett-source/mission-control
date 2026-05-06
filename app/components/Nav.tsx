@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BRAND_NAME } from "@/lib/brand";
+import { useBranding } from "@/lib/use-branding";
 
 const NON_ADMIN_NAV_ALLOW = new Set<string>(["/", "/agents", "/projects", "/todo", "/wiki"]);
 
@@ -65,6 +65,8 @@ const HIDDEN_PATHS = ["/login"];
 export default function Nav() {
   const pathname = usePathname();
   const router   = useRouter();
+  const branding = useBranding();
+  const BRAND_NAME = branding.name;
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {

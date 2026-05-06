@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import PixelAvatar from "@/app/components/PixelAvatar";
 import { rollAvatarSeed, agentAvatarSeed } from "@/lib/avatar";
-import { BRAND_NAME, BRAND_THEME } from "@/lib/brand";
+import { BRAND_THEME } from "@/lib/brand";
+import { useBranding } from "@/lib/use-branding";
 
 const AGENTS: { slug: string; name: string }[] = [
   { slug: "ava", name: "Ava" },
@@ -38,6 +39,60 @@ export default function SettingsPage() {
   const [agentSaving, setAgentSaving] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState<string>("");
+  const branding = useBranding();
+  const BRAND_NAME = branding.name;
+  const [brandName, setBrandName] = useState<string>("");
+  const [brandLogoData, setBrandLogoData] = useState<string>("");
+  const [brandSaving, setBrandSaving] = useState(false);
+  const [brandSaved, setBrandSaved] = useState(false);
+  const [brandError, setBrandError] = useState<string | null>(null);
+  useEffect(() => {
+    setBrandName(branding.name);
+    setBrandLogoData(branding.logoDataUrl || "");
+  }, [branding.name, branding.logoDataUrl]);
+
+  async function onLogoFile(f: File | null) {
+    setBrandError(null);
+    if (!f) { setBrandLogoData(""); return; }
+    if (f.size > 600_000) { setBrandError("Logo must be under 600KB."); return; }
+    const dataUrl = await new Promise<string>((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result || ""));
+      r.onerror = () => rej(new Error("read failed"));
+      r.readAsDataURL(f);
+    });
+    setBrandLogoData(dataUrl);
+  }
+
+  async function saveBranding() {
+    setBrandSaving(true);
+    setBrandError(null);
+    try {
+      const body: Record<string, unknown> = { name: brandName };
+      if (brandLogoData) body.logoDataUrl = brandLogoData;
+      else body.clearLogo = true;
+      const r = await fetch("/api/branding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.ok) {
+        setBrandError(d?.error || "Save failed");
+      } else {
+        setBrandSaved(true);
+        setTimeout(() => setBrandSaved(false), 1800);
+        // refresh injected branding so subsequent navigations pick it up
+        if (typeof window !== "undefined") {
+          (window as unknown as { __MC_BRANDING__?: unknown }).__MC_BRANDING__ = d.branding;
+        }
+      }
+    } catch {
+      setBrandError("Network error");
+    } finally {
+      setBrandSaving(false);
+    }
+  }
 
   useEffect(() => {
     try {
@@ -159,6 +214,67 @@ export default function SettingsPage() {
                 </div>
               );
             })}
+          </div>
+        </section>
+      )}
+
+      {isAdmin && (
+        <section className="mb-6 space-y-4 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Branding</h2>
+          <p className="text-xs text-slate-500 -mt-2">
+            Set the dashboard name and logo. Applies to every user on this instance.
+          </p>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Brand name</label>
+            <input
+              type="text"
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              maxLength={64}
+              className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-indigo-500"
+              placeholder="Allhart MC"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Logo (PNG / SVG / WebP, max 600KB)</label>
+            <div className="flex items-center gap-3">
+              <div className="h-16 w-32 flex items-center justify-center rounded-lg border border-slate-800 bg-slate-950/40 overflow-hidden">
+                {brandLogoData ? (
+                  <img src={brandLogoData} alt="logo preview" className="max-h-14 max-w-28 object-contain" />
+                ) : branding.logoSvg ? (
+                  <div
+                    className="h-12 [&>svg]:h-full [&>svg]:w-auto"
+                    dangerouslySetInnerHTML={{ __html: branding.logoSvg }}
+                  />
+                ) : (
+                  <span className="text-xs text-slate-600">No logo</span>
+                )}
+              </div>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+                onChange={(e) => onLogoFile(e.target.files?.[0] ?? null)}
+                className="text-xs text-slate-300"
+              />
+              {brandLogoData && (
+                <button
+                  type="button"
+                  onClick={() => setBrandLogoData("")}
+                  className="px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] border border-slate-700"
+                >Remove</button>
+              )}
+            </div>
+          </div>
+          {brandError && <p className="text-xs text-red-400">{brandError}</p>}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={saveBranding}
+              disabled={brandSaving}
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium"
+            >
+              {brandSaving ? "Saving…" : "Save branding"}
+            </button>
+            {brandSaved && <span className="text-xs text-emerald-400">Saved — refresh to see everywhere</span>}
           </div>
         </section>
       )}

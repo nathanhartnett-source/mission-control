@@ -13,14 +13,15 @@ import AchievementOverlay from "./components/AchievementOverlay";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
 import { BRAND_NAME } from "@/lib/brand";
+import { resolveBranding } from "@/lib/branding-server";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
 
-export const metadata: Metadata = {
-  title: BRAND_NAME,
-  description: BRAND_NAME,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const b = resolveBranding();
+  return { title: b.name || BRAND_NAME, description: b.name || BRAND_NAME };
+}
 
 // Page paths a non-admin user is allowed to render. Anything else gets
 // redirected to /. Auth itself is checked in middleware; this is the
@@ -52,8 +53,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     }
   }
 
+  const branding = resolveBranding();
+
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__MC_BRANDING__ = ${JSON.stringify(branding)};`,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${inter.className} min-h-screen bg-slate-900 mc-themed-body`}>
         <ThemeApplier />
         {!isPublic && <Nav />}
