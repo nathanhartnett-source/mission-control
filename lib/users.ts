@@ -332,6 +332,18 @@ export function approveById(userId: string, approvedBy: string): User | null {
   return u;
 }
 
+export type AssignableRole = UserRole;
+
+export function setUserRole(userId: string, role: AssignableRole): User | null {
+  const store = read();
+  const u = store.users.find(x => x.id === userId);
+  if (!u) return null;
+  u.role = role;
+  u.isAdmin = role === "admin";
+  write(store);
+  return u;
+}
+
 export function denyById(userId: string, deniedBy: string): User | null {
   const store = read();
   const u = store.users.find(x => x.id === userId);

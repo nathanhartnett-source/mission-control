@@ -211,6 +211,37 @@ export default function SettingsPage() {
     }
   }
 
+  // --- User roles (admin) ---
+  type Role = "admin" | "staff" | "client";
+  type RoleRow = { id: string; username: string; email: string; status: string; role: Role; isSelf: boolean };
+  const [roleRows, setRoleRows] = useState<RoleRow[]>([]);
+  const [roleBusy, setRoleBusy] = useState<string | null>(null);
+  const [roleErr, setRoleErr] = useState<string | null>(null);
+  async function loadRoles() {
+    try {
+      const r = await fetch("/api/admin/users");
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d?.ok) setRoleRows(d.users || []);
+    } catch { /* ignore */ }
+  }
+  useEffect(() => { if (isAdmin) loadRoles(); }, [isAdmin]);
+  async function changeRole(id: string, role: Role) {
+    setRoleErr(null);
+    setRoleBusy(id);
+    try {
+      const r = await fetch(`/api/admin/users/${id}/role`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.ok) setRoleErr(d?.error || "role update failed");
+      await loadRoles();
+    } finally {
+      setRoleBusy(null);
+    }
+  }
+
   const update = (k: keyof Theme, v: string) => {
     setTheme((t) => ({ ...t, [k]: v }));
   };
@@ -421,6 +452,40 @@ export default function SettingsPage() {
             </ul>
           )}
           {pendingErr && <p className="text-xs text-red-400">{pendingErr}</p>}
+        </section>
+      )}
+
+      {isAdmin && (
+        <section className="mb-6 space-y-3 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">User roles</h2>
+            <button onClick={loadRoles} className="text-xs text-slate-400 hover:text-slate-200">Refresh</button>
+          </div>
+          {roleRows.length === 0 ? (
+            <p className="text-xs text-slate-500">No users.</p>
+          ) : (
+            <ul className="divide-y divide-slate-800/70">
+              {roleRows.map((u) => (
+                <li key={u.id} className="py-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-slate-200 truncate">{u.username}{u.isSelf && <span className="ml-2 text-[10px] text-slate-500">(you)</span>}</div>
+                    <div className="text-xs text-slate-500 truncate">{u.email} · {u.status}</div>
+                  </div>
+                  <select
+                    value={u.role}
+                    disabled={roleBusy === u.id}
+                    onChange={(e) => changeRole(u.id, e.target.value as Role)}
+                    className="px-2 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 text-xs"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="staff">Staff</option>
+                    <option value="client">Client</option>
+                  </select>
+                </li>
+              ))}
+            </ul>
+          )}
+          {roleErr && <p className="text-xs text-red-400">{roleErr}</p>}
         </section>
       )}
 
