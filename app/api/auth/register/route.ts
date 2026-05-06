@@ -3,6 +3,7 @@ import { createPending, validateRegistration, findAdminEmails, bootstrapAdminIfE
 import { sendApprovalEmail } from "@/lib/mailer";
 import { checkLimit, clientIp } from "@/lib/rate-limit";
 import { audit } from "@/lib/auth-audit";
+import { fanout } from "@/lib/alerts";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -77,6 +78,17 @@ export async function POST(req: NextRequest) {
     );
 
     audit("register", { username: user.username, email: user.email, ip, ua });
+
+    // Discord ping so admin can approve fast even if SMTP is unconfigured.
+    fanout({
+      source: "auth",
+      type: "auth.registration.pending",
+      severity: "warn",
+      title: `New registration: ${user.username}`,
+      message: `Approve: ${approveUrl}\nDeny: ${denyUrl}`,
+      context: { username: user.username, email: user.email, ip },
+    }).catch(() => { /* don't block response on alert failure */ });
+
     return NextResponse.json(GENERIC_OK);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "";

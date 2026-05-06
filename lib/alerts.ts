@@ -82,6 +82,13 @@ export const EVENT_DEFS: EventDefinition[] = [
     default_severity: "critical",
   },
   {
+    type: "auth.registration.pending",
+    label: "New user registration pending approval",
+    description: "Someone submitted the /register form — needs admin approve/deny.",
+    default_enabled: true,
+    default_severity: "warn",
+  },
+  {
     type: "mu-plugins.rename-detected",
     label: "mu-plugins rename detected",
     description: "Safety watchdog — WP renamed mu-plugins → mu-plugins1 (the bug).",
