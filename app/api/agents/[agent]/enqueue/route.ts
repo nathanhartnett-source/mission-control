@@ -92,7 +92,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ agent: str
     // Kick the agent's runner immediately so the user doesn't wait up to 60s
     // for the cron tick. Cron remains the fallback.
     if (agent === "me") {
-      const child = spawn("/home/nathan/bin/mc-user-agent-runner.sh", [sessionUser.username], {
+      const runner = process.env.MC_RUNNER_ME || "/home/nathan/bin/mc-user-agent-runner.sh";
+      const child = spawn(runner, [sessionUser.username], {
         detached: true,
         stdio: "ignore",
         env: { ...process.env, HOME: os.homedir() },
