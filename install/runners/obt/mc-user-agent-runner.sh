@@ -12,7 +12,13 @@ set -euo pipefail
 USERNAME="${1:-}"
 [[ -z "$USERNAME" ]] && { echo "usage: $0 <username>" >&2; exit 2; }
 
-HOME_DIR="${HOME:-/root}"
+# Force HOME so `claude -p` finds /root/.claude/.credentials.json regardless
+# of how systemd / the parent Node process spawned us. Without this, headless
+# claude falls back to anonymous and 401s even though interactive works.
+export HOME="${HOME:-/root}"
+[[ "$HOME" == "/" || -z "$HOME" ]] && export HOME=/root
+unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
+HOME_DIR="$HOME"
 INBOX="$HOME_DIR/.claude/channels/user-${USERNAME}/inbox"
 OUTBOX="$HOME_DIR/wiki/_outbox/mc-agent"
 LOG="$HOME_DIR/.claude/logs/mc-user-agent-runner-${USERNAME}.log"
