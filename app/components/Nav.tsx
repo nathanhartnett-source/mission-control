@@ -47,7 +47,6 @@ const SIDEBAR_ITEMS = [
   { href: "/projects",      label: "Projects",      icon: "business" },
   { href: "/wiki",          label: "Wiki",          icon: "wiki" },
   { href: "/notifications", label: "Notifications", icon: "support" },
-  { href: "/download",      label: "Apps",          icon: "apps" },
 ] as const;
 
 const HIDDEN_PATHS = ["/login"];
@@ -118,6 +117,21 @@ export default function Nav() {
         </nav>
 
         <div className="px-3 py-4 border-t border-slate-800/60 space-y-0.5">
+          <Link
+            href="/download"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              isActive("/download")
+                ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent"
+            }`}
+            title="Install Mission Control as an app"
+          >
+            <span className="flex items-center gap-1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5L10.5 4.5V11.5H3V5.5ZM11.5 4.35L21 3V11.5H11.5V4.35ZM3 12.5H10.5V19.5L3 18.5V12.5ZM11.5 12.5H21V21L11.5 19.65V12.5Z"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12-.99.379-2.07 1.07-2.87.789-.91 2.107-1.59 3.094-1.78zM20.94 17.65c-.561 1.31-1.04 2.55-2.039 3.66-1.439 1.57-3.49 1.91-5.16.92-1.55-.91-2.83-.93-4.46-.01-2.13 1.18-4.42.59-5.91-1.47C.4 16.95-.78 12.18 1.39 9.05c1.07-1.5 2.91-2.43 4.84-2.45 1.39-.02 2.69.94 3.55.94.85 0 2.39-1.16 4.05-1 .68.02 2.65.27 3.91 2.06-3.34 1.94-2.79 6.69.59 7.05z"/></svg>
+            </span>
+            Get the app
+          </Link>
           <Link
             href="/settings"
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
