@@ -282,6 +282,72 @@ export default function SettingsPage() {
     }
   }
 
+  // --- Updates (admin) ---
+  type UpdateInfo = { head: string; remote: string; branch: string; behind: number; commits: string[] };
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [updateChecking, setUpdateChecking] = useState(false);
+  const [updateDeploying, setUpdateDeploying] = useState(false);
+  const [updateMsg, setUpdateMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [waitingForRestart, setWaitingForRestart] = useState(false);
+
+  async function checkUpdates() {
+    setUpdateChecking(true);
+    setUpdateMsg(null);
+    try {
+      const r = await fetch("/api/admin/updates/check");
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d?.ok) {
+        setUpdateInfo({ head: d.head, remote: d.remote, branch: d.branch, behind: d.behind, commits: d.commits || [] });
+      } else {
+        setUpdateMsg({ kind: "err", text: d?.error || "Check failed" });
+      }
+    } catch {
+      setUpdateMsg({ kind: "err", text: "Network error" });
+    } finally {
+      setUpdateChecking(false);
+    }
+  }
+  useEffect(() => { if (isAdmin) checkUpdates(); }, [isAdmin]);
+
+  async function pollHealth() {
+    setWaitingForRestart(true);
+    const start = Date.now();
+    while (Date.now() - start < 90_000) {
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        const r = await fetch("/api/auth/me", { cache: "no-store" });
+        if (r.ok) {
+          setWaitingForRestart(false);
+          window.location.reload();
+          return;
+        }
+      } catch { /* still down */ }
+    }
+    setWaitingForRestart(false);
+    setUpdateMsg({ kind: "err", text: "Service didn't come back within 90s — check server logs." });
+  }
+
+  async function deployUpdates() {
+    if (!confirm("Pull, rebuild, and restart Mission Control? The dashboard will be unavailable for ~30 seconds.")) return;
+    setUpdateDeploying(true);
+    setUpdateMsg(null);
+    try {
+      const r = await fetch("/api/admin/updates/deploy", { method: "POST" });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d?.ok) {
+        setUpdateMsg({ kind: "ok", text: "Build succeeded — restarting service…" });
+        await pollHealth();
+      } else {
+        const stderr = d?.stderr ? `\n\n${d.stderr}` : "";
+        setUpdateMsg({ kind: "err", text: `${d?.step || "deploy"} failed: ${d?.error || "unknown"}${stderr}` });
+      }
+    } catch {
+      setUpdateMsg({ kind: "err", text: "Network error" });
+    } finally {
+      setUpdateDeploying(false);
+    }
+  }
+
   const update = (k: keyof Theme, v: string) => {
     setTheme((t) => ({ ...t, [k]: v }));
   };
@@ -410,6 +476,62 @@ export default function SettingsPage() {
             </button>
             {brandSaved && <span className="text-xs text-emerald-400">Saved — refresh to see everywhere</span>}
           </div>
+        </section>
+      )}
+
+      {isAdmin && (
+        <section className="mb-6 space-y-3 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Updates</h2>
+            <button
+              onClick={checkUpdates}
+              disabled={updateChecking || updateDeploying}
+              className="text-xs text-slate-400 hover:text-slate-200 disabled:opacity-50"
+            >{updateChecking ? "Checking…" : "Check again"}</button>
+          </div>
+          {updateInfo ? (
+            <div className="text-xs text-slate-400 space-y-2">
+              <div>
+                Branch <code className="text-slate-200">{updateInfo.branch}</code> · local <code className="text-slate-200">{updateInfo.head}</code> · remote <code className="text-slate-200">{updateInfo.remote}</code>
+              </div>
+              {updateInfo.behind === 0 ? (
+                <p className="text-emerald-400">Up to date.</p>
+              ) : (
+                <>
+                  <p className="text-amber-300">{updateInfo.behind} commit{updateInfo.behind === 1 ? "" : "s"} behind:</p>
+                  <ul className="font-mono text-[11px] text-slate-300 max-h-40 overflow-y-auto bg-slate-950/40 rounded-md border border-slate-800 p-2">
+                    {updateInfo.commits.map((c) => (
+                      <li key={c} className="truncate">{c}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">Checking…</p>
+          )}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={deployUpdates}
+              disabled={updateDeploying || updateChecking || !updateInfo || updateInfo.behind === 0}
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium"
+            >
+              {updateDeploying ? "Deploying…" : "Pull & rebuild"}
+            </button>
+            {updateMsg && (
+              <span className={`text-xs whitespace-pre-wrap ${updateMsg.kind === "ok" ? "text-emerald-400" : "text-red-400"}`}>{updateMsg.text}</span>
+            )}
+          </div>
+          {waitingForRestart && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+              <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-sm text-center space-y-3">
+                <div className="text-2xl">⏳</div>
+                <h3 className="text-base font-semibold text-slate-100">Restarting Mission Control</h3>
+                <p className="text-xs text-slate-400">The dashboard is unavailable for a few seconds while the new build comes up. This page will reload automatically.</p>
+                <p className="text-xs text-slate-500">Don&apos;t close this tab.</p>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
