@@ -722,7 +722,7 @@ function CopyButton({ text }: { text: string }) {
 type Attachment = { name: string; path: string; size: number; mime: string; localPreview?: string };
 
 export default function AgentsClient() {
-  const [me, setMe] = useState<{ isAdmin: boolean; username: string; agentName: string | null; avatarSeed: string; agentAvatarSeeds: Record<string,string> } | null>(null);
+  const [me, setMe] = useState<{ isAdmin: boolean; username: string; agentName: string | null; avatarSeed: string; agentAvatarSeeds: Record<string,string>; clientMode: boolean } | null>(null);
   useEffect(() => {
     let alive = true;
     fetch("/api/auth/me").then(async r => {
@@ -734,6 +734,7 @@ export default function AgentsClient() {
         agentName: d?.user?.agentName ?? null,
         avatarSeed: d?.user?.avatarSeed || `user:${d?.user?.username || "me"}`,
         agentAvatarSeeds: d?.user?.agentAvatarSeeds || {},
+        clientMode: !!d?.clientMode,
       });
     });
     return () => { alive = false; };
@@ -743,7 +744,7 @@ export default function AgentsClient() {
   if (me === null) {
     return <div className="fixed inset-x-0 top-0 bottom-[56px] md:bottom-0 md:left-52 bg-[#0a0a0a]" />;
   }
-  if (!me.isAdmin) {
+  if (!me.isAdmin || me.clientMode) {
     return <UserAgentChat agentName={me.agentName || "Your agent"} userSeed={me.avatarSeed} agentSeedOverrides={me.agentAvatarSeeds} />;
   }
   return <AdminAgentsClient userSeed={me.avatarSeed} username={me.username} agentSeedOverrides={me.agentAvatarSeeds} />;

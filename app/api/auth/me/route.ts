@@ -4,6 +4,7 @@ import path from "path";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
 import { memoryDir } from "@/lib/workspace";
+import { mcConfig } from "@/lib/mc-config";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -36,9 +37,10 @@ export async function GET(req: NextRequest) {
       email: user.email,
       isAdmin: user.isAdmin,
       personaCompleted: !!user.personaCompleted,
-      agentName: readAgentName(user.username),
+      agentName: readAgentName(user.username) || (mcConfig.clientMode ? mcConfig.agentName : null),
       avatarSeed: user.avatarSeed || `user:${user.username}`,
       agentAvatarSeeds: user.agentAvatarSeeds || {},
     },
+    clientMode: mcConfig.clientMode,
   });
 }
