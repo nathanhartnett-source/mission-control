@@ -27,9 +27,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, step: "pull", error: e.message, stderr: (e.stderr || "").slice(-2000) }, { status: 500 });
   }
   try {
-    await exec("npm", ["--prefix", repoDir, "install", "--no-audit", "--no-fund"], {
+    await exec("npm", ["--prefix", repoDir, "install", "--include=dev", "--no-audit", "--no-fund"], {
       timeout: 240_000,
       maxBuffer: 16 * 1024 * 1024,
+      env: { ...process.env, NODE_ENV: "development", NPM_CONFIG_PRODUCTION: "false" },
     });
   } catch (e: any) {
     return NextResponse.json({ ok: false, step: "install", error: e.message, stderr: (e.stderr || "").slice(-2000) }, { status: 500 });
