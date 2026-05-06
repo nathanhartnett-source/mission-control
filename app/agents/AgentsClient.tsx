@@ -131,10 +131,34 @@ function resolveImageRef(p: string): { src: string; downloadHref: string; filena
   return { src: url, downloadHref: url, filename };
 }
 
-// Renders agent reply text with inline markdown images (`![alt](path)`).
-// Plain text segments keep the existing whitespace-pre-wrap styling; image
-// segments render the picture inline with a small download chip beneath.
-function RichAgentText({ text }: { text: string }) {
+function CodeBlock({ code, lang }: { code: string; lang?: string }) {
+  const [copied, setCopied] = useState(false);
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
+  return (
+    <div className="relative my-2 group">
+      <pre className="overflow-x-auto rounded-lg border border-slate-700/50 bg-slate-900/70 p-3 pr-16 text-[12px] text-slate-100 font-mono whitespace-pre">
+        <code>{code}</code>
+      </pre>
+      <button
+        type="button"
+        onClick={onCopy}
+        className="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-medium text-slate-200 bg-slate-700/70 hover:bg-slate-600 border border-slate-600/50"
+        title="Copy to clipboard"
+      >
+        {copied ? "Copied" : "Copy"}
+        {lang ? <span className="ml-1 opacity-60">{lang}</span> : null}
+      </button>
+    </div>
+  );
+}
+
+function renderPlainWithImages(text: string, keyPrefix: string): React.ReactNode[] {
   const re = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
   const parts: React.ReactNode[] = [];
   let lastIdx = 0;
@@ -145,14 +169,14 @@ function RichAgentText({ text }: { text: string }) {
       const seg = text.slice(lastIdx, m.index);
       if (seg.trim().length > 0) {
         parts.push(
-          <div key={`t-${key++}`} className="whitespace-pre-wrap break-words">{seg}</div>,
+          <div key={`${keyPrefix}-t-${key++}`} className="whitespace-pre-wrap break-words">{seg}</div>,
         );
       }
     }
     const alt = m[1];
     const { src, downloadHref, filename } = resolveImageRef(m[2]);
     parts.push(
-      <div key={`i-${key++}`} className="my-2">
+      <div key={`${keyPrefix}-i-${key++}`} className="my-2">
         <a href={src} target="_blank" rel="noreferrer" className="block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={src} alt={alt || filename} className="max-h-72 max-w-full rounded-lg border border-slate-700/40 object-contain" />
@@ -178,12 +202,36 @@ function RichAgentText({ text }: { text: string }) {
     const seg = text.slice(lastIdx);
     if (seg.trim().length > 0) {
       parts.push(
-        <div key={`t-${key++}`} className="whitespace-pre-wrap break-words">{seg}</div>,
+        <div key={`${keyPrefix}-t-${key++}`} className="whitespace-pre-wrap break-words">{seg}</div>,
       );
     }
   }
-  // No images found → fall back to the original plain-text rendering so the
-  // existing whitespace-pre-wrap behaviour is preserved.
+  if (parts.length === 0) {
+    return [<div key={`${keyPrefix}-fallback`} className="whitespace-pre-wrap break-words">{text}</div>];
+  }
+  return parts;
+}
+
+function RichAgentText({ text }: { text: string }) {
+  const fence = /```([a-zA-Z0-9_+-]*)\n([\s\S]*?)```/g;
+  const parts: React.ReactNode[] = [];
+  let lastIdx = 0;
+  let key = 0;
+  let m: RegExpExecArray | null;
+  while ((m = fence.exec(text)) !== null) {
+    if (m.index > lastIdx) {
+      const seg = text.slice(lastIdx, m.index);
+      parts.push(...renderPlainWithImages(seg, `s${key++}`));
+    }
+    const lang = m[1] || undefined;
+    const code = m[2].replace(/\n$/, "");
+    parts.push(<CodeBlock key={`c-${key++}`} code={code} lang={lang} />);
+    lastIdx = m.index + m[0].length;
+  }
+  if (lastIdx < text.length) {
+    const seg = text.slice(lastIdx);
+    parts.push(...renderPlainWithImages(seg, `s${key++}`));
+  }
   if (parts.length === 0) {
     return <div className="whitespace-pre-wrap break-words">{text}</div>;
   }
