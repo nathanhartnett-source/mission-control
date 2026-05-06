@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { BRAND_NAME } from "@/lib/brand";
 
 const NON_ADMIN_NAV_ALLOW = new Set<string>(["/", "/agents", "/projects", "/todo", "/wiki"]);
 
@@ -100,7 +101,7 @@ export default function Nav() {
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-52 bg-slate-950 border-r border-slate-800/60 z-30">
         <div className="px-5 py-5 border-b border-slate-800/60">
           <span className="text-[11px] font-semibold tracking-widest uppercase text-slate-500">
-            Allhart MC
+            {BRAND_NAME}
           </span>
         </div>
 

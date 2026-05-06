@@ -12,13 +12,14 @@ import ConnectionHealthOverlay from "./components/ConnectionHealthOverlay";
 import AchievementOverlay from "./components/AchievementOverlay";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
+import { BRAND_NAME } from "@/lib/brand";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
 
 export const metadata: Metadata = {
-  title: "Allhart MC",
-  description: "Allhart MC",
+  title: BRAND_NAME,
+  description: BRAND_NAME,
 };
 
 // Page paths a non-admin user is allowed to render. Anything else gets

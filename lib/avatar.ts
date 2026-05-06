@@ -118,17 +118,16 @@ export function avatarSvg(seed: string, size: number = 80): string {
   // Round shoulder edges
   grid[10][1] = null; grid[10][10] = null;
 
-  const cell = size / 12;
   let rects = "";
   for (let y = 0; y < 12; y++) {
     for (let x = 0; x < 12; x++) {
       const c = grid[y][x];
       if (!c) continue;
-      rects += `<rect x="${x * cell}" y="${y * cell}" width="${cell}" height="${cell}" fill="${c}"/>`;
+      rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`;
     }
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${bg}"/>${rects}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 12 12" shape-rendering="crispEdges" preserveAspectRatio="xMidYMid meet"><rect width="12" height="12" fill="${bg}"/>${rects}</svg>`;
 }
 
 export function avatarDataUri(seed: string, size: number = 80): string {

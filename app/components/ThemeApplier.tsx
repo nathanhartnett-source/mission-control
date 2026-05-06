@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { BRAND_THEME } from "@/lib/brand";
 
 type Theme = Partial<{
   dashboardBg: string;
@@ -43,10 +44,10 @@ function buildCss(t: Theme): string {
 
 function apply() {
   if (typeof window === "undefined") return;
-  let theme: Theme = {};
+  let theme: Theme = { ...BRAND_THEME };
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) theme = JSON.parse(raw);
+    if (raw) theme = { ...theme, ...JSON.parse(raw) };
   } catch { /* ignore */ }
 
   let tag = document.getElementById(STYLE_ID) as HTMLStyleElement | null;

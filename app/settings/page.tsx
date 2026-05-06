@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import PixelAvatar from "@/app/components/PixelAvatar";
 import { rollAvatarSeed, agentAvatarSeed } from "@/lib/avatar";
+import { BRAND_NAME, BRAND_THEME } from "@/lib/brand";
 
 const AGENTS: { slug: string; name: string }[] = [
   { slug: "ava", name: "Ava" },
@@ -14,14 +15,7 @@ const AGENTS: { slug: string; name: string }[] = [
 
 const STORAGE_KEY = "mc-theme-v1";
 
-const DEFAULTS = {
-  dashboardBg:    "#0f172a",
-  sidebarBg:      "#020617",
-  textColor:      "#e2e8f0",
-  userBubbleBg:   "#6366f1",
-  agentBubbleBg:  "#1e293b",
-  chatWindowBg:   "#0f172a",
-};
+const DEFAULTS = { ...BRAND_THEME };
 
 type Theme = typeof DEFAULTS;
 
@@ -120,7 +114,7 @@ export default function SettingsPage() {
     <main className="p-6 md:p-10 max-w-2xl text-slate-200">
       <h1 className="text-2xl font-semibold mb-1">Dashboard Settings</h1>
       <p className="text-sm text-slate-400 mb-6">
-        Customise Allhart MC colours. Changes are stored locally in this browser.
+        Customise {BRAND_NAME} colours. Changes are stored locally in this browser.
       </p>
 
       <section className="mb-6 space-y-4 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
