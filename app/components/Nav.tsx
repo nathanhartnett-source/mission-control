@@ -36,12 +36,7 @@ const MOBILE_ITEMS = [
   { href: "/projects",      label: "Projects", icon: "business" },
   { href: "/todo",          label: "To-Do",   icon: "runs", nonAdminOnly: true },
   { href: "/wiki",          label: "Wiki",    icon: "wiki" },
-  { href: "/metrics",       label: "Metrics", icon: "reporting" },
-  { href: "/support",       label: "Support", icon: "support" },
-  { href: "/discussions",   label: "Discuss", icon: "support" },
-  { href: "/daily-runs",    label: "Runs",    icon: "runs" },
-  { href: "/social-review", label: "Social",  icon: "film" },
-  { href: "/reporting",     label: "Reports", icon: "reporting" },
+  { href: "/notifications", label: "Alerts",  icon: "support" },
   { href: "/settings",      label: "Settings", icon: "gear" },
 ] as const;
 
@@ -51,12 +46,6 @@ const SIDEBAR_ITEMS = [
   { href: "/projects",      label: "Projects",      icon: "business" },
   { href: "/todo",          label: "To-Do",         icon: "runs", nonAdminOnly: true },
   { href: "/wiki",          label: "Wiki",          icon: "wiki" },
-  { href: "/metrics",       label: "Metrics",       icon: "reporting" },
-  { href: "/support",       label: "Support",       icon: "support" },
-  { href: "/discussions",   label: "Discussions",   icon: "support" },
-  { href: "/daily-runs",    label: "Daily Runs",    icon: "runs" },
-  { href: "/social-review", label: "Social Review", icon: "film" },
-  { href: "/reporting",     label: "Reporting",     icon: "reporting" },
   { href: "/notifications", label: "Notifications", icon: "support" },
 ] as const;
 

@@ -163,15 +163,6 @@ export default function HomePage() {
           <QuickLink href="/wiki"     title="Wiki →"                   subtitle="Shared knowledge base" />
         </section>
 
-        {me?.isAdmin && (
-          <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-            <QuickLink href="/metrics"       title="Metrics →"        subtitle="Brand performance" />
-            <QuickLink href="/daily-runs"    title="Daily runs →"     subtitle="Scheduled jobs" />
-            <QuickLink href="/social-review" title="Social review →"  subtitle="Posts awaiting approval" />
-            <QuickLink href="/reporting"     title="Reporting →"      subtitle="Reports & schedules" />
-          </section>
-        )}
-
       </div>
     </div>
   );
