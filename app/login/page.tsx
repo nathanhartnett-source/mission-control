@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
-import { BRAND_NAME } from "@/lib/brand";
+import { BRAND_NAME, BRAND_LOGO } from "@/lib/brand";
 
 function LoginForm() {
   const searchParams  = useSearchParams();
@@ -47,7 +47,15 @@ function LoginForm() {
       <div className="w-full max-w-sm">
         {/* Logo / title */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white tracking-tight">{BRAND_NAME}</h1>
+          {BRAND_LOGO ? (
+            <img
+              src={BRAND_LOGO}
+              alt={BRAND_NAME}
+              className="h-16 mx-auto mb-3"
+            />
+          ) : (
+            <h1 className="text-2xl font-bold text-white tracking-tight">{BRAND_NAME}</h1>
+          )}
           <p className="text-sm text-slate-400 mt-1">Sign in to continue</p>
         </div>
 

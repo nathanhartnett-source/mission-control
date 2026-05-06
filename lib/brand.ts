@@ -11,6 +11,7 @@ export type BrandKey = "allhart" | "obt";
 type BrandConfig = {
   key: BrandKey;
   name: string;
+  logo?: string;
   defaultTheme: {
     dashboardBg: string;
     sidebarBg: string;
@@ -37,6 +38,7 @@ const BRANDS: Record<BrandKey, BrandConfig> = {
   obt: {
     key: "obt",
     name: "OBT MC",
+    logo: "/brand/obt-logo.svg",
     // Sourced from obt.com.au: primary #195985 (deep blue),
     // accent #ef3f56 (coral red), tertiary #DBD56E (gold).
     defaultTheme: {
@@ -58,4 +60,5 @@ function resolveKey(): BrandKey {
 
 export const BRAND: BrandConfig = BRANDS[resolveKey()];
 export const BRAND_NAME = BRAND.name;
+export const BRAND_LOGO = BRAND.logo;
 export const BRAND_THEME = BRAND.defaultTheme;
