@@ -37,7 +37,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const h = await headers();
   const pathname = h.get("x-pathname") || "/";
 
-  if (!PUBLIC_PAGES.has(pathname) && !pathname.startsWith("/api/") && !pathname.startsWith("/_next/")) {
+  const isPublic = PUBLIC_PAGES.has(pathname);
+
+  if (!isPublic && !pathname.startsWith("/api/") && !pathname.startsWith("/_next/")) {
     const cookieStore = await cookies();
     const session = verify(cookieStore.get(SESSION_COOKIE)?.value);
     if (session) {
@@ -54,14 +56,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${inter.className} min-h-screen bg-slate-900 mc-themed-body`}>
         <ThemeApplier />
-        <Nav />
+        {!isPublic && <Nav />}
         <NotificationPoller />
         <OnboardingGate />
         <SessionWatcher />
         <ConnectionHealthOverlay />
         <AchievementOverlay />
-        {/* md:ml-52 = sidebar width offset; pb-16 = bottom nav height offset on mobile */}
-        <div className="mc-dashboard-shell md:ml-52 pb-16 md:pb-0">
+        <div className={isPublic ? "mc-dashboard-shell" : "mc-dashboard-shell md:ml-52 pb-16 md:pb-0"}>
           {children}
         </div>
       </body>
