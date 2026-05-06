@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useBranding } from "@/lib/use-branding";
 
-const NON_ADMIN_NAV_ALLOW = new Set<string>(["/", "/agents", "/projects", "/todo", "/wiki"]);
+const NON_ADMIN_NAV_ALLOW = new Set<string>(["/", "/agents", "/projects", "/todo", "/wiki", "/download"]);
 
 function Icon({ d, size = 20 }: { d: string; size?: number }) {
   return (
@@ -27,6 +27,7 @@ const ICONS = {
   film:     "M3.75 3v18m16.5-18v18M3.75 7.5h16.5M3.75 12h16.5M3.75 16.5h16.5M7.5 3v18m9-18v18",
   target:   "M12 21a9 9 0 100-18 9 9 0 000 18zM12 17a5 5 0 100-10 5 5 0 000 10zM12 13a1 1 0 100-2 1 1 0 000 2z",
   wiki:     "M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25A8.966 8.966 0 0118 3.75c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25",
+  apps:     "M3.75 6.75h4.5v-4.5h-4.5v4.5zM3.75 14.25h4.5v-4.5h-4.5v4.5zM3.75 21.75h4.5v-4.5h-4.5v4.5zM11.25 6.75h4.5v-4.5h-4.5v4.5zM11.25 14.25h4.5v-4.5h-4.5v4.5zM11.25 21.75h4.5v-4.5h-4.5v4.5zM18.75 6.75h4.5v-4.5h-4.5v4.5zM18.75 14.25h4.5v-4.5h-4.5v4.5zM18.75 21.75h4.5v-4.5h-4.5v4.5z",
   gear:     "M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a6.759 6.759 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.213-1.28zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z",
 };
 
@@ -37,6 +38,7 @@ const MOBILE_ITEMS = [
   { href: "/todo",          label: "To-Do",   icon: "runs", nonAdminOnly: true },
   { href: "/wiki",          label: "Wiki",    icon: "wiki" },
   { href: "/notifications", label: "Alerts",  icon: "support" },
+  { href: "/download",      label: "Apps",    icon: "apps" },
   { href: "/settings",      label: "Settings", icon: "gear" },
 ] as const;
 
@@ -47,6 +49,7 @@ const SIDEBAR_ITEMS = [
   { href: "/todo",          label: "To-Do",         icon: "runs", nonAdminOnly: true },
   { href: "/wiki",          label: "Wiki",          icon: "wiki" },
   { href: "/notifications", label: "Notifications", icon: "support" },
+  { href: "/download",      label: "Apps",          icon: "apps" },
 ] as const;
 
 const HIDDEN_PATHS = ["/login"];

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { HexColorPicker } from "react-colorful";
 import PixelAvatar from "@/app/components/PixelAvatar";
 import { rollAvatarSeed, agentAvatarSeed } from "@/lib/avatar";
 import { BRAND_THEME } from "@/lib/brand";
@@ -20,6 +21,28 @@ const DEFAULTS = { ...BRAND_THEME };
 
 type Theme = typeof DEFAULTS;
 
+const PRESETS: { name: string; theme: Theme }[] = [
+  { name: "Midnight (default)", theme: DEFAULTS },
+  { name: "Ocean", theme: { ...DEFAULTS,
+      dashboardBg: "#0b2545", sidebarBg: "#061a35", textColor: "#dbeafe",
+      userBubbleBg: "#0ea5e9", agentBubbleBg: "#13315c", chatWindowBg: "#0b2545" } },
+  { name: "Forest", theme: { ...DEFAULTS,
+      dashboardBg: "#1a2e1a", sidebarBg: "#0d1f0d", textColor: "#dcfce7",
+      userBubbleBg: "#16a34a", agentBubbleBg: "#243d24", chatWindowBg: "#1a2e1a" } },
+  { name: "Sunset", theme: { ...DEFAULTS,
+      dashboardBg: "#2a1410", sidebarBg: "#1a0a08", textColor: "#fed7aa",
+      userBubbleBg: "#f97316", agentBubbleBg: "#3d1f1a", chatWindowBg: "#2a1410" } },
+  { name: "Mono", theme: { ...DEFAULTS,
+      dashboardBg: "#111111", sidebarBg: "#000000", textColor: "#e5e5e5",
+      userBubbleBg: "#525252", agentBubbleBg: "#262626", chatWindowBg: "#111111" } },
+  { name: "Plum", theme: { ...DEFAULTS,
+      dashboardBg: "#1e1033", sidebarBg: "#0f0820", textColor: "#e9d5ff",
+      userBubbleBg: "#a855f7", agentBubbleBg: "#2d1b4e", chatWindowBg: "#1e1033" } },
+  { name: "Slate", theme: { ...DEFAULTS,
+      dashboardBg: "#1e293b", sidebarBg: "#0f172a", textColor: "#f1f5f9",
+      userBubbleBg: "#475569", agentBubbleBg: "#334155", chatWindowBg: "#1e293b" } },
+];
+
 const FIELDS: { key: keyof Theme; label: string; hint?: string }[] = [
   { key: "dashboardBg",   label: "Dashboard background" },
   { key: "sidebarBg",     label: "Sidebar / mobile nav background" },
@@ -31,6 +54,7 @@ const FIELDS: { key: keyof Theme; label: string; hint?: string }[] = [
 
 export default function SettingsPage() {
   const [theme, setTheme] = useState<Theme>(DEFAULTS);
+  const [openPicker, setOpenPicker] = useState<keyof Theme | null>(null);
   const [saved, setSaved] = useState(false);
   const [avatarSeed, setAvatarSeedState] = useState<string>("");
   const [avatarSaving, setAvatarSaving] = useState(false);
@@ -184,7 +208,7 @@ export default function SettingsPage() {
   }
 
   // --- Pending approvals (admin) ---
-  type PendingUser = { id: string; username: string; email: string; createdAt: string };
+  type PendingUser = { id: string; username: string; email: string; createdAt: string; justApproved?: boolean };
   const [pending, setPending] = useState<PendingUser[]>([]);
   const [pendingBusy, setPendingBusy] = useState<string | null>(null);
   const [pendingErr, setPendingErr] = useState<string | null>(null);
@@ -193,7 +217,14 @@ export default function SettingsPage() {
     try {
       const r = await fetch("/api/admin/users/pending");
       const d = await r.json().catch(() => ({}));
-      if (r.ok && d?.ok) setPending(d.users || []);
+      if (r.ok && d?.ok) {
+        const fresh: PendingUser[] = d.users || [];
+        // Preserve any rows we just approved this session so the admin can still set their role.
+        setPending((prev) => {
+          const stillJustApproved = prev.filter((p) => p.justApproved && !fresh.find((f) => f.id === p.id));
+          return [...stillJustApproved, ...fresh];
+        });
+      }
     } catch { /* ignore */ }
   }
   useEffect(() => { if (isAdmin) loadPending(); }, [isAdmin]);
@@ -204,8 +235,17 @@ export default function SettingsPage() {
     try {
       const r = await fetch(`/api/admin/users/${id}/${action}`, { method: "POST" });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok || !d?.ok) setPendingErr(d?.error || `${action} failed`);
-      await loadPending();
+      if (!r.ok || !d?.ok) {
+        setPendingErr(d?.error || `${action} failed`);
+        return;
+      }
+      if (action === "approve") {
+        // Keep the row visible inline so the admin can set a role immediately.
+        setPending((prev) => prev.map((p) => p.id === id ? { ...p, justApproved: true } : p));
+        await loadRoles();
+      } else {
+        await loadPending();
+      }
     } finally {
       setPendingBusy(null);
     }
@@ -428,27 +468,48 @@ export default function SettingsPage() {
             <p className="text-xs text-slate-500">No pending registrations.</p>
           ) : (
             <ul className="divide-y divide-slate-800/70">
-              {pending.map((u) => (
-                <li key={u.id} className="py-3 flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-slate-200 truncate">{u.username}</div>
-                    <div className="text-xs text-slate-500 truncate">{u.email}</div>
-                    <div className="text-[11px] text-slate-600">{new Date(u.createdAt).toLocaleString()}</div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => decide(u.id, "approve")}
-                      disabled={pendingBusy === u.id}
-                      className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium"
-                    >Approve</button>
-                    <button
-                      onClick={() => decide(u.id, "deny")}
-                      disabled={pendingBusy === u.id}
-                      className="px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-medium border border-slate-700"
-                    >Deny</button>
-                  </div>
-                </li>
-              ))}
+              {pending.map((u) => {
+                const roleRow = roleRows.find((r) => r.id === u.id);
+                return (
+                  <li key={u.id} className="py-3 flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-slate-200 truncate">
+                        {u.username}
+                        {u.justApproved && <span className="ml-2 text-[10px] text-emerald-400 uppercase tracking-wider">approved</span>}
+                      </div>
+                      <div className="text-xs text-slate-500 truncate">{u.email}</div>
+                      <div className="text-[11px] text-slate-600">{new Date(u.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {u.justApproved ? (
+                        <select
+                          value={roleRow?.role ?? "staff"}
+                          disabled={roleBusy === u.id}
+                          onChange={(e) => changeRole(u.id, e.target.value as Role)}
+                          className="px-2 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 text-xs"
+                        >
+                          <option value="admin">Admin</option>
+                          <option value="staff">Staff</option>
+                          <option value="client">Client</option>
+                        </select>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => decide(u.id, "approve")}
+                            disabled={pendingBusy === u.id}
+                            className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium"
+                          >Approve</button>
+                          <button
+                            onClick={() => decide(u.id, "deny")}
+                            disabled={pendingBusy === u.id}
+                            className="px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-medium border border-slate-700"
+                          >Deny</button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
           {pendingErr && <p className="text-xs text-red-400">{pendingErr}</p>}
@@ -489,23 +550,65 @@ export default function SettingsPage() {
         </section>
       )}
 
+      <section className="mb-6 space-y-3 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Presets</h2>
+        <p className="text-xs text-slate-500 -mt-1">Pick a starting palette. You can still tweak individual colours below.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {PRESETS.map((p) => (
+            <button
+              key={p.name}
+              onClick={() => setTheme(p.theme)}
+              className="flex items-center gap-2 rounded-lg border border-slate-800/70 bg-slate-950/30 hover:border-slate-600 p-2 text-left"
+            >
+              <div className="flex gap-0.5">
+                <span className="h-7 w-2.5 rounded-sm" style={{ background: p.theme.dashboardBg }} />
+                <span className="h-7 w-2.5 rounded-sm" style={{ background: p.theme.sidebarBg }} />
+                <span className="h-7 w-2.5 rounded-sm" style={{ background: p.theme.userBubbleBg }} />
+                <span className="h-7 w-2.5 rounded-sm" style={{ background: p.theme.agentBubbleBg }} />
+              </div>
+              <span className="text-xs text-slate-200">{p.name}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="space-y-4 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Theme colours</h2>
         {FIELDS.map(({ key, label, hint }) => (
           <div key={key} className="rounded-lg border border-slate-800/70 bg-slate-950/20 p-3 md:border-0 md:bg-transparent md:p-0">
-            <label className="flex items-center gap-4">
-              <input
-                type="color"
-                value={theme[key]}
-                onChange={(e) => update(key, e.target.value)}
-                className="h-12 w-16 shrink-0 cursor-pointer rounded-lg border border-slate-700 bg-transparent p-1 md:h-10 md:w-14"
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                aria-label={`${label} — open colour picker`}
+                onClick={() => setOpenPicker(openPicker === key ? null : key)}
+                style={{ backgroundColor: theme[key] }}
+                className="h-14 w-14 shrink-0 cursor-pointer rounded-lg border border-slate-700 md:h-10 md:w-14"
               />
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="text-sm">{label}</div>
                 {hint && <div className="text-xs text-slate-500">{hint}</div>}
               </div>
-              <code className="text-xs text-slate-500">{theme[key]}</code>
-            </label>
+              <input
+                type="text"
+                inputMode="text"
+                spellCheck={false}
+                value={theme[key]}
+                onChange={(e) => {
+                  const v = e.target.value.trim();
+                  update(key, v.startsWith("#") ? v : `#${v}`);
+                }}
+                className="w-24 shrink-0 rounded-md border border-slate-700 bg-slate-950/60 px-2 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-slate-500"
+              />
+            </div>
+            {openPicker === key && (
+              <div className="mt-3 flex justify-center">
+                <HexColorPicker
+                  color={theme[key]}
+                  onChange={(c) => update(key, c)}
+                  style={{ width: "100%", maxWidth: 280, height: 220 }}
+                />
+              </div>
+            )}
           </div>
         ))}
       </section>
