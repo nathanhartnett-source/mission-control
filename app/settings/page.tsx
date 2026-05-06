@@ -61,7 +61,12 @@ export default function SettingsPage() {
   const [avatarSaved, setAvatarSaved] = useState(false);
   const [agentSeeds, setAgentSeeds] = useState<Record<string, string>>({});
   const [agentSaving, setAgentSaving] = useState<string | null>(null);
+  const [agentNames, setAgentNames] = useState<Record<string, string>>({});
+  const [agentNameSaving, setAgentNameSaving] = useState<string | null>(null);
+  const [agentNameSavedSlug, setAgentNameSavedSlug] = useState<string | null>(null);
+  const [userAgentName, setUserAgentName] = useState<string>("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [clientMode, setClientMode] = useState(false);
   const [username, setUsername] = useState<string>("");
   const branding = useBranding();
   const BRAND_NAME = branding.name;
@@ -131,7 +136,10 @@ export default function SettingsPage() {
       .then(d => {
         if (d?.ok && d.user?.avatarSeed) setAvatarSeedState(d.user.avatarSeed);
         if (d?.ok && d.user?.agentAvatarSeeds) setAgentSeeds(d.user.agentAvatarSeeds);
+        if (d?.ok && d.user?.agentNames) setAgentNames(d.user.agentNames);
+        if (d?.ok && d.user?.agentName) setUserAgentName(d.user.agentName);
         if (d?.ok) setIsAdmin(!!d.user?.isAdmin);
+        if (d) setClientMode(!!d.clientMode);
         if (d?.ok && d.user?.username) setUsername(d.user.username);
       })
       .catch(() => {});
@@ -154,6 +162,24 @@ export default function SettingsPage() {
       }
     } finally {
       setAvatarSaving(false);
+    }
+  }
+
+  async function saveAgentName(slug: string, name: string) {
+    setAgentNameSaving(slug);
+    setAgentNameSavedSlug(null);
+    try {
+      const r = await fetch("/api/me/agent-name", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent: slug, name }),
+      });
+      if (r.ok) {
+        setAgentNameSavedSlug(slug);
+        setTimeout(() => setAgentNameSavedSlug(prev => prev === slug ? null : prev), 1500);
+      }
+    } finally {
+      setAgentNameSaving(null);
     }
   }
 
@@ -393,23 +419,77 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {isAdmin && (
+      {clientMode ? (
         <section className="mb-6 space-y-4 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Agent avatars</h2>
-          <p className="text-xs text-slate-500 -mt-2">Re-roll the pixel-art for each agent. Shows in their chat bubbles everywhere.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Your agent</h2>
+          <p className="text-xs text-slate-500 -mt-2">Name and pixel-art for the agent that talks to you in MC.</p>
+          {(() => {
+            const slug = "me";
+            const seed = agentSeeds[slug] || agentAvatarSeed(slug);
+            const nameVal = agentNames[slug] ?? userAgentName ?? "";
+            return (
+              <div className="flex items-center gap-3 rounded-lg border border-slate-800/70 bg-slate-950/30 p-3">
+                <PixelAvatar seed={seed} size={56} />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={nameVal}
+                      onChange={(e) => setAgentNames(prev => ({ ...prev, [slug]: e.target.value }))}
+                      maxLength={64}
+                      placeholder="Agent name"
+                      className="flex-1 px-2 py-1 rounded-md bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-indigo-500"
+                    />
+                    <button
+                      onClick={() => saveAgentName(slug, agentNames[slug] ?? userAgentName ?? "")}
+                      disabled={agentNameSaving === slug}
+                      className="px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-[11px] font-medium"
+                    >Save</button>
+                    {agentNameSavedSlug === slug && <span className="text-xs text-emerald-400">Saved</span>}
+                  </div>
+                  <button
+                    onClick={() => rerollAgent(slug)}
+                    disabled={agentSaving === slug}
+                    className="px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[11px] font-medium"
+                  >🎲 Re-roll avatar</button>
+                </div>
+              </div>
+            );
+          })()}
+        </section>
+      ) : isAdmin && (
+        <section className="mb-6 space-y-4 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Agent avatars & names</h2>
+          <p className="text-xs text-slate-500 -mt-2">Re-roll the pixel-art and rename each agent. Shows in their chat bubbles everywhere.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {AGENTS.filter(a => username === "nathan" ? (a.slug !== "mia" && a.slug !== "switchboard") : true).map(a => {
               const seed = agentSeeds[a.slug] || agentAvatarSeed(a.slug);
+              const nameVal = agentNames[a.slug] ?? a.name;
               return (
                 <div key={a.slug} className="flex items-center gap-3 rounded-lg border border-slate-800/70 bg-slate-950/30 p-3">
                   <PixelAvatar seed={seed} size={48} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-slate-200">{a.name}</div>
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={nameVal}
+                        onChange={(e) => setAgentNames(prev => ({ ...prev, [a.slug]: e.target.value }))}
+                        maxLength={64}
+                        className="flex-1 px-2 py-1 rounded-md bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-indigo-500"
+                        placeholder={a.name}
+                      />
+                      <button
+                        onClick={() => saveAgentName(a.slug, agentNames[a.slug] ?? "")}
+                        disabled={agentNameSaving === a.slug}
+                        className="px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-[11px] font-medium"
+                      >Save</button>
+                      {agentNameSavedSlug === a.slug && <span className="text-xs text-emerald-400">Saved</span>}
+                    </div>
                     <button
                       onClick={() => rerollAgent(a.slug)}
                       disabled={agentSaving === a.slug}
-                      className="mt-1 px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[11px] font-medium"
-                    >🎲 Re-roll</button>
+                      className="px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[11px] font-medium"
+                    >🎲 Re-roll avatar</button>
                   </div>
                 </div>
               );

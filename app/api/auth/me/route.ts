@@ -37,9 +37,10 @@ export async function GET(req: NextRequest) {
       email: user.email,
       isAdmin: user.isAdmin,
       personaCompleted: !!user.personaCompleted,
-      agentName: readAgentName(user.username) || (mcConfig.clientMode ? mcConfig.agentName : null),
+      agentName: (user.agentNames && user.agentNames["me"]) || readAgentName(user.username) || (mcConfig.clientMode ? mcConfig.agentName : null),
       avatarSeed: user.avatarSeed || `user:${user.username}`,
       agentAvatarSeeds: user.agentAvatarSeeds || {},
+      agentNames: user.agentNames || {},
     },
     clientMode: mcConfig.clientMode,
   });

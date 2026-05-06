@@ -35,6 +35,7 @@ export type User = {
   personaCompletedAt?: string;
   avatarSeed?: string;
   agentAvatarSeeds?: Record<string, string>;
+  agentNames?: Record<string, string>;
 };
 
 export type ApprovalToken = {
@@ -240,6 +241,22 @@ export function setAgentAvatarSeed(userId: string, agent: string, seed: string):
   if (!u) return null;
   if (!u.agentAvatarSeeds) u.agentAvatarSeeds = {};
   u.agentAvatarSeeds[agent.toLowerCase()] = seed;
+  write(store);
+  return u;
+}
+
+export function setAgentName(userId: string, agent: string, name: string): User | null {
+  const store = read();
+  const u = store.users.find(x => x.id === userId);
+  if (!u) return null;
+  if (!u.agentNames) u.agentNames = {};
+  const slug = agent.toLowerCase();
+  const trimmed = name.trim().slice(0, 64);
+  if (!trimmed) {
+    delete u.agentNames[slug];
+  } else {
+    u.agentNames[slug] = trimmed;
+  }
   write(store);
   return u;
 }
