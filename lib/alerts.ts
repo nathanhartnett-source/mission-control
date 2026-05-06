@@ -216,20 +216,62 @@ function formatForDiscord(evt: AlertEvent): { content: string } {
   return { content: content.slice(0, 1900) };
 }
 
+const DEBUG_PATH = path.join(DATA_DIR, "alerts-debug.jsonl");
+
+function debugLog(entry: Record<string, unknown>): void {
+  try {
+    ensureDirs();
+    fs.appendFileSync(
+      DEBUG_PATH,
+      JSON.stringify({ ts: new Date().toISOString(), ...entry }) + "\n",
+    );
+  } catch { /* never throw from a debug logger */ }
+}
+
 /* Fire Discord webhook. Returns true on success, false on skip/failure. */
 async function fireDiscord(evt: AlertEvent): Promise<boolean> {
   const url = loadWebhookUrl(evt.type);
-  if (!url) return false;
+  if (!url) {
+    debugLog({
+      stage: "no_url",
+      type: evt.type,
+      env_approval_set: Boolean((process.env.MC_APPROVAL_DISCORD_WEBHOOK || "").trim()),
+      env_alerts_set: Boolean((process.env.MC_ALERTS_WEBHOOK_URL || "").trim()),
+      keys_file_path: WEBHOOK_PATH,
+      keys_file_exists: fs.existsSync(WEBHOOK_PATH),
+    });
+    return false;
+  }
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formatForDiscord(evt)),
     });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      debugLog({
+        stage: "non_ok",
+        type: evt.type,
+        status: res.status,
+        body: body.slice(0, 400),
+        url_host: safeHost(url),
+      });
+    }
     return res.ok;
-  } catch {
+  } catch (e: unknown) {
+    debugLog({
+      stage: "fetch_threw",
+      type: evt.type,
+      error: e instanceof Error ? e.message : String(e),
+      url_host: safeHost(url),
+    });
     return false;
   }
+}
+
+function safeHost(u: string): string {
+  try { return new URL(u).host; } catch { return "invalid"; }
 }
 
 export interface FanoutResult {
