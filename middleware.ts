@@ -28,6 +28,8 @@ function isPublicPath(pathname: string): boolean {
   // happen — the endpoint itself validates it's from SNS by verifying the
   // SigningCertURL origin before acting.
   if (pathname === '/api/ses-bounce') return true;
+  // Admin API uses its own Bearer-token auth (MC_ADMIN_API_TOKEN).
+  if (pathname.startsWith('/api/admin/api/')) return true;
   return false;
 }
 
