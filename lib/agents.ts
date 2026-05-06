@@ -52,6 +52,12 @@ export interface OutboundEnvelope {
   last_event_ts?: string;
   activity_kind?: "thinking" | "doing";
   current_tool?: string | null;
+  // 30-40 char human-readable summary of the in-flight (or most recent) tool
+  // input — e.g. "Edit lib/agents.ts", "Bash: npm run build". Sticky across
+  // non-tool blocks so the disclosure can show "(3s ago)" while the agent
+  // thinks/composes between tools. Cleared on terminal envelope states.
+  current_tool_summary?: string | null;
+  current_tool_summary_ts?: string | null;
 }
 
 export type AnyEnvelope = InboundEnvelope | OutboundEnvelope;
@@ -229,6 +235,8 @@ export interface MessageRow {
   last_event_ts?: string;
   activity_kind?: "thinking" | "doing";
   current_tool?: string | null;
+  current_tool_summary?: string | null;
+  current_tool_summary_ts?: string | null;
 }
 
 /**
@@ -325,10 +333,14 @@ export async function readMessages(opts?: { sinceIso?: string; limit?: number; u
           r.last_event_ts = env.last_event_ts;
           r.activity_kind = env.activity_kind;
           r.current_tool = env.current_tool ?? null;
+          r.current_tool_summary = env.current_tool_summary ?? null;
+          r.current_tool_summary_ts = env.current_tool_summary_ts ?? null;
         } else {
           r.last_event_ts = undefined;
           r.activity_kind = undefined;
           r.current_tool = undefined;
+          r.current_tool_summary = undefined;
+          r.current_tool_summary_ts = undefined;
         }
       }
       r.agent = env.agent;

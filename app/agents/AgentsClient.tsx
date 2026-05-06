@@ -25,6 +25,7 @@ type MessageRow = {
   agent: AgentName;
   user_text?: string;
   user_ts?: string;
+  user?: string;
   user_attachments?: { name: string; path: string; mime?: string; size?: number }[];
   agent_state?: EnvelopeState;
   agent_text?: string;
@@ -39,7 +40,129 @@ type MessageRow = {
   last_event_ts?: string;
   activity_kind?: "thinking" | "doing";
   current_tool?: string | null;
+  current_tool_summary?: string | null;
+  current_tool_summary_ts?: string | null;
 };
+
+// Whimsical fallback strings for the disclosure when no tool has fired yet.
+// Kept short (≤40 chars) so they fit the same line as a real tool snippet.
+// Long list intentionally — cycles every few seconds, don't want repeats.
+const HUMOR_LINES = [
+  "…did I put the rubbish out?",
+  "…initializing flux capacitor…",
+  "…rummaging through the token bag…",
+  "…asking the model very politely…",
+  "…brewing a small coffee for the LLM…",
+  "…stewing on it…",
+  "…aligning the dilithium crystals…",
+  "…proofreading the prompt one more time…",
+  "…consulting the rubber duck…",
+  "…checking under the couch cushions…",
+  "…feeding the hamster wheel…",
+  "…debugging in my head…",
+  "…holding the model's hand…",
+  "…rounding up stray semicolons…",
+  "…squinting at the requirements…",
+  "…drawing it out on a napkin…",
+  "…polishing the response…",
+  "…teaching the parrot new words…",
+  "…running it past the cat…",
+  "…warming up the GPUs (mentally)…",
+  "…pondering the orb…",
+  "…finishing this sentence…",
+  "…buffering the thought…",
+  "…oiling the cogs…",
+  "…interviewing the model…",
+  "…sharpening pencils…",
+  "…setting up the whiteboard…",
+  "…taking a deep breath…",
+  "…remembering what we were doing…",
+  "…flipping through the dictionary…",
+  "…reticulating splines…",
+  "…calibrating the goose…",
+  "…un-calibrating the goose…",
+  "…feeding ducks at the pond…",
+  "…composing a haiku first…",
+  "…re-reading your message slowly…",
+  "…doing a quick cardio set…",
+  "…asking Ash for a second opinion…",
+  "…asking Ava for a second opinion…",
+  "…googling, but tastefully…",
+  "…politely asking the database…",
+  "…hunting for the off-by-one…",
+  "…locating my coffee mug…",
+  "…rebooting the imagination…",
+  "…assembling lego instructions…",
+  "…humming a little tune…",
+  "…rotating the schema 90 degrees…",
+  "…pretending to know regex…",
+  "…actually reading the docs…",
+  "…fluffing the cushions…",
+  "…sweeping under the rug…",
+  "…stretching before the heavy lift…",
+  "…rolling the dice in my head…",
+  "…opening 27 tabs you can't see…",
+  "…closing 26 tabs you can't see…",
+  "…unfolding the laundry of logic…",
+  "…running it past the dog…",
+  "…filing under \"think later\"…",
+  "…un-filing from \"think later\"…",
+  "…drawing a small flowchart…",
+  "…erasing the small flowchart…",
+  "…dusting off the manual…",
+  "…re-reading the spec for nuance…",
+  "…ignoring the spec, briefly…",
+  "…rummaging in /tmp…",
+  "…asking systemd nicely…",
+  "…doing a Cloudflare cache purge in spirit…",
+  "…thinking like Tessa for a sec…",
+  "…thinking like Nathan for a sec…",
+  "…inhaling, exhaling, continuing…",
+  "…channeling vintage HyperCard energy…",
+  "…recalling something Brett said once…",
+  "…asking the linter for grace…",
+  "…composing the perfect commit message…",
+  "…un-composing it…",
+  "…humming the Star Trek theme…",
+  "…pretending I read the ticket…",
+  "…actually reading the ticket…",
+  "…peeling potatoes in my head…",
+  "…running through Brisbane in my mind…",
+  "…wondering if it's lunchtime yet…",
+  "…wondering if it's coffee o'clock…",
+  "…stacking the right blocks…",
+  "…un-stacking the wrong blocks…",
+  "…borrowing logic from a future me…",
+  "…aligning to true north…",
+  "…asking the model to slow down…",
+  "…asking the model to hurry up…",
+  "…locating misplaced punctuation…",
+  "…cross-referencing the side-eye…",
+  "…sketching a quick UML diagram…",
+  "…burning the UML diagram…",
+  "…feeding the linter a biscuit…",
+  "…apologising to the linter…",
+  "…pacing dramatically…",
+  "…leaning back in my chair…",
+  "…remembering an old TODO…",
+  "…ignoring the old TODO…",
+  "…doing it properly this time…",
+  "…thinking really hard, you can tell…",
+  "…stretching the metaphor too far…",
+  "…tightening the metaphor back up…",
+  "…doing a small stretch routine…",
+  "…drinking a metaphorical water…",
+  "…pretending the YAML makes sense…",
+  "…shrugging in JSON…",
+  "…politely confronting the bug…",
+  "…taking the bug out for tea…",
+  "…explaining myself to a duck…",
+  "…rebuilding tower of thoughts…",
+  "…knocking over tower of thoughts…",
+  "…rebuilding it again, smaller…",
+  "…running diagnostics on my mood…",
+  "…filing a complaint with reality…",
+];
 
 const AGENT_ORDER: AgentName[] = ["switchboard", "ash", "ava", "mia", "overseer"];
 
@@ -158,6 +281,37 @@ function CodeBlock({ code, lang }: { code: string; lang?: string }) {
   );
 }
 
+// Linkifies a plain text string: converts [text](url) markdown links and bare
+// http(s) URLs into <a target="_blank"> nodes. Returns React nodes preserving
+// surrounding whitespace.
+function linkify(text: string, keyPrefix: string): React.ReactNode {
+  const re = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"])/g;
+  const out: React.ReactNode[] = [];
+  let lastIdx = 0;
+  let key = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > lastIdx) out.push(text.slice(lastIdx, m.index));
+    const label = m[1] ?? m[3];
+    const href = m[2] ?? m[3];
+    out.push(
+      <a
+        key={`${keyPrefix}-l-${key++}`}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-sky-400 hover:text-sky-300 underline underline-offset-2 break-all"
+      >
+        {label}
+      </a>,
+    );
+    lastIdx = m.index + m[0].length;
+  }
+  if (lastIdx < text.length) out.push(text.slice(lastIdx));
+  return out.length === 0 ? text : <>{out}</>;
+}
+
+// Renders a plain-text segment (no fenced code) with inline markdown images.
 function renderPlainWithImages(text: string, keyPrefix: string): React.ReactNode[] {
   const re = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
   const parts: React.ReactNode[] = [];
@@ -169,7 +323,7 @@ function renderPlainWithImages(text: string, keyPrefix: string): React.ReactNode
       const seg = text.slice(lastIdx, m.index);
       if (seg.trim().length > 0) {
         parts.push(
-          <div key={`${keyPrefix}-t-${key++}`} className="whitespace-pre-wrap break-words">{seg}</div>,
+          <div key={`${keyPrefix}-t-${key++}`} className="whitespace-pre-wrap break-words">{linkify(seg, `${keyPrefix}-t${key}`)}</div>,
         );
       }
     }
@@ -202,16 +356,18 @@ function renderPlainWithImages(text: string, keyPrefix: string): React.ReactNode
     const seg = text.slice(lastIdx);
     if (seg.trim().length > 0) {
       parts.push(
-        <div key={`${keyPrefix}-t-${key++}`} className="whitespace-pre-wrap break-words">{seg}</div>,
+        <div key={`${keyPrefix}-t-${key++}`} className="whitespace-pre-wrap break-words">{linkify(seg, `${keyPrefix}-t${key}`)}</div>,
       );
     }
   }
   if (parts.length === 0) {
-    return [<div key={`${keyPrefix}-fallback`} className="whitespace-pre-wrap break-words">{text}</div>];
+    return [<div key={`${keyPrefix}-fallback`} className="whitespace-pre-wrap break-words">{linkify(text, `${keyPrefix}-fb`)}</div>];
   }
   return parts;
 }
 
+// Renders agent reply text with fenced code blocks (with copy button) and
+// inline markdown images (`![alt](path)`). Plain text keeps whitespace-pre-wrap.
 function RichAgentText({ text }: { text: string }) {
   const fence = /```([a-zA-Z0-9_+-]*)\n([\s\S]*?)```/g;
   const parts: React.ReactNode[] = [];
@@ -237,6 +393,7 @@ function RichAgentText({ text }: { text: string }) {
   }
   return <>{parts}</>;
 }
+
 
 function AttachmentList({ files }: { files: { name: string; path: string; mime?: string; size?: number }[] }) {
   if (!files || files.length === 0) return null;
@@ -675,6 +832,12 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
   const callTurnIdRef = useRef("");
   const callWakeLockRef = useRef<WakeLockSentinel | null>(null);
   const [callLiveTranscript, setCallLiveTranscript] = useState("");
+  // Per-row toggle for the in-flight tool-use disclosure (the "+"/"−" button next to Stop).
+  // Keyed by corr_id; absent or false = collapsed (pill only), true = show one-line snippet.
+  const [toolDisclosure, setToolDisclosure] = useState<Record<string, boolean>>({});
+  const toggleToolDisclosure = useCallback((corrId: string) => {
+    setToolDisclosure((prev) => ({ ...prev, [corrId]: !prev[corrId] }));
+  }, []);
   // Ticking clock so the running-state pill re-colours green→yellow→red as the
   // gap between now and last_event_ts grows, even between data polls.
   // Only ticks while at least one row is in "running" state, to avoid
@@ -726,7 +889,11 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
       return;
     }
     const newToasts: Toast[] = [];
+    const me = (username || "").toLowerCase();
     for (const r of rows) {
+      // Activity toasts are personal — admin sees other users' rows in the
+      // table, but we only flash toasts for the current user's own agent.
+      if (((r.user || "nathan").toLowerCase()) !== me) continue;
       for (const f of r.memory_saved || []) {
         const k = `${r.corr_id}:m:${f}`;
         if (!seenActivityRef.current.has(k)) { seenActivityRef.current.add(k); newToasts.push({ id: ++toastIdRef.current, kind: "memory", text: f, agent: r.agent }); }
@@ -1783,18 +1950,52 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
                             Stop
                           </button>
                         ) : null}
-                        {r.elapsed_ms ? <span className="text-[10px] text-slate-500 ml-auto">{Math.round(r.elapsed_ms / 1000)}s</span> : null}
+                        {(r.agent_state === "running" && !r.agent_text) ? (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleToolDisclosure(r.corr_id); }}
+                            title={toolDisclosure[r.corr_id] ? "Hide tool detail" : "Show tool detail"}
+                            className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[12px] leading-none font-medium border border-slate-600/40 bg-slate-700/30 text-slate-400 hover:bg-slate-700/60 hover:text-slate-200 transition-colors"
+                          >
+                            {toolDisclosure[r.corr_id] ? "−" : "+"}
+                          </button>
+                        ) : null}
+                        {(() => {
+                          // Live running counter takes precedence over the
+                          // post-hoc elapsed_ms (which is only set on done envelopes).
+                          if (r.agent_state === "running" && r.user_ts) {
+                            const ageS = Math.max(0, Math.floor((now - new Date(r.user_ts).getTime()) / 1000));
+                            const label = ageS < 60 ? `${ageS}s` : `${Math.floor(ageS / 60)}m${ageS % 60 ? ` ${ageS % 60}s` : ""}`;
+                            return <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{label}</span>;
+                          }
+                          if (r.elapsed_ms) {
+                            return <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{Math.round(r.elapsed_ms / 1000)}s</span>;
+                          }
+                          return null;
+                        })()}
                       </div>
                       {r.agent_text ? (
                         <RichAgentText text={r.agent_text} />
-                      ) : (
-                        <div className="text-slate-500 italic text-xs">
-                          {r.agent_state === "queued" ? "Waiting in agent inbox…"
-                            : r.agent_state === "running" ? (r.activity_kind === "doing" ? "Working…" : "Thinking…")
-                            : r.agent_state === "error" ? `Error: ${r.error || "unknown"}`
-                          : "—"}
-                        </div>
-                      )}
+                      ) : r.agent_state === "error" ? (
+                        <div className="text-slate-500 italic text-xs">{`Error: ${r.error || "unknown"}`}</div>
+                      ) : (r.agent_state === "running" && toolDisclosure[r.corr_id]) ? (() => {
+                        // Three-tier disclosure: live tool > sticky last-tool with age > cycling humor.
+                        let line: string;
+                        if (r.current_tool && r.current_tool_summary) {
+                          line = r.current_tool_summary;
+                        } else if (r.current_tool_summary && r.current_tool_summary_ts) {
+                          const ageS = Math.max(0, Math.floor((now - new Date(r.current_tool_summary_ts).getTime()) / 1000));
+                          line = ageS >= 1 ? `${r.current_tool_summary} · ${ageS}s ago` : r.current_tool_summary;
+                        } else {
+                          // Cycle every 4s so the line feels alive.
+                          line = HUMOR_LINES[Math.floor(now / 4000) % HUMOR_LINES.length];
+                        }
+                        return (
+                          <div className="text-slate-400 italic text-xs font-mono truncate" title={line}>
+                            {line}
+                          </div>
+                        );
+                      })() : null}
                       {(r.memory_saved && r.memory_saved.length > 0) || (r.wiki_saved && r.wiki_saved.length > 0) || (r.skills_saved && r.skills_saved.length > 0) || (r.delegations && r.delegations.length > 0) ? (
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {/* Delegation pills: one per outbound agent-delegate call recorded on this turn (d.to = recipient agent, d.task = brief). */}
