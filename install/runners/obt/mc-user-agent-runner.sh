@@ -44,7 +44,7 @@ JSON
     START="$(date +%s)"
     STDERR="/tmp/mc-user-agent-runner-${USERNAME}.stderr"
     set +e
-    RESP="$(timeout 600 flock -w 600 /tmp/claude-subagent.lock "$CLAUDE" -p \
+    RESP="$(IS_SANDBOX=1 timeout 600 flock -w 600 /tmp/claude-subagent.lock "$CLAUDE" -p \
         --model claude-opus-4-7 \
         --permission-mode bypassPermissions \
         2>"$STDERR" <<<"$TEXT")"
