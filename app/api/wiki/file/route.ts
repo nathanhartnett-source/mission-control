@@ -5,7 +5,13 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const WIKI_ROOT = "/home/nathan/wiki";
+// Wiki content root. Per-install via MC_WIKI_ROOT env var (set in the systemd
+// unit). Falls back to MC_HOME/wiki for clean installs, then /home/nathan/wiki
+// for the messy MC dev box. Without this gate the demo + OBT installs would
+// leak Nathan's personal wiki content into client-facing dashboards.
+const WIKI_ROOT =
+  process.env.MC_WIKI_ROOT ||
+  (process.env.MC_HOME ? path.join(process.env.MC_HOME, "wiki") : "/home/nathan/wiki");
 
 function safeWikiPath(input: string | null) {
   if (!input) return null;

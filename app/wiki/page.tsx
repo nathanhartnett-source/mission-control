@@ -6,7 +6,9 @@ export const metadata = { title: "Wiki — Allhart MC" };
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const WIKI_ROOT = process.env.MC_WIKI_ROOT || "/home/nathan/wiki";
+const WIKI_ROOT =
+  process.env.MC_WIKI_ROOT ||
+  (process.env.MC_HOME ? path.join(process.env.MC_HOME, "wiki") : "/home/nathan/wiki");
 
 type EntryJson = {
   path: string;
