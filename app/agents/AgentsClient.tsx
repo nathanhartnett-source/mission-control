@@ -2273,6 +2273,22 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
     return () => window.clearInterval(id);
   }, [hasRunning]);
 
+  // Per-row toggle for the in-flight tool disclosure (the "+/−" next to Stop).
+  const [toolDisclosure, setToolDisclosure] = useState<Record<string, boolean>>({});
+  const toggleToolDisclosure = useCallback((corrId: string) => {
+    setToolDisclosure((prev) => ({ ...prev, [corrId]: !prev[corrId] }));
+  }, []);
+
+  const stopTurn = useCallback(async (corrId: string) => {
+    try {
+      await fetch(`/api/agents/me/stop`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ corr_id: corrId }),
+      });
+    } catch { /* ignore */ }
+  }, []);
+
   const refresh = useCallback(async () => {
     try {
       const r = await fetch("/api/agents/messages?limit=200", { cache: "no-store" });
@@ -2643,15 +2659,64 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
                         currentTool={r.current_tool}
                         now={now}
                       />
-                      {r.elapsed_ms ? <span className="text-[10px] text-slate-500 ml-auto">{Math.round(r.elapsed_ms / 1000)}s</span> : null}
+                      {(r.agent_state === "queued" || r.agent_state === "running") ? (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); stopTurn(r.corr_id); }}
+                          title="Stop this turn"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors"
+                        >
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="6" y="6" width="12" height="12" rx="1.5" />
+                          </svg>
+                          Stop
+                        </button>
+                      ) : null}
+                      {(r.agent_state === "running" && !r.agent_text) ? (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); toggleToolDisclosure(r.corr_id); }}
+                          title={toolDisclosure[r.corr_id] ? "Hide tool detail" : "Show tool detail"}
+                          className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[12px] leading-none font-medium border border-slate-600/40 bg-slate-700/30 text-slate-400 hover:bg-slate-700/60 hover:text-slate-200 transition-colors"
+                        >
+                          {toolDisclosure[r.corr_id] ? "−" : "+"}
+                        </button>
+                      ) : null}
+                      {(() => {
+                        if (r.agent_state === "running" && r.user_ts) {
+                          const ageS = Math.max(0, Math.floor((now - new Date(r.user_ts).getTime()) / 1000));
+                          const label = ageS < 60 ? `${ageS}s` : `${Math.floor(ageS / 60)}m${ageS % 60 ? ` ${ageS % 60}s` : ""}`;
+                          return <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{label}</span>;
+                        }
+                        if (r.elapsed_ms) {
+                          return <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{Math.round(r.elapsed_ms / 1000)}s</span>;
+                        }
+                        return null;
+                      })()}
                     </div>
                     {r.agent_text ? (
                       <RichAgentText text={r.agent_text} />
-                    ) : (
+                    ) : r.agent_state === "error" ? (
+                      <div className="text-slate-500 italic text-xs">{`Error: ${r.error || "unknown"}`}</div>
+                    ) : (r.agent_state === "running" && toolDisclosure[r.corr_id]) ? (() => {
+                      let line: string;
+                      if (r.current_tool && r.current_tool_summary) {
+                        line = r.current_tool_summary;
+                      } else if (r.current_tool_summary && r.current_tool_summary_ts) {
+                        const ageS = Math.max(0, Math.floor((now - new Date(r.current_tool_summary_ts).getTime()) / 1000));
+                        line = ageS >= 1 ? `${r.current_tool_summary} · ${ageS}s ago` : r.current_tool_summary;
+                      } else {
+                        line = HUMOR_LINES[Math.floor(now / 4000) % HUMOR_LINES.length];
+                      }
+                      return (
+                        <div className="text-slate-400 italic text-xs font-mono truncate" title={line}>
+                          {line}
+                        </div>
+                      );
+                    })() : (
                       <div className="text-slate-500 italic text-xs">
                         {r.agent_state === "queued" ? "Waiting in agent inbox…"
                           : r.agent_state === "running" ? `${agentName} is ${r.activity_kind === "doing" ? "working" : "thinking"}…`
-                          : r.agent_state === "error" ? `Error: ${r.error || "unknown"}`
                         : "—"}
                       </div>
                     )}
