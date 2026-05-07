@@ -16,13 +16,14 @@ export type Me = {
 type Ctx = {
   me: Me;
   loaded: boolean;
+  clientMode: boolean;
   refresh: () => Promise<void>;
   setMe: (m: Me) => void;
 };
 
 const MeContext = createContext<Ctx | null>(null);
 
-export function MeProvider({ initial, children }: { initial: Me; children: ReactNode }) {
+export function MeProvider({ initial, clientMode = false, children }: { initial: Me; clientMode?: boolean; children: ReactNode }) {
   const [me, setMe] = useState<Me>(initial);
   const [loaded, setLoaded] = useState<boolean>(initial != null);
 
@@ -39,7 +40,7 @@ export function MeProvider({ initial, children }: { initial: Me; children: React
   // If the server didn't seed initial (e.g. cookie not parsed), fetch once on mount.
   useEffect(() => { if (!loaded) refresh(); }, [loaded, refresh]);
 
-  return <MeContext.Provider value={{ me, loaded, refresh, setMe }}>{children}</MeContext.Provider>;
+  return <MeContext.Provider value={{ me, loaded, clientMode, refresh, setMe }}>{children}</MeContext.Provider>;
 }
 
 export function useMe(): Ctx {

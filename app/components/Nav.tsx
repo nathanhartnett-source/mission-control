@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useMe } from "./MeProvider";
 import { usePathname, useRouter } from "next/navigation";
 import { useBranding } from "@/lib/use-branding";
 
@@ -56,17 +57,13 @@ export default function Nav() {
   const router   = useRouter();
   const branding = useBranding();
   const BRAND_NAME = branding.name;
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const { me } = useMe();
+  const isAdmin: boolean | null = me ? !!me.isAdmin : null;
   type PinnedApp = { slug: string; name: string; icon: string };
   const [pinnedApps, setPinnedApps] = useState<PinnedApp[]>([]);
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/auth/me").then(async (r) => {
-      if (!r.ok) return;
-      const data = await r.json().catch(() => ({}));
-      if (alive) setIsAdmin(!!data?.user?.isAdmin);
-    });
     fetch("/api/elements/pinned").then(async (r) => {
       if (!r.ok) return;
       const data = await r.json().catch(() => ({}));
@@ -74,6 +71,15 @@ export default function Nav() {
     }).catch(() => {});
     return () => { alive = false; };
   }, [pathname]);
+
+  // Prefetch likely-next routes during idle so first nav after page load is
+  // instant. router.prefetch warms the JS bundle + RSC payload.
+  useEffect(() => {
+    const targets = ["/agents", "/projects", "/wiki", "/settings", "/todo"];
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+    const run = () => { for (const t of targets) { try { router.prefetch(t); } catch { /* ignore */ } } };
+    if (ric) ric(run); else window.setTimeout(run, 1500);
+  }, [router]);
 
   if (HIDDEN_PATHS.some((p) => pathname.startsWith(p))) return null;
 

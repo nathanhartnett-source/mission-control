@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import PixelAvatar from "@/app/components/PixelAvatar";
+import { useMe } from "@/app/components/MeProvider";
 import { agentAvatarSeed } from "@/lib/avatar";
 
 type AgentName = "ava" | "mia" | "ash" | "overseer" | "switchboard" | "me";
@@ -722,32 +723,18 @@ function CopyButton({ text }: { text: string }) {
 type Attachment = { name: string; path: string; size: number; mime: string; localPreview?: string };
 
 export default function AgentsClient() {
-  const [me, setMe] = useState<{ isAdmin: boolean; username: string; agentName: string | null; avatarSeed: string; agentAvatarSeeds: Record<string,string>; clientMode: boolean } | null>(null);
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/auth/me").then(async r => {
-      if (!r.ok) return;
-      const d = await r.json().catch(() => ({}));
-      if (alive) setMe({
-        isAdmin: !!d?.user?.isAdmin,
-        username: d?.user?.username || "",
-        agentName: d?.user?.agentName ?? null,
-        avatarSeed: d?.user?.avatarSeed || `user:${d?.user?.username || "me"}`,
-        agentAvatarSeeds: d?.user?.agentAvatarSeeds || {},
-        clientMode: !!d?.clientMode,
-      });
-    });
-    return () => { alive = false; };
-  }, []);
-
-  // Wait for /api/auth/me before mounting either branch so hook order stays stable.
-  if (me === null) {
+  const { me, loaded, clientMode } = useMe();
+  if (!loaded || !me) {
     return <div className="fixed inset-x-0 top-0 bottom-[56px] md:bottom-0 md:left-52 bg-[#0a0a0a]" />;
   }
-  if (!me.isAdmin || me.clientMode) {
-    return <UserAgentChat agentName={me.agentName || "Your agent"} userSeed={me.avatarSeed} agentSeedOverrides={me.agentAvatarSeeds} />;
+  const username = me.username;
+  const avatarSeed = me.avatarSeed || `user:${username || "me"}`;
+  const agentSeedOverrides = me.agentAvatarSeeds || {};
+  const agentName = me.agentName ?? null;
+  if (!me.isAdmin || clientMode) {
+    return <UserAgentChat agentName={agentName || "Your agent"} userSeed={avatarSeed} agentSeedOverrides={agentSeedOverrides} />;
   }
-  return <AdminAgentsClient userSeed={me.avatarSeed} username={me.username} agentSeedOverrides={me.agentAvatarSeeds} />;
+  return <AdminAgentsClient userSeed={avatarSeed} username={username} agentSeedOverrides={agentSeedOverrides} />;
 }
 
 function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSeed: string; username: string; agentSeedOverrides: Record<string,string> }) {
@@ -969,8 +956,14 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
   useEffect(() => {
     refresh();
     if (!polling) return;
-    const id = setInterval(refresh, 2000);
-    return () => clearInterval(id);
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource("/api/agents/messages/stream");
+      es.addEventListener("ping", () => { refresh(); });
+      es.addEventListener("ready", () => { refresh(); });
+    } catch { /* SSE unavailable — fall back to interval below */ }
+    const id = setInterval(refresh, 30_000);
+    return () => { es?.close(); clearInterval(id); };
   }, [refresh, polling]);
 
   const filtered = useMemo(() => rows.filter((r) => r.agent === selected), [rows, selected]);
@@ -2300,8 +2293,14 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
 
   useEffect(() => {
     refresh();
-    const id = setInterval(refresh, 2500);
-    return () => clearInterval(id);
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource("/api/agents/messages/stream");
+      es.addEventListener("ping", () => { refresh(); });
+      es.addEventListener("ready", () => { refresh(); });
+    } catch { /* SSE unavailable — fall back to interval below */ }
+    const id = setInterval(refresh, 30_000);
+    return () => { es?.close(); clearInterval(id); };
   }, [refresh]);
 
   useEffect(() => {

@@ -13,6 +13,7 @@ import AchievementOverlay from "./components/AchievementOverlay";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
 import { MeProvider, type Me } from "./components/MeProvider";
+import { mcConfig } from "@/lib/mc-config";
 import { BRAND_NAME } from "@/lib/brand";
 import { resolveBranding } from "@/lib/branding-server";
 
@@ -77,7 +78,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${inter.className} min-h-screen bg-slate-900 mc-themed-body`}>
-        <MeProvider initial={initialMe}>
+        <MeProvider initial={initialMe} clientMode={mcConfig.clientMode}>
           <ThemeApplier />
           <NotificationPoller />
           <OnboardingGate />
