@@ -36,7 +36,6 @@ const MOBILE_ITEMS = [
   { href: "/agents",        label: "Agents",  icon: "person" },
   { href: "/projects",      label: "Projects", icon: "business" },
   { href: "/wiki",          label: "Wiki",    icon: "wiki" },
-  { href: "/notifications", label: "Alerts",  icon: "support" },
   { href: "/download",      label: "Apps",    icon: "apps" },
   { href: "/settings",      label: "Settings", icon: "gear" },
 ] as const;
@@ -46,7 +45,6 @@ const SIDEBAR_ITEMS = [
   { href: "/agents",        label: "Agents",        icon: "person" },
   { href: "/projects",      label: "Projects",      icon: "business" },
   { href: "/wiki",          label: "Wiki",          icon: "wiki" },
-  { href: "/notifications", label: "Notifications", icon: "support" },
 ] as const;
 
 const HIDDEN_PATHS = ["/login"];

@@ -12,3 +12,4 @@ data/personal/
 data/agent-chat/
 *.zip
 *:Zone.Identifier
+data/users.json.bak.*
