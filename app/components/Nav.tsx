@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useBranding } from "@/lib/use-branding";
 
-const NON_ADMIN_NAV_ALLOW = new Set<string>(["/", "/agents", "/projects", "/wiki", "/download"]);
+const NON_ADMIN_NAV_ALLOW = new Set<string>(["/", "/agents", "/projects", "/wiki", "/download", "/elements"]);
 
 function Icon({ d, size = 20 }: { d: string; size?: number }) {
   return (
@@ -34,6 +34,7 @@ const ICONS = {
 const MOBILE_ITEMS = [
   { href: "/",              label: "Home",    icon: "home" },
   { href: "/agents",        label: "Agents",  icon: "person" },
+  { href: "/elements",      label: "My Apps", icon: "target" },
   { href: "/projects",      label: "Projects", icon: "business" },
   { href: "/wiki",          label: "Wiki",    icon: "wiki" },
   { href: "/download",      label: "Apps",    icon: "apps" },
@@ -43,6 +44,7 @@ const MOBILE_ITEMS = [
 const SIDEBAR_ITEMS = [
   { href: "/",              label: "Home",          icon: "home" },
   { href: "/agents",        label: "Agents",        icon: "person" },
+  { href: "/elements",      label: "My Apps",       icon: "target" },
   { href: "/projects",      label: "Projects",      icon: "business" },
   { href: "/wiki",          label: "Wiki",          icon: "wiki" },
 ] as const;
@@ -55,6 +57,8 @@ export default function Nav() {
   const branding = useBranding();
   const BRAND_NAME = branding.name;
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  type PinnedApp = { slug: string; name: string; icon: string };
+  const [pinnedApps, setPinnedApps] = useState<PinnedApp[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -63,8 +67,13 @@ export default function Nav() {
       const data = await r.json().catch(() => ({}));
       if (alive) setIsAdmin(!!data?.user?.isAdmin);
     });
+    fetch("/api/elements/pinned").then(async (r) => {
+      if (!r.ok) return;
+      const data = await r.json().catch(() => ({}));
+      if (alive) setPinnedApps(Array.isArray(data?.pinned) ? data.pinned : []);
+    }).catch(() => {});
     return () => { alive = false; };
-  }, []);
+  }, [pathname]);
 
   if (HIDDEN_PATHS.some((p) => pathname.startsWith(p))) return null;
 
@@ -112,6 +121,29 @@ export default function Nav() {
               </Link>
             );
           })}
+          {pinnedApps.length > 0 && (
+            <div className="pt-3 mt-2 border-t border-slate-800/60 space-y-0.5">
+              <div className="px-3 pb-1 text-[10px] font-semibold tracking-widest uppercase text-slate-600">Pinned apps</div>
+              {pinnedApps.map((app) => {
+                const href = `/elements/${app.slug}`;
+                const active = isActive(href);
+                return (
+                  <Link
+                    key={app.slug}
+                    href={href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      active
+                        ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30"
+                        : "text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent"
+                    }`}
+                  >
+                    <span className="text-base leading-none w-[18px] text-center">{app.icon}</span>
+                    <span className="truncate">{app.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </nav>
 
         <div className="px-3 py-4 border-t border-slate-800/60 space-y-0.5">
@@ -176,6 +208,22 @@ export default function Nav() {
             >
               <Icon d={ICONS[icon]} size={20} />
               {label}
+            </Link>
+          );
+        })}
+        {pinnedApps.map((app) => {
+          const href = `/elements/${app.slug}`;
+          const active = isActive(href);
+          return (
+            <Link
+              key={`pinned-${app.slug}`}
+              href={href}
+              className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors whitespace-nowrap shrink-0 basis-[20%] min-w-[72px] ${
+                active ? "text-indigo-400" : "text-slate-500 active:text-slate-300"
+              }`}
+            >
+              <span className="text-xl leading-none">{app.icon}</span>
+              <span className="truncate max-w-[64px]">{app.name}</span>
             </Link>
           );
         })}

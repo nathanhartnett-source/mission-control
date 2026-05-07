@@ -91,6 +91,16 @@ if [[ -f "$MC_HOME/install/mc-agent-stream-parser.py" ]]; then
     install -m 0755 "$MC_HOME/install/mc-agent-stream-parser.py" /usr/local/bin/mc-agent-stream-parser.py
 fi
 
+# 5d. Install element (My Apps) worker + PDF renderer to /usr/local/bin so
+#     /api/elements/[slug]/run can spawn them. Pinned by absolute path in the
+#     route so they resolve regardless of $PATH or cwd.
+if [[ -f "$MC_HOME/install/scripts/mc-element-worker.sh" ]]; then
+    install -m 0755 "$MC_HOME/install/scripts/mc-element-worker.sh" /usr/local/bin/mc-element-worker.sh
+fi
+if [[ -f "$MC_HOME/install/scripts/mc-element-pdf-render.cjs" ]]; then
+    install -m 0644 "$MC_HOME/install/scripts/mc-element-pdf-render.cjs" /usr/local/bin/mc-element-pdf-render.cjs
+fi
+
 # 6. Build
 echo "==> npm install + build"
 sudo -u "$MC_USER" -H bash -c "cd $MC_HOME && npm ci && npm run build"
