@@ -281,11 +281,28 @@ export async function readMessages(opts?: { sinceIso?: string; limit?: number; u
     }
   } catch { /* no history yet */ }
 
-  // Inbound — read from each agent's inbox
+  // Bound disk reads to the most recent N files per dir. Without this, a
+  // long-lived box accumulates thousands of envelope files and every /agents
+  // page-load reads the lot. `cap` is generous enough to cover the requested
+  // limit even if some files are stale partials.
+  const cap = limit + 100;
+  const newestFiles = async (dir: string): Promise<string[]> => {
+    let files: string[];
+    try { files = await fs.readdir(dir); } catch { return []; }
+    const matched = files.filter((f) => f.startsWith("mc-agent-") && f.endsWith(".json"));
+    if (matched.length <= cap) return matched;
+    const stats = await Promise.all(matched.map(async (f) => {
+      try { const s = await fs.stat(path.join(dir, f)); return { f, m: s.mtimeMs }; }
+      catch { return { f, m: 0 }; }
+    }));
+    stats.sort((a, b) => b.m - a.m);
+    return stats.slice(0, cap).map((s) => s.f);
+  };
+
+  // Inbound — read newest files per agent's inbox.
   for (const agent of Object.keys(INBOX_DIRS) as AgentName[]) {
     const dir = INBOX_DIRS[agent];
-    let files: string[] = [];
-    try { files = await fs.readdir(dir); } catch { continue; }
+    const files = await newestFiles(dir);
     for (const f of files) {
       if (!f.startsWith("mc-agent-") || !f.endsWith(".json")) continue;
       try {
@@ -307,9 +324,8 @@ export async function readMessages(opts?: { sinceIso?: string; limit?: number; u
     }
   }
 
-  // Outbound — read from shared outbox, latest state per corr_id wins
-  let outFiles: string[] = [];
-  try { outFiles = await fs.readdir(OUTBOX_DIR); } catch { outFiles = []; }
+  // Outbound — read newest envelopes from the shared outbox.
+  const outFiles = await newestFiles(OUTBOX_DIR);
   for (const f of outFiles) {
     if (!f.startsWith("mc-agent-") || !f.endsWith(".json")) continue;
     try {

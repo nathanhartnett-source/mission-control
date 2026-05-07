@@ -12,6 +12,7 @@ import ConnectionHealthOverlay from "./components/ConnectionHealthOverlay";
 import AchievementOverlay from "./components/AchievementOverlay";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
+import { MeProvider, type Me } from "./components/MeProvider";
 import { BRAND_NAME } from "@/lib/brand";
 import { resolveBranding } from "@/lib/branding-server";
 
@@ -40,13 +41,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const isPublic = PUBLIC_PAGES.has(pathname);
 
+  let initialMe: Me = null;
   if (!isPublic && !pathname.startsWith("/api/") && !pathname.startsWith("/_next/")) {
     const cookieStore = await cookies();
     const session = verify(cookieStore.get(SESSION_COOKIE)?.value);
     if (session) {
       const user = findById(session.userId);
-      if (user && user.status === "active" && !user.isAdmin) {
-        if (!NON_ADMIN_PAGE_ALLOW.has(pathname)) {
+      if (user && user.status === "active") {
+        initialMe = {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          isAdmin: !!user.isAdmin,
+          avatarSeed: user.avatarSeed || `user:${user.username}`,
+          agentAvatarSeeds: user.agentAvatarSeeds || {},
+          agentNames: user.agentNames || {},
+          personaCompleted: !!user.personaCompleted,
+        };
+        if (!user.isAdmin && !NON_ADMIN_PAGE_ALLOW.has(pathname)) {
           redirect("/");
         }
       }
@@ -65,13 +77,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${inter.className} min-h-screen bg-slate-900 mc-themed-body`}>
-        <ThemeApplier />
-        <NotificationPoller />
-        <OnboardingGate />
-        <SessionWatcher />
-        <ConnectionHealthOverlay />
-        <AchievementOverlay />
-        <LayoutShell>{children}</LayoutShell>
+        <MeProvider initial={initialMe}>
+          <ThemeApplier />
+          <NotificationPoller />
+          <OnboardingGate />
+          <SessionWatcher />
+          <ConnectionHealthOverlay />
+          <AchievementOverlay />
+          <LayoutShell>{children}</LayoutShell>
+        </MeProvider>
       </body>
     </html>
   );
