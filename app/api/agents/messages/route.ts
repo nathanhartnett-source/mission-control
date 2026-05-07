@@ -19,8 +19,10 @@ export async function GET(req: NextRequest) {
   const limitRaw = req.nextUrl.searchParams.get("limit");
   const limit = limitRaw ? Math.max(1, Math.min(500, parseInt(limitRaw, 10) || 200)) : 200;
 
-  // Non-admins only see messages they sent themselves. Admin sees everything.
-  const userFilter = user.isAdmin ? undefined : user.username;
+  // Non-admins only see messages they sent themselves. Admin sees everything,
+  // unless ?self=1 is passed (used by FloatingChat to scope to caller's own thread).
+  const selfOnly = req.nextUrl.searchParams.get("self") === "1";
+  const userFilter = user.isAdmin && !selfOnly ? undefined : user.username;
 
   try {
     const rows = await readMessages({ sinceIso: since, limit, user: userFilter });

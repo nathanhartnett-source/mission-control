@@ -140,3 +140,23 @@ body {
 .scroll-pretty::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* Pixel avatar activity animations (thinking / doing) */
+@keyframes mc-avatar-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.mc-avatar-bob { animation: mc-avatar-bob 1.4s ease-in-out infinite; }
+
+@keyframes mc-thought-float {
+  0% { transform: translateY(2px) scale(0.85); opacity: 0.4; }
+  40% { transform: translateY(-1px) scale(1); opacity: 1; }
+  100% { transform: translateY(-4px) scale(1.05); opacity: 0.6; }
+}
+.mc-avatar-thought { animation: mc-thought-float 1.6s ease-in-out infinite; display: inline-block; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
+
+@keyframes mc-tool-wiggle {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(18deg); }
+}
+.mc-avatar-tool { animation: mc-tool-wiggle 0.9s ease-in-out infinite; display: inline-block; transform-origin: 50% 70%; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }

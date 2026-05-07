@@ -1920,7 +1920,7 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
                     );
                   })() : null}
                   <div className="flex justify-start items-start gap-2">
-                    <PixelAvatar seed={resolveAgentSeed(r.agent)} size={28} title={AGENT_META[r.agent].name} />
+                    <PixelAvatar seed={resolveAgentSeed(r.agent)} size={28} title={AGENT_META[r.agent].name} activity={r.agent_state === "running" ? (r.activity_kind || "thinking") : null} />
                     <div className="group relative max-w-[85%] rounded-2xl rounded-bl-sm bg-slate-800/40 border border-slate-700/30 px-3 py-2 text-sm text-slate-200">
                       {r.agent_text ? <MessageActions text={r.agent_text} author={AGENT_META[r.agent].name} onReply={onReply} /> : null}
                       <div className="flex items-center gap-2 mb-1">
@@ -2653,7 +2653,7 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
                   );
                 })() : null}
                 <div className="flex justify-start items-start gap-2">
-                  <PixelAvatar seed={resolveAgentSeed(r.agent || "me")} size={28} title={agentName} />
+                  <PixelAvatar seed={resolveAgentSeed(r.agent || "me")} size={28} title={agentName} activity={r.agent_state === "running" ? (r.activity_kind || "thinking") : null} />
                   <div className="group relative max-w-[85%] rounded-2xl rounded-bl-sm bg-slate-800/40 border border-slate-700/30 px-3 py-2 text-sm text-slate-200">
                     {r.agent_text ? <MessageActions text={r.agent_text} author={agentName} onReply={onReply} /> : null}
                     <div className="flex items-center gap-2 mb-1">

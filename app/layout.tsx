@@ -10,6 +10,7 @@ import OnboardingGate from "./components/OnboardingGate";
 import SessionWatcher from "./components/SessionWatcher";
 import ConnectionHealthOverlay from "./components/ConnectionHealthOverlay";
 import AchievementOverlay from "./components/AchievementOverlay";
+import FloatingChatMount from "./components/FloatingChatMount";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
 import { MeProvider, type Me } from "./components/MeProvider";
@@ -85,6 +86,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <SessionWatcher />
           <ConnectionHealthOverlay />
           <AchievementOverlay />
+          <FloatingChatMount />
           <LayoutShell>{children}</LayoutShell>
         </MeProvider>
       </body>
