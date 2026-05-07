@@ -115,6 +115,15 @@ think_buf = []          # accumulating chars for current thinking block
 events = []             # closed thinking blocks
 last_write = 0.0
 last_event_ts = datetime.datetime.utcnow().isoformat() + "Z"
+# started_ts is the stable wall-clock time the parser started, used as the
+# running envelope's `ts` so the UI's live counter has a fixed origin. We
+# previously set ts=utcnow() on every write, so every parser flush rewrote
+# the `ts` field, and downstream code that wanted "when did this turn
+# start" had nothing stable to read. Without this fix the AgentsClient
+# live counter falls back to user_ts (the original send time) and shows
+# "60s" the moment the badge appears whenever a turn was queued behind
+# another one.
+started_ts = last_event_ts
 activity_kind = "thinking"  # sticky to "doing" once a mutating tool fires
 current_tool = None
 # current_tool_summary is STICKY across non-tool blocks: once a tool's summary
@@ -154,7 +163,7 @@ def write_state(force=False):
         "schema": "mc-agent-response/v1",
         "corr_id": corr_id,
         "agent": agent,
-        "ts": utcnow(),
+        "ts": started_ts,
         "state": "running",
         "thinking_events": out,
         "last_event_ts": last_event_ts,

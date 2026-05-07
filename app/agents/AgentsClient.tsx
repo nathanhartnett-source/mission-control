@@ -1957,8 +1957,14 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
                         {(() => {
                           // Live running counter takes precedence over the
                           // post-hoc elapsed_ms (which is only set on done envelopes).
-                          if (r.agent_state === "running" && r.user_ts) {
-                            const ageS = Math.max(0, Math.floor((now - new Date(r.user_ts).getTime()) / 1000));
+                          // Use agent_ts (running envelope's ts = when the runner
+                          // actually spawned claude) so the counter starts at 0s.
+                          // Falling back to user_ts produced the "starts at 60s"
+                          // bug whenever a queued message had been waiting on
+                          // flock for the previous turn to finish.
+                          const startTs = r.agent_ts || r.user_ts;
+                          if (r.agent_state === "running" && startTs) {
+                            const ageS = Math.max(0, Math.floor((now - new Date(startTs).getTime()) / 1000));
                             const label = ageS < 60 ? `${ageS}s` : `${Math.floor(ageS / 60)}m${ageS % 60 ? ` ${ageS % 60}s` : ""}`;
                             return <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{label}</span>;
                           }
@@ -2682,8 +2688,13 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
                         </button>
                       ) : null}
                       {(() => {
-                        if (r.agent_state === "running" && r.user_ts) {
-                          const ageS = Math.max(0, Math.floor((now - new Date(r.user_ts).getTime()) / 1000));
+                        // Live running counter — uses agent_ts (running
+                        // envelope's ts = runner-spawn time) to avoid the
+                        // "starts at 60s" bug when queued messages wait on
+                        // flock for an in-flight turn.
+                        const startTs = r.agent_ts || r.user_ts;
+                        if (r.agent_state === "running" && startTs) {
+                          const ageS = Math.max(0, Math.floor((now - new Date(startTs).getTime()) / 1000));
                           const label = ageS < 60 ? `${ageS}s` : `${Math.floor(ageS / 60)}m${ageS % 60 ? ` ${ageS % 60}s` : ""}`;
                           return <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{label}</span>;
                         }
