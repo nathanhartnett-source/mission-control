@@ -5,6 +5,9 @@ import { writePersona, type Persona } from "@/lib/workspace";
 import { audit } from "@/lib/auth-audit";
 import { clientIp } from "@/lib/rate-limit";
 import { seedWelcomeMessage } from "@/lib/agents";
+import fs from "fs";
+import os from "os";
+import path from "path";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,38 +15,89 @@ export const runtime = "nodejs";
 const TONES: Persona["tone"][] = ["concise", "warm", "dry-wit", "professional", "playful"];
 const FORMS: Persona["formality"][] = ["casual", "balanced", "formal"];
 
-function trimSentence(s: string, max = 140): string {
-  const cleaned = s.replace(/\s+/g, " ").trim();
-  if (!cleaned) return "";
-  if (cleaned.length <= max) return cleaned;
-  // soft-cut at the nearest space before max
-  const cut = cleaned.slice(0, max);
-  const lastSpace = cut.lastIndexOf(" ");
-  return (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).replace(/[,;:.!?-]+$/, "") + "…";
-}
-
 function buildWelcomeText(opts: {
   agentName: string;
   aboutMe: string;
   goals: string;
   emoji: boolean;
 }): string {
-  const about = trimSentence(opts.aboutMe.split(/[.\n]/)[0] || opts.aboutMe);
-  const goal = trimSentence(opts.goals.split(/[.\n]/)[0] || opts.goals);
   const wave = opts.emoji ? " 👋" : "";
   const lines: string[] = [];
   lines.push(`Hi! I'm ${opts.agentName}.${wave} Lovely to meet you.`);
   lines.push("");
-  if (about && goal) {
-    lines.push(`I picked up that you're "${about}" and you'd like help with "${goal}".`);
-  } else if (goal) {
-    lines.push(`I picked up that you'd like help with "${goal}".`);
-  } else if (about) {
-    lines.push(`I picked up that you're "${about}".`);
-  }
-  if (lines.length > 1) lines.push("");
-  lines.push("Where would you like to start?");
+  lines.push("What would you like to tackle first?");
   return lines.join("\n");
+}
+
+function resolveGeminiKey(): string | null {
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY.trim();
+  const keyFile =
+    process.env.MC_GEMINI_KEY_FILE ||
+    path.join(os.homedir(), "legacy-workspace", "keys", "gemini.txt");
+  try {
+    const k = fs.readFileSync(keyFile, "utf-8").trim();
+    return k || null;
+  } catch {
+    return null;
+  }
+}
+
+async function generateWelcomeText(opts: {
+  agentName: string;
+  aboutMe: string;
+  goals: string;
+  tone: string;
+  formality: string;
+  emoji: boolean;
+  followUps: { question: string; answer: string }[];
+}): Promise<string | null> {
+  const apiKey = resolveGeminiKey();
+  if (!apiKey) return null;
+  try {
+    const { GoogleGenAI } = await import("@google/genai");
+    const ai = new GoogleGenAI({ apiKey });
+    const fu = opts.followUps
+      .filter((f) => f.question && f.answer)
+      .map((f) => `- Q: ${f.question}\n  A: ${f.answer}`)
+      .join("\n");
+    const prompt = `You are an AI assistant introducing yourself for the first time to your new user. Your name is "${opts.agentName}". The user just finished an onboarding wizard and is about to land on the chat screen — they should see your message already waiting.
+
+USER ABOUT-ME:
+${opts.aboutMe}
+
+USER GOALS:
+${opts.goals}
+${fu ? `\nFOLLOW-UP ANSWERS:\n${fu}\n` : ""}
+PERSONALITY:
+- Tone: ${opts.tone}
+- Formality: ${opts.formality}
+- Emoji: ${opts.emoji ? "use sparingly" : "do not use emoji"}
+
+INSTRUCTIONS:
+Write your opening message. It should:
+- Greet them warmly and use their agent name "${opts.agentName}" once
+- Show genuine interest in what they shared — pick out something specific (a person, hobby, role, goal) and ask a curious follow-up question about it
+- Optionally ask "what's the number-one thing I can help you with first?" or similar to drive next action
+- 2-4 short paragraphs, conversational, like a friend
+- Do NOT just parrot back what they wrote in quotes
+- Do NOT use bullet lists or headings
+- Plain text only
+
+Example shape (do NOT copy verbatim):
+"Hi — I'm <name>. Loved hearing that you ... <specific reaction>. <Curious question about a specific detail>? Can't wait to help you ... <reflect their goal in your own words>. What's the number one thing I can do to help you get started?"
+
+Output ONLY the message text — no preamble, no quotes around it.`;
+    const res = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+    const text = (res.text || "").trim();
+    if (!text || text.length < 30) return null;
+    return text;
+  } catch (e) {
+    console.error("[onboarding/save] gemini greeting failed", e);
+    return null;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -83,10 +137,11 @@ export async function POST(req: NextRequest) {
     markPersonaCompleted(user.id);
     try { (await import("@/lib/achievements")).bump(user.username, "agent_trains"); } catch {}
     try {
-      await seedWelcomeMessage({
-        user: user.username,
-        agentText: buildWelcomeText({ agentName, aboutMe, goals, emoji }),
+      const llmText = await generateWelcomeText({
+        agentName, aboutMe, goals, tone, formality, emoji, followUps,
       });
+      const agentText = llmText || buildWelcomeText({ agentName, aboutMe, goals, emoji });
+      await seedWelcomeMessage({ user: user.username, agentText });
     } catch (e) {
       console.error("[onboarding/save] welcome-message seed failed", e);
     }
