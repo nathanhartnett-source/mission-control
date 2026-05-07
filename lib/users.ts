@@ -7,7 +7,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { provisionWorkspace } from "./workspace";
+import { provisionWorkspace, memoryDir } from "./workspace";
 
 export type UserStatus = "pending" | "active" | "denied";
 export type UserRole = "admin" | "staff" | "client";
@@ -258,6 +258,21 @@ export function setAgentName(userId: string, agent: string, name: string): User 
     u.agentNames[slug] = trimmed;
   }
   write(store);
+  // The runner reads the agent name from persona.md's `**Agent name:**` line.
+  // Mirror the rename of the user's primary agent there so chat picks it up
+  // on the next turn.
+  if (slug === "me" || slug === "agent") {
+    try {
+      const personaFile = path.join(memoryDir(u.username), "persona.md");
+      if (fs.existsSync(personaFile)) {
+        const cur = fs.readFileSync(personaFile, "utf8");
+        const next = cur.replace(/^\*\*Agent name:\*\*.*$/m, `**Agent name:** ${trimmed || "Agent"}`);
+        if (next !== cur) fs.writeFileSync(personaFile, next, "utf8");
+      }
+    } catch (e) {
+      console.error("[users] persona.md rename mirror failed", e);
+    }
+  }
   return u;
 }
 
