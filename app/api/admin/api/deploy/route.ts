@@ -41,6 +41,17 @@ export async function POST(req: NextRequest) {
   } catch (e: any) {
     return NextResponse.json({ ok: false, step: "build", error: e.message, stderr: (e.stderr || "").slice(-4000) });
   }
+  // Refresh the runner + stream parser in /usr/local/bin/ so live-pillbox
+  // updates from install/ land without needing a fresh mc-install.sh run.
+  try {
+    await exec("install", ["-m", "0755", `${repoDir}/install/mc-user-agent-runner.sh`, "/usr/local/bin/mc-user-agent-runner.sh"], { timeout: 10_000 });
+    try {
+      await exec("install", ["-m", "0755", `${repoDir}/install/mc-agent-stream-parser.py`, "/usr/local/bin/mc-agent-stream-parser.py"], { timeout: 10_000 });
+    } catch { /* parser file optional on older trees */ }
+    out.runner = "installed";
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, step: "runner", error: e.message, stderr: e.stderr });
+  }
   // Schedule the restart in a detached child so the response can be sent
   // before systemd kills this very process. Otherwise the client always
   // sees `restart: failed` even when the restart succeeded.

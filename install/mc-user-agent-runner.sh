@@ -190,30 +190,69 @@ ${USERNAME} said: ${TEXT}"
     fi
 
     RUN_TS="$(date -u +%FT%TZ)"
-    cat > "$OUTBOX/mc-agent-${CORR}-running.json" <<JSON
+    RUNNING_PATH="$OUTBOX/mc-agent-${CORR}-running.json"
+    cat > "$RUNNING_PATH" <<JSON
 {"schema":"mc-agent-response/v1","corr_id":"$CORR","agent":"me","ts":"$RUN_TS","state":"running"}
 JSON
+
+    STREAM_RAW="/tmp/mc-user-agent-runner-${USERNAME}-${CORR}.stream"
+    PARSER="${MC_STREAM_PARSER:-/usr/local/bin/mc-agent-stream-parser.py}"
+    [[ ! -f "$PARSER" ]] && PARSER="$HOME/bin/mc-agent-stream-parser.py"
 
     START="$(date +%s)"
     set +e
     # IS_SANDBOX=1 unlocks --permission-mode=bypassPermissions when claude is
     # invoked as root (mission-control.service runs as root on OBT installs).
-    # Harmless when PERMISSION_MODE is "default".
+    # Harmless when PERMISSION_MODE is "default". stream-json + parser drives
+    # the live thinking/doing/Stop pillbox in /agents.
     (cd "$STATE_DIR" 2>/dev/null; IS_SANDBOX=1 timeout 600 "$CLAUDE" -p \
         --model claude-opus-4-7 \
         --effort medium \
         "${ADD_DIR_ARGS[@]}" \
         "${ALLOWED_TOOLS_ARGS[@]}" \
         --permission-mode "$PERMISSION_MODE" \
-        --output-format text \
-        2>"/tmp/mc-user-agent-runner-${USERNAME}.stderr" <<< "$FRAMED_TEXT") > "/tmp/mc-user-agent-resp-${CORR}.txt"
-    EC=$?
+        --output-format stream-json \
+        --include-partial-messages \
+        --verbose \
+        2>"/tmp/mc-user-agent-runner-${USERNAME}.stderr" <<< "$FRAMED_TEXT") \
+      | tee "$STREAM_RAW" \
+      | RUNNING_PATH="$RUNNING_PATH" CORR="$CORR" AGENT="me" python3 -u "$PARSER" >/dev/null
+    EC=${PIPESTATUS[0]}
     set -e
     END="$(date +%s)"
     ELAPSED_MS=$(( (END - START) * 1000 ))
     DONE_TS="$(date -u +%FT%TZ)"
-    RESP="$(cat "/tmp/mc-user-agent-resp-${CORR}.txt" 2>/dev/null)"
-    rm -f "/tmp/mc-user-agent-resp-${CORR}.txt"
+
+    # Parse the captured stream for final text. (Parser only writes the live
+    # state file; final assembly happens here so we don't lose the response if
+    # the parser process exits weirdly.)
+    RESP=""
+    if [[ -s "$STREAM_RAW" ]]; then
+        RESP="$(python3 - "$STREAM_RAW" <<'PY' 2>/dev/null
+import json, sys
+text_parts = []
+try:
+  with open(sys.argv[1]) as f:
+    for line in f:
+      line = line.strip()
+      if not line: continue
+      try: evt = json.loads(line)
+      except Exception: continue
+      if not isinstance(evt, dict): continue
+      ev = evt.get("event")
+      if isinstance(ev, dict):
+        delta = ev.get("delta")
+        if isinstance(delta, dict) and delta.get("type") == "text_delta" and "text" in delta:
+          text_parts.append(delta["text"])
+      if evt.get("type") == "result" and isinstance(evt.get("result"), str) and not text_parts:
+        text_parts.append(evt["result"])
+except Exception:
+  pass
+print("".join(text_parts).strip())
+PY
+)"
+    fi
+    rm -f "$STREAM_RAW"
 
     if [[ $EC -eq 0 && -n "$RESP" ]]; then
         export CORR DONE_TS RESP ELAPSED_MS OUTBOX

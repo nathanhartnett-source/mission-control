@@ -84,9 +84,11 @@ ensure_env MC_RUNNER_ME /usr/local/bin/mc-user-agent-runner.sh
 ensure_env MC_ADMIN_API_TOKEN "$(openssl rand -hex 32)"
 ensure_env SESSION_COOKIE_SECRET "$(openssl rand -hex 32)"
 
-# 5c. Install OBT-style runner into /usr/local/bin so MC_RUNNER_ME resolves
-if [[ -f "$MC_HOME/install/runners/obt/mc-user-agent-runner.sh" ]]; then
-    install -m 0755 "$MC_HOME/install/runners/obt/mc-user-agent-runner.sh" /usr/local/bin/mc-user-agent-runner.sh
+# 5c. Install runner + stream-parser into /usr/local/bin so MC_RUNNER_ME
+#     resolves and the streaming live-pillbox parser is on PATH.
+install -m 0755 "$MC_HOME/install/mc-user-agent-runner.sh" /usr/local/bin/mc-user-agent-runner.sh
+if [[ -f "$MC_HOME/install/mc-agent-stream-parser.py" ]]; then
+    install -m 0755 "$MC_HOME/install/mc-agent-stream-parser.py" /usr/local/bin/mc-agent-stream-parser.py
 fi
 
 # 6. Build
