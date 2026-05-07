@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { checkAdminApiAuth } from "@/lib/admin-api-auth";
 
@@ -13,10 +13,25 @@ export async function POST(req: NextRequest) {
   if (fail) return fail;
   const repoDir = process.env.MC_REPO_DIR || "/root/mission-control";
   const out: Record<string, any> = {};
+  // Force-sync to origin/main. `git pull` fails on diverged histories (e.g.
+  // after a force-push); reset --hard always works for a deploy box that
+  // should never have local commits of its own.
   try {
-    out.pull = (await exec("git", ["-C", repoDir, "pull"], { timeout: 60_000 })).stdout;
+    await exec("git", ["-C", repoDir, "fetch", "origin", "main"], { timeout: 60_000 });
+    out.sync = (await exec("git", ["-C", repoDir, "reset", "--hard", "origin/main"], { timeout: 30_000 })).stdout;
   } catch (e: any) {
-    return NextResponse.json({ ok: false, step: "pull", error: e.message, stderr: e.stderr });
+    return NextResponse.json({ ok: false, step: "sync", error: e.message, stderr: e.stderr });
+  }
+  // Force-include devDependencies (typescript etc.) even when the service
+  // runs under NODE_ENV=production.
+  try {
+    out.install = (await exec("npm", ["--prefix", repoDir, "install", "--include=dev", "--no-audit", "--no-fund"], {
+      timeout: 300_000,
+      maxBuffer: 16 * 1024 * 1024,
+      env: { ...process.env, NODE_ENV: "development" },
+    })).stdout.slice(-2000);
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, step: "install", error: e.message, stderr: (e.stderr || "").slice(-4000) });
   }
   try {
     out.build = (await exec("npm", ["--prefix", repoDir, "run", "build"], {
@@ -26,10 +41,18 @@ export async function POST(req: NextRequest) {
   } catch (e: any) {
     return NextResponse.json({ ok: false, step: "build", error: e.message, stderr: (e.stderr || "").slice(-4000) });
   }
+  // Schedule the restart in a detached child so the response can be sent
+  // before systemd kills this very process. Otherwise the client always
+  // sees `restart: failed` even when the restart succeeded.
   try {
-    out.restart = (await exec("systemctl", ["restart", "mission-control"], { timeout: 30_000 })).stdout;
+    const child = spawn("/bin/sh", ["-c", "sleep 1 && systemctl restart mission-control"], {
+      detached: true,
+      stdio: "ignore",
+    });
+    child.unref();
+    out.restart = "scheduled";
   } catch (e: any) {
-    return NextResponse.json({ ok: false, step: "restart", error: e.message, stderr: e.stderr });
+    return NextResponse.json({ ok: false, step: "restart", error: e.message });
   }
   return NextResponse.json({ ok: true, ...out });
 }
