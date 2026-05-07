@@ -137,6 +137,22 @@ systemctl daemon-reload
 systemctl enable mission-control.service
 systemctl restart mission-control.service
 
+# 8b. Auto-update cron — every 5 min, pull origin/$BRANCH and rebuild if HEAD
+#     moved. Idempotent + silent on no-op so the log doesn't bloat. Disable by
+#     deleting /etc/cron.d/mc-auto-update.
+if [[ -f "$MC_HOME/install/auto-update.sh" ]]; then
+    install -m 0755 "$MC_HOME/install/auto-update.sh" /usr/local/bin/mc-auto-update.sh
+    cat > /etc/cron.d/mc-auto-update <<CRON
+# Mission Control auto-update — pull + rebuild when origin/main moves.
+# Edit MC_HOME or MC_USER above /usr/local/bin/mc-auto-update.sh if needed.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+*/5 * * * * root MC_HOME=$MC_HOME MC_USER=$MC_USER /usr/local/bin/mc-auto-update.sh >> /var/log/mc-auto-update.log 2>&1
+CRON
+    chmod 0644 /etc/cron.d/mc-auto-update
+    echo "==> auto-update cron installed (every 5 min, log /var/log/mc-auto-update.log)"
+fi
+
 # 9. Cloudflare tunnel (if creds provided)
 if [[ -n "${CF_API_TOKEN:-}" && -n "${CF_ACCOUNT_ID:-}" && -n "${CF_ZONE_ID:-}" ]]; then
     echo "==> setting up cloudflared tunnel"
