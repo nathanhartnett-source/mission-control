@@ -8,6 +8,7 @@ import { seedWelcomeMessage } from "@/lib/agents";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { spawn } from "child_process";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,17 +30,17 @@ function buildWelcomeText(opts: {
   return lines.join("\n");
 }
 
-function resolveGeminiKey(): string | null {
-  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY.trim();
-  const keyFile =
-    process.env.MC_GEMINI_KEY_FILE ||
-    path.join(os.homedir(), "legacy-workspace", "keys", "gemini.txt");
-  try {
-    const k = fs.readFileSync(keyFile, "utf-8").trim();
-    return k || null;
-  } catch {
-    return null;
+function resolveClaudeBin(): string | null {
+  if (process.env.CLAUDE_BIN && fs.existsSync(process.env.CLAUDE_BIN)) return process.env.CLAUDE_BIN;
+  const candidates = [
+    path.join(os.homedir(), ".npm-global", "bin", "claude"),
+    "/usr/local/bin/claude",
+    "/root/.npm-global/bin/claude",
+  ];
+  for (const c of candidates) {
+    try { fs.accessSync(c, fs.constants.X_OK); return c; } catch { /* keep looking */ }
   }
+  return null;
 }
 
 async function generateWelcomeText(opts: {
@@ -51,53 +52,59 @@ async function generateWelcomeText(opts: {
   emoji: boolean;
   followUps: { question: string; answer: string }[];
 }): Promise<string | null> {
-  const apiKey = resolveGeminiKey();
-  if (!apiKey) return null;
-  try {
-    const { GoogleGenAI } = await import("@google/genai");
-    const ai = new GoogleGenAI({ apiKey });
-    const fu = opts.followUps
-      .filter((f) => f.question && f.answer)
-      .map((f) => `- Q: ${f.question}\n  A: ${f.answer}`)
-      .join("\n");
-    const prompt = `You are an AI assistant introducing yourself for the first time to your new user. Your name is "${opts.agentName}". The user just finished an onboarding wizard and is about to land on the chat screen — they should see your message already waiting.
+  const claudeBin = resolveClaudeBin();
+  if (!claudeBin) return null;
 
-USER ABOUT-ME:
+  const fu = opts.followUps
+    .filter((f) => f.question && f.answer)
+    .map((f) => `- Q: ${f.question}\n  A: ${f.answer}`)
+    .join("\n");
+
+  const prompt = `You are "${opts.agentName}", the user's personal AI assistant in Mission Control. They just finished the onboarding wizard and are about to land on the chat screen — your message should already be waiting for them.
+
+What they told you about themselves:
 ${opts.aboutMe}
 
-USER GOALS:
+What they want from you:
 ${opts.goals}
-${fu ? `\nFOLLOW-UP ANSWERS:\n${fu}\n` : ""}
-PERSONALITY:
+${fu ? `\nTheir follow-up answers:\n${fu}\n` : ""}
+Voice rules:
 - Tone: ${opts.tone}
 - Formality: ${opts.formality}
 - Emoji: ${opts.emoji ? "use sparingly" : "do not use emoji"}
 
-INSTRUCTIONS:
-Write your opening message. It should:
-- Greet them warmly and use their agent name "${opts.agentName}" once
-- Show genuine interest in what they shared — pick out something specific (a person, hobby, role, goal) and ask a curious follow-up question about it
-- Optionally ask "what's the number-one thing I can help you with first?" or similar to drive next action
-- 2-4 short paragraphs, conversational, like a friend
-- Do NOT just parrot back what they wrote in quotes
-- Do NOT use bullet lists or headings
-- Plain text only
+Write your opening message. It MUST:
+- Sound like a curious, warm friend — not a corporate chatbot
+- Greet them and use your name "${opts.agentName}" once
+- Pick out something SPECIFIC they mentioned (a person by name, a hobby, a role, a goal) and ask a genuine curious follow-up question about it
+- Reflect their goal back in your own words — do NOT copy/quote what they wrote
+- End with a clear "what's the number-one thing I can help you with first?" type prompt
+- 2-4 short paragraphs, plain prose, no bullets or headings
 
-Example shape (do NOT copy verbatim):
-"Hi — I'm <name>. Loved hearing that you ... <specific reaction>. <Curious question about a specific detail>? Can't wait to help you ... <reflect their goal in your own words>. What's the number one thing I can do to help you get started?"
+Output ONLY the message text. No preamble, no markdown fences, no surrounding quotes.`;
 
-Output ONLY the message text — no preamble, no quotes around it.`;
-    const res = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
+  return new Promise<string | null>((resolve) => {
+    const proc = spawn(
+      claudeBin,
+      ["-p", "--model", "claude-opus-4-7"],
+      { env: { ...process.env, IS_SANDBOX: "1" } },
+    );
+    let stdout = "";
+    let settled = false;
+    const finish = (val: string | null) => { if (!settled) { settled = true; resolve(val); } };
+    proc.stdout?.on("data", (d: Buffer) => { stdout += d.toString(); });
+    proc.stderr?.on("data", () => { /* swallow */ });
+    proc.stdin?.write(prompt);
+    proc.stdin?.end();
+    const timer = setTimeout(() => { try { proc.kill("SIGKILL"); } catch { /* gone */ } finish(null); }, 45_000);
+    proc.on("error", () => { clearTimeout(timer); finish(null); });
+    proc.on("exit", (code: number | null) => {
+      clearTimeout(timer);
+      const text = stdout.trim();
+      if (code === 0 && text.length >= 30) finish(text);
+      else finish(null);
     });
-    const text = (res.text || "").trim();
-    if (!text || text.length < 30) return null;
-    return text;
-  } catch (e) {
-    console.error("[onboarding/save] gemini greeting failed", e);
-    return null;
-  }
+  });
 }
 
 export async function POST(req: NextRequest) {
