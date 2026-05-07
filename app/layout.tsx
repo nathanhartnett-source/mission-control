@@ -3,7 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import "./globals.css";
-import Nav from "./components/Nav";
+import LayoutShell from "./components/LayoutShell";
 import ThemeApplier from "./components/ThemeApplier";
 import NotificationPoller from "./components/NotificationPoller";
 import OnboardingGate from "./components/OnboardingGate";
@@ -66,15 +66,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${inter.className} min-h-screen bg-slate-900 mc-themed-body`}>
         <ThemeApplier />
-        {!isPublic && <Nav />}
         <NotificationPoller />
         <OnboardingGate />
         <SessionWatcher />
         <ConnectionHealthOverlay />
         <AchievementOverlay />
-        <div className={isPublic ? "mc-dashboard-shell" : "mc-dashboard-shell md:ml-52 pb-16 md:pb-0"}>
-          {children}
-        </div>
+        <LayoutShell>{children}</LayoutShell>
       </body>
     </html>
   );
