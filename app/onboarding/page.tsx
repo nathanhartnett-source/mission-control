@@ -26,6 +26,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [showTour, setShowTour] = useState(false);
   const [agentName, setAgentName] = useState("");
   const [tone, setTone] = useState<Tone>("concise");
   const [emoji, setEmoji] = useState(false);
@@ -83,10 +84,44 @@ export default function OnboardingPage() {
         setError(data?.error || "Failed to save. Try again.");
         return;
       }
-      router.replace("/");
+      setShowTour(true);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (showTour) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
+        <div className="w-full max-w-3xl">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-white">Quick tour</h1>
+            <p className="text-sm text-slate-400 mt-1">
+              About 70 seconds. Shows you what each tab does and how to use them.
+            </p>
+          </div>
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6">
+            <div className="relative w-full rounded-xl overflow-hidden border border-slate-700 bg-black" style={{ paddingTop: "62.5%" }}>
+              <iframe
+                src="https://www.youtube.com/embed/C9xymdtMIr0?autoplay=1&rel=0&modestbranding=1"
+                title="Mission Control walkthrough"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full border-0"
+              />
+            </div>
+            <div className="flex justify-end pt-4">
+              <button
+                onClick={() => router.replace("/")}
+                className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium"
+              >
+                Got it — let&apos;s go!
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -274,10 +274,8 @@ export default function OnboardingWizard({ person, name, onComplete }: Props) {
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Onboarding failed");
 
-      // Move to the walkthrough step instead of finishing immediately.
-      setSaving(false);
-      transitionToStep(5);
-      return;
+      setVisible(false);
+      setTimeout(() => onComplete(), 250);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSaving(false);
@@ -336,7 +334,7 @@ export default function OnboardingWizard({ person, name, onComplete }: Props) {
     <div style={cardStyle}>
       {/* Step indicator */}
       <div style={{ display: "flex", gap: "8px", marginBottom: "28px", justifyContent: "center" }}>
-        {[1, 2, 3, 4, 5].map((s) => (
+        {[1, 2, 3, 4].map((s) => (
           <div
             key={s}
             style={{
@@ -589,55 +587,6 @@ export default function OnboardingWizard({ person, name, onComplete }: Props) {
             disabled={saving}
           >
             {saving ? "Setting up…" : "Let's go! 🚀"}
-          </button>
-        </div>
-      )}
-
-      {/* ── Step 5: Quick walkthrough video ─────────────────────── */}
-      {step === 5 && (
-        <div>
-          <h2 style={{ margin: "0 0 8px", fontSize: "24px", fontWeight: 800, color: textPrimary }}>
-            Quick tour
-          </h2>
-          <p style={{ margin: "0 0 20px", color: textSecondary, fontSize: "15px" }}>
-            About 70 seconds. Shows you what each tab does and how to use them.
-          </p>
-
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              paddingTop: "62.5%", // 1280:800 aspect ratio
-              borderRadius: "12px",
-              overflow: "hidden",
-              border: `1px solid ${border}`,
-              background: "#000",
-            }}
-          >
-            <iframe
-              src="https://www.youtube.com/embed/C9xymdtMIr0?autoplay=1&rel=0&modestbranding=1"
-              title="Mission Control walkthrough"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                border: 0,
-              }}
-            />
-          </div>
-
-          <button
-            style={btnPrimary(selectedColor)}
-            onClick={() => {
-              setVisible(false);
-              setTimeout(() => onComplete(), 250);
-            }}
-          >
-            Got it — let&apos;s go! 🚀
           </button>
         </div>
       )}
