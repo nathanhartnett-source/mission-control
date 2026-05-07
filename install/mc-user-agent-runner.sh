@@ -199,6 +199,10 @@ JSON
     PARSER="${MC_STREAM_PARSER:-/usr/local/bin/mc-agent-stream-parser.py}"
     [[ ! -f "$PARSER" ]] && PARSER="$HOME/bin/mc-agent-stream-parser.py"
 
+    # PID file so /api/agents/me/stop can SIGTERM the in-flight turn's tree.
+    PID_PATH="/tmp/mc-agent-${CORR}.pid"
+    echo $$ > "$PID_PATH"
+
     START="$(date +%s)"
     set +e
     # IS_SANDBOX=1 unlocks --permission-mode=bypassPermissions when claude is
@@ -252,7 +256,7 @@ print("".join(text_parts).strip())
 PY
 )"
     fi
-    rm -f "$STREAM_RAW"
+    rm -f "$STREAM_RAW" "$PID_PATH"
 
     if [[ $EC -eq 0 && -n "$RESP" ]]; then
         export CORR DONE_TS RESP ELAPSED_MS OUTBOX

@@ -3,7 +3,9 @@ import { promises as fs } from "fs";
 import { spawn } from "child_process";
 import path from "path";
 import os from "os";
-import { INBOX_DIRS, OUTBOX_DIR, type AgentName } from "../../../../../lib/agents";
+import { INBOX_DIRS, OUTBOX_DIR, userInboxDir, type AgentName } from "../../../../../lib/agents";
+import { verify, SESSION_COOKIE } from "@/lib/auth-session";
+import { findById } from "@/lib/users";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,7 +43,7 @@ async function pidsMatching(pattern: string): Promise<number[]> {
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ agent: string }> }) {
   const { agent } = await ctx.params;
-  const valid: AgentName[] = ["ava", "mia", "ash", "overseer"];
+  const valid: AgentName[] = ["ava", "mia", "ash", "overseer", "me"];
   if (!valid.includes(agent as AgentName)) {
     return NextResponse.json({ error: "unknown agent" }, { status: 400 });
   }
@@ -52,8 +54,21 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ agent: str
     return NextResponse.json({ error: "valid corr_id required" }, { status: 400 });
   }
 
+  // For per-user "me" agent, look up the session user so we can resolve the
+  // correct per-user inbox dir.
+  let username = "";
+  if (agent === "me") {
+    const cookie = req.cookies.get(SESSION_COOKIE)?.value;
+    const session = verify(cookie);
+    if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const user = findById(session.userId);
+    if (!user || user.status !== "active") return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    username = user.username;
+  }
+
   const pidPath = path.join("/tmp", `mc-agent-${corrId}.pid`);
-  const inboxFile = path.join(INBOX_DIRS[agent as AgentName], `mc-agent-${agent}-${corrId}.json`);
+  const inboxDir = agent === "me" ? userInboxDir(username) : INBOX_DIRS[agent as AgentName];
+  const inboxFile = path.join(inboxDir, `mc-agent-${agent}-${corrId}.json`);
   const runningFile = path.join(OUTBOX_DIR, `mc-agent-${corrId}-running.json`);
   const errorFile = path.join(OUTBOX_DIR, `mc-agent-${corrId}-error.json`);
   const doneFile = path.join(OUTBOX_DIR, `mc-agent-${corrId}-done.json`);
