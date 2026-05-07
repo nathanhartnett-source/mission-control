@@ -25,7 +25,11 @@ MC_DATA_DIR="${MC_DATA_DIR:-$MC_HOME/data}"
 USERS_JSON="$MC_DATA_DIR/users.json"
 
 INBOX="$HOME/.claude/channels/user-${USERNAME}/inbox"
-OUTBOX="$HOME/.mission-control/_outbox/mc-agent"
+# Must match OUTBOX_DIR + HISTORY_FILE in lib/agents.ts so the web UI sees the
+# runner's responses. Override via MC_OUTBOX_DIR / MC_HISTORY_FILE if those
+# constants ever move.
+OUTBOX="${MC_OUTBOX_DIR:-$HOME/wiki/_outbox/mc-agent}"
+HISTORY_FILE_PATH="${MC_HISTORY_FILE:-$HOME/legacy-workspace/mission-control/data/agent-chat/messages.jsonl}"
 STATE_DIR="$HOME/user-workspaces/${USERNAME}"
 USER_MEM="$HOME/.claude/projects/-home-${USERNAME}/memory"
 LOG="/tmp/mc-user-agent-runner-${USERNAME}.log"
@@ -98,11 +102,11 @@ for d in "${ADD_DIRS[@]}"; do
 done
 
 # Conversation context: last 15 turns from MC's chat log.
-export RUNNER_USERNAME="$USERNAME" RUNNER_MC_DATA="$MC_DATA_DIR" RUNNER_OUTBOX="$OUTBOX"
+export RUNNER_USERNAME="$USERNAME" RUNNER_HISTORY_FILE="$HISTORY_FILE_PATH" RUNNER_OUTBOX="$OUTBOX"
 CONTEXT_BLOCK="$(python3 - <<'PY' 2>/dev/null
 import json, os, glob
 username = os.environ["RUNNER_USERNAME"]
-hist = f"{os.environ['RUNNER_MC_DATA']}/agent-chat/messages.jsonl"
+hist = os.environ["RUNNER_HISTORY_FILE"]
 outbox = os.environ["RUNNER_OUTBOX"]
 inbounds = {}
 try:
@@ -192,7 +196,10 @@ JSON
 
     START="$(date +%s)"
     set +e
-    (cd "$STATE_DIR" 2>/dev/null; timeout 600 "$CLAUDE" -p \
+    # IS_SANDBOX=1 unlocks --permission-mode=bypassPermissions when claude is
+    # invoked as root (mission-control.service runs as root on OBT installs).
+    # Harmless when PERMISSION_MODE is "default".
+    (cd "$STATE_DIR" 2>/dev/null; IS_SANDBOX=1 timeout 600 "$CLAUDE" -p \
         --model claude-opus-4-7 \
         --effort medium \
         "${ADD_DIR_ARGS[@]}" \

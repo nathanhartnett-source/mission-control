@@ -1,0 +1,82 @@
+{
+  "users": [
+    {
+      "id": "532b3c6f-5935-4592-9564-f28b8afe8194",
+      "username": "nathan",
+      "email": "nathanhartnett@maskshq.com.au",
+      "passwordHash": "$2b$12$.TjdjFZOTwch/o0S.TfAk.DBPCmp4Kcj7b.ZiVtrQaU7r3R.daoJG",
+      "status": "pending",
+      "isAdmin": false,
+      "createdAt": "2026-05-06T09:16:37.564Z",
+      "ip": "58.96.14.238",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "avatarSeed": "77d0ccac3b5dceb5"
+    },
+    {
+      "id": "0c1d6480-4682-4f10-946f-6dde2ca4cc72",
+      "username": "nathantest",
+      "email": "nathanhartnett@3servants.com.au",
+      "passwordHash": "$2b$12$3l7XXYNxymnOPqUZX7umGer36DsvTPcxWLk6XgajhahQKIXNIzoJu",
+      "status": "pending",
+      "isAdmin": false,
+      "createdAt": "2026-05-06T09:51:24.929Z",
+      "ip": "58.96.14.238",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "avatarSeed": "89a119a7fbb7decf"
+    },
+    {
+      "id": "29f8ea5f-6886-48c2-9a47-c37cae92aa23",
+      "username": "nathantest2",
+      "email": "customersupport@allhart.com.au",
+      "passwordHash": "$2b$12$ZpDs8zks0msOJCfidg5Bbu8Yv9bmjfX3UfpX0oXf8yMWsAuAkqKdW",
+      "status": "pending",
+      "isAdmin": false,
+      "createdAt": "2026-05-06T10:06:47.887Z",
+      "ip": "58.96.14.238",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "avatarSeed": "eb7d31c0cac92a89"
+    },
+    {
+      "id": "4bbec312-d83e-49d2-a564-88a019094dae",
+      "username": "nathantest3",
+      "email": "customersupport@maskshq.com.au",
+      "passwordHash": "$2b$12$19mzYMxhTO08DlKZBdp29uJirYcxVXdohHgEMz6LOUUgJBIKFY.Re",
+      "status": "pending",
+      "isAdmin": false,
+      "createdAt": "2026-05-06T10:10:01.641Z",
+      "ip": "58.96.14.238",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "avatarSeed": "a71f15a2ee234747"
+    }
+  ],
+  "tokens": [
+    {
+      "tokenHash": "153ba54231cb4ca947a59d19eaa126c5d906abf51ce9ed6728bfa48fcc670b5d",
+      "userId": "532b3c6f-5935-4592-9564-f28b8afe8194",
+      "kind": "approval",
+      "expiresAt": "2026-05-13T09:16:37.565Z",
+      "used": false
+    },
+    {
+      "tokenHash": "22a393ea88f3be70ed986d7dfca6bab27e5f8c1b35f7f0fe8fa16182a96498cb",
+      "userId": "0c1d6480-4682-4f10-946f-6dde2ca4cc72",
+      "kind": "approval",
+      "expiresAt": "2026-05-13T09:51:24.930Z",
+      "used": false
+    },
+    {
+      "tokenHash": "915185eefa5c079b1fff10dcc03e9f558191f71230084434e72a05d59018f94a",
+      "userId": "29f8ea5f-6886-48c2-9a47-c37cae92aa23",
+      "kind": "approval",
+      "expiresAt": "2026-05-13T10:06:47.888Z",
+      "used": false
+    },
+    {
+      "tokenHash": "5826a385e7635da1a0ab95b3d898607ee8b68f37104ef9466c2893249abcba15",
+      "userId": "4bbec312-d83e-49d2-a564-88a019094dae",
+      "kind": "approval",
+      "expiresAt": "2026-05-13T10:10:01.642Z",
+      "used": false
+    }
+  ]
+}
