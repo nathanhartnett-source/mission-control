@@ -603,19 +603,32 @@ export default function OnboardingWizard({ person, name, onComplete }: Props) {
             About 70 seconds. Shows you what each tab does and how to use them.
           </p>
 
-          <video
-            src="/walkthrough.mp4"
-            controls
-            autoPlay
-            playsInline
+          <div
             style={{
+              position: "relative",
               width: "100%",
+              paddingTop: "62.5%", // 1280:800 aspect ratio
               borderRadius: "12px",
+              overflow: "hidden",
               border: `1px solid ${border}`,
               background: "#000",
-              display: "block",
             }}
-          />
+          >
+            <iframe
+              src="https://www.youtube.com/embed/C9xymdtMIr0?autoplay=1&rel=0&modestbranding=1"
+              title="Mission Control walkthrough"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                border: 0,
+              }}
+            />
+          </div>
 
           <button
             style={btnPrimary(selectedColor)}
