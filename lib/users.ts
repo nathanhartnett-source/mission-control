@@ -263,11 +263,42 @@ export function setAgentName(userId: string, agent: string, name: string): User 
   // on the next turn.
   if (slug === "me" || slug === "agent") {
     try {
-      const personaFile = path.join(memoryDir(u.username), "persona.md");
+      const dir = memoryDir(u.username);
+      fs.mkdirSync(dir, { recursive: true });
+      const personaFile = path.join(dir, "persona.md");
+      const finalName = trimmed || "Agent";
       if (fs.existsSync(personaFile)) {
         const cur = fs.readFileSync(personaFile, "utf8");
-        const next = cur.replace(/^\*\*Agent name:\*\*.*$/m, `**Agent name:** ${trimmed || "Agent"}`);
+        const next = /^\*\*Agent name:\*\*.*$/m.test(cur)
+          ? cur.replace(/^\*\*Agent name:\*\*.*$/m, `**Agent name:** ${finalName}`)
+          : `**Agent name:** ${finalName}\n\n${cur}`;
         if (next !== cur) fs.writeFileSync(personaFile, next, "utf8");
+      } else {
+        // No onboarding yet — seed a minimal persona so the runner picks up
+        // the chosen name on its very next turn.
+        const body = `---
+name: agent-persona
+description: Agent name + tone for ${u.username}.
+type: feedback
+---
+
+# Agent persona for ${u.username}
+
+**Agent name:** ${finalName}
+**Tone:** warm
+**Emoji:** no
+**Formality:** balanced
+
+**How to apply:** read this every turn. Use the agent name when self-referring. Match the tone/emoji/formality. Don't break character.
+`;
+        fs.writeFileSync(personaFile, body, "utf8");
+        const indexFile = path.join(dir, "MEMORY.md");
+        let idx = fs.existsSync(indexFile) ? fs.readFileSync(indexFile, "utf8") : "# Memory Index\n\n";
+        if (!idx.includes("persona.md")) {
+          if (!idx.endsWith("\n")) idx += "\n";
+          idx += `- [persona.md](persona.md) — agent persona (name, tone, formality)\n`;
+          fs.writeFileSync(indexFile, idx, "utf8");
+        }
       }
     } catch (e) {
       console.error("[users] persona.md rename mirror failed", e);
