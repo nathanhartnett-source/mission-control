@@ -274,8 +274,10 @@ export default function OnboardingWizard({ person, name, onComplete }: Props) {
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Onboarding failed");
 
-      setVisible(false);
-      setTimeout(() => onComplete(), 250);
+      // Move to the walkthrough step instead of finishing immediately.
+      setSaving(false);
+      transitionToStep(5);
+      return;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSaving(false);
@@ -334,7 +336,7 @@ export default function OnboardingWizard({ person, name, onComplete }: Props) {
     <div style={cardStyle}>
       {/* Step indicator */}
       <div style={{ display: "flex", gap: "8px", marginBottom: "28px", justifyContent: "center" }}>
-        {[1, 2, 3, 4].map((s) => (
+        {[1, 2, 3, 4, 5].map((s) => (
           <div
             key={s}
             style={{
@@ -587,6 +589,42 @@ export default function OnboardingWizard({ person, name, onComplete }: Props) {
             disabled={saving}
           >
             {saving ? "Setting up…" : "Let's go! 🚀"}
+          </button>
+        </div>
+      )}
+
+      {/* ── Step 5: Quick walkthrough video ─────────────────────── */}
+      {step === 5 && (
+        <div>
+          <h2 style={{ margin: "0 0 8px", fontSize: "24px", fontWeight: 800, color: textPrimary }}>
+            Quick tour
+          </h2>
+          <p style={{ margin: "0 0 20px", color: textSecondary, fontSize: "15px" }}>
+            About 70 seconds. Shows you what each tab does and how to use them.
+          </p>
+
+          <video
+            src="/walkthrough.mp4"
+            controls
+            autoPlay
+            playsInline
+            style={{
+              width: "100%",
+              borderRadius: "12px",
+              border: `1px solid ${border}`,
+              background: "#000",
+              display: "block",
+            }}
+          />
+
+          <button
+            style={btnPrimary(selectedColor)}
+            onClick={() => {
+              setVisible(false);
+              setTimeout(() => onComplete(), 250);
+            }}
+          >
+            Got it — let&apos;s go! 🚀
           </button>
         </div>
       )}
