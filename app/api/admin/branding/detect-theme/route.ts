@@ -29,7 +29,7 @@ function runClaude(prompt: string): Promise<string> {
     const claudeBin = findClaudeBin();
     console.log(`[detect-theme] spawning ${claudeBin} (HOME=${process.env.HOME}, prompt=${prompt.length} chars)`);
     const startedAt = Date.now();
-    const child = spawn(claudeBin, ["-p", prompt, "--output-format", "text"], {
+    const child = spawn(claudeBin, ["-p", prompt, "--output-format", "text", "--permission-mode", "bypassPermissions"], {
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         ...process.env,
