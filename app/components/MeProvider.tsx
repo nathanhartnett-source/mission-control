@@ -36,8 +36,10 @@ export function MeProvider({ initial, children }: { initial: Me; children: React
     } catch { setLoaded(true); }
   }, []);
 
-  // If the server didn't seed initial (e.g. cookie not parsed), fetch once on mount.
-  useEffect(() => { if (!loaded) refresh(); }, [loaded, refresh]);
+  // Always refresh once on mount: server-seeded `initial` from layout.tsx
+  // omits agentName (which is read per-request from persona.md). Without
+  // this refresh, /agents shows "Your agent" instead of the configured name.
+  useEffect(() => { refresh(); }, [refresh]);
 
   return <MeContext.Provider value={{ me, loaded, refresh, setMe }}>{children}</MeContext.Provider>;
 }

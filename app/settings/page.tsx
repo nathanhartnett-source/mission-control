@@ -6,6 +6,7 @@ import PixelAvatar from "@/app/components/PixelAvatar";
 import BrandingPanel from "@/app/components/BrandingPanel";
 import UserThemePanel from "@/app/components/UserThemePanel";
 import WikiPathPanel from "@/app/components/WikiPathPanel";
+import MyAgentPanel from "@/app/components/MyAgentPanel";
 import { rollAvatarSeed, agentAvatarSeed } from "@/lib/avatar";
 
 const AGENTS: { slug: string; name: string }[] = [
@@ -264,6 +265,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      <MyAgentPanel />
       {isAdmin && <BrandingPanel />}
       {isAdmin && <WikiPathPanel />}
       <UserThemePanel />
