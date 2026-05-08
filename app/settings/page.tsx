@@ -5,6 +5,7 @@ import { HexColorPicker } from "react-colorful";
 import PixelAvatar from "@/app/components/PixelAvatar";
 import BrandingPanel from "@/app/components/BrandingPanel";
 import UserThemePanel from "@/app/components/UserThemePanel";
+import WikiPathPanel from "@/app/components/WikiPathPanel";
 import { rollAvatarSeed, agentAvatarSeed } from "@/lib/avatar";
 
 const AGENTS: { slug: string; name: string }[] = [
@@ -264,6 +265,7 @@ export default function SettingsPage() {
       </section>
 
       {isAdmin && <BrandingPanel />}
+      {isAdmin && <WikiPathPanel />}
       <UserThemePanel />
 
       {/* Multi-agent grid (Ava/Mia/Ash/Overseer/Switchboard) removed in

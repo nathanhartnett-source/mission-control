@@ -85,6 +85,7 @@ Be direct, conversational, and helpful. When something is uncertain, say so.
 
   // Wiki — operator may have picked an existing dir (e.g. ~/obt-wiki) in the wizard.
   // Validate input is absolute and reasonable, else fall back to ~/wiki.
+  console.log(`[scaffold] received body.wikiPath=${JSON.stringify(body.wikiPath)}`);
   let wikiPath = path.join(HOME, "wiki");
   if (body.wikiPath && typeof body.wikiPath === "string") {
     const candidate = path.resolve(body.wikiPath.trim());
@@ -92,7 +93,12 @@ Be direct, conversational, and helpful. When something is uncertain, say so.
     const forbidden = ["/", "/etc", "/usr", "/bin", "/var", "/root", "/home"];
     if (path.isAbsolute(candidate) && !forbidden.includes(candidate)) {
       wikiPath = candidate;
+      console.log(`[scaffold] using picked wikiPath=${wikiPath}`);
+    } else {
+      console.warn(`[scaffold] rejected wikiPath=${candidate} (forbidden=${forbidden.includes(candidate)}, abs=${path.isAbsolute(candidate)}); falling back to ${wikiPath}`);
     }
+  } else {
+    console.log(`[scaffold] no wikiPath provided, defaulting to ${wikiPath}`);
   }
   ensureDir(wikiPath);
   writeInstallConfig({ wikiRoot: wikiPath });
