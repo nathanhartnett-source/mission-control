@@ -111,10 +111,7 @@ export default function Nav() {
     <>
       {/* ── Desktop sidebar ───────────────────────────────────────────────── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-52 bg-slate-950 border-r border-slate-800/60 z-30">
-        <div
-          className="px-5 py-5 border-b border-slate-800/60 flex items-center justify-center"
-          style={{ backgroundColor: "#0f172a" }}
-        >
+        <div className="px-5 py-5 border-b border-slate-800/60 flex items-center justify-center">
           {logoPath ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoPath} alt="logo" className="max-h-10 max-w-[160px] object-contain" />
