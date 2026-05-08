@@ -27,6 +27,8 @@ function findClaudeBin(): string {
 function runClaude(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const claudeBin = findClaudeBin();
+    console.log(`[detect-theme] spawning ${claudeBin} (HOME=${process.env.HOME}, prompt=${prompt.length} chars)`);
+    const startedAt = Date.now();
     const child = spawn(claudeBin, ["-p", prompt, "--output-format", "text"], {
       stdio: ["ignore", "pipe", "pipe"],
       env: {
@@ -39,12 +41,18 @@ function runClaude(prompt: string): Promise<string> {
     let err = "";
     child.stdout.on("data", (d) => { out += d.toString(); });
     child.stderr.on("data", (d) => { err += d.toString(); });
-    child.on("error", reject);
+    child.on("error", (e) => { console.error(`[detect-theme] spawn error:`, e); reject(e); });
     child.on("close", (code) => {
-      if (code !== 0) return reject(new Error(`claude exit ${code}: ${err}`));
+      const ms = Date.now() - startedAt;
+      console.log(`[detect-theme] claude exited code=${code} after ${ms}ms, stdout=${out.length}b stderr=${err.length}b`);
+      if (code !== 0) return reject(new Error(`claude exit ${code}: ${err.slice(0, 500)}`));
       resolve(out);
     });
-    setTimeout(() => { try { child.kill("SIGTERM"); } catch {} reject(new Error("claude -p timeout")); }, 110000);
+    setTimeout(() => {
+      console.error(`[detect-theme] claude -p hit 110s timeout, killing`);
+      try { child.kill("SIGTERM"); } catch {}
+      reject(new Error("claude -p timeout"));
+    }, 110000);
   });
 }
 
@@ -111,15 +119,21 @@ export async function POST(req: NextRequest) {
     `Dark example: {"bgApp":"#0f1419","textApp":"#e6edf3","bgSurface":"#161b22","textSurface":"#e6edf3","bgSidebar":"#0a0d12","textSidebar":"#cdd9e5","bgBubbleUser":"#1f6feb","textBubbleUser":"#ffffff","bgBubbleAgent":"#161b22","textBubbleAgent":"#e6edf3","bgComposer":"#13171c","textComposer":"#e6edf3","textMuted":"#7d8590","borderDefault":"#30363d","borderSubtle":"#21262d","accent":"#1f6feb","textOnAccent":"#ffffff"}`,
   ].join("\n");
 
+  console.log(`[detect-theme] starting for url=${url}`);
   let raw: string;
   try {
     raw = await runClaude(prompt);
   } catch (e) {
+    console.error(`[detect-theme] subagent failed:`, (e as Error).message);
     return NextResponse.json({ error: `subagent failed: ${(e as Error).message}` }, { status: 500 });
   }
 
   const theme = extractJson(raw);
-  if (!theme) return NextResponse.json({ error: "could not parse theme JSON from agent output", raw }, { status: 502 });
+  if (!theme) {
+    console.error(`[detect-theme] could not parse JSON, raw length=${raw.length}, first 300:`, raw.slice(0, 300));
+    return NextResponse.json({ error: "could not parse theme JSON from agent output", raw }, { status: 502 });
+  }
+  console.log(`[detect-theme] success — ${Object.keys(theme).length} tokens parsed`);
 
   const next = writeBranding({ theme, sourceUrl: url });
   return NextResponse.json({ ok: true, branding: next, theme });
