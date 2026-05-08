@@ -67,6 +67,13 @@ function buildCss(t: Theme): string {
   if (t.bgBubbleUser) vars.push(`--mc-bubble-user:${t.bgBubbleUser}`);
   if (t.bgBubbleAgent) vars.push(`--mc-bubble-agent:${t.bgBubbleAgent}`);
   if (t.bgComposer) vars.push(`--mc-chat-bg:${t.bgComposer}`);
+  // Bento home tiles use --bento-* CSS vars (app/page.tsx). Map them to v2 tokens.
+  if (t.bgSurface) vars.push(`--bento-card-bg:${t.bgSurface}`);
+  if (t.borderDefault) vars.push(`--bento-border:${t.borderDefault}`);
+  if (t.borderSubtle) vars.push(`--bento-border-soft:${t.borderSubtle}`);
+  if (t.accent) vars.push(`--bento-accent:${t.accent}`);
+  if (t.textApp) vars.push(`--bento-text-primary:${t.textApp}`);
+  if (t.textMuted) vars.push(`--bento-text-secondary:${t.textMuted}`, `--bento-text-muted:${t.textMuted}`);
 
   const rules: string[] = [];
   if (vars.length) rules.push(`:root{${vars.join(";")}}`);
@@ -76,16 +83,20 @@ function buildCss(t: Theme): string {
     rules.push(`.mc-dashboard-shell .min-h-screen[class*='bg-'],.mc-dashboard-shell [style*='min-height: 100vh'][style*='background'],.mc-dashboard-shell .fixed[class*='bg-'][class*='inset-']{background:var(--mc-bg-app) !important;background-color:var(--mc-bg-app) !important;background-image:none !important}`);
   }
   if (t.bgSidebar) rules.push(`aside.bg-slate-950,nav.bg-slate-950,aside[class*='bg-slate'],nav[class*='bg-slate-9']{background-color:var(--mc-bg-sidebar) !important}`);
+  // Pages like /wiki and /projects use bg-slate-950 on <main> and inner panels.
+  // Map them to bgApp (less specific than the aside/nav rule above so sidebars
+  // still get bgSidebar).
+  if (t.bgApp) rules.push(`main.bg-slate-950,div.bg-slate-950,.bg-slate-950\\/95,.bg-slate-950\\/80,.bg-slate-950\\/70,.bg-slate-950\\/60,.bg-slate-950\\/45,.bg-slate-950\\/30,.bg-slate-950\\/20{background-color:var(--mc-bg-app) !important}`);
   if (t.textSidebar) rules.push(`aside.bg-slate-950 *,nav.bg-slate-950 *{color:var(--mc-text-sidebar) !important}`);
   if (t.textApp) rules.push(`body{color:var(--mc-text-app)}`);
 
   // Surface (cards, panels). Most use bg-slate-900, bg-slate-900/40, bg-slate-900/60.
   if (t.bgSurface) {
-    rules.push(`.bg-slate-900,.bg-slate-900\\/40,.bg-slate-900\\/60,.bg-slate-800\\/50{background-color:var(--mc-bg-surface) !important}`);
+    rules.push(`.bg-slate-900,.bg-slate-900\\/30,.bg-slate-900\\/40,.bg-slate-900\\/45,.bg-slate-900\\/50,.bg-slate-900\\/55,.bg-slate-900\\/60,.bg-slate-900\\/70,.bg-slate-900\\/80,.bg-slate-800\\/30,.bg-slate-800\\/40,.bg-slate-800\\/50,.bg-slate-800\\/60{background-color:var(--mc-bg-surface) !important}`);
   }
   if (t.textSurface) {
-    // Cards inherit text inside them.
-    rules.push(`.bg-slate-900 ,.bg-slate-900\\/40,.bg-slate-900\\/60{color:var(--mc-text-surface)}`);
+    rules.push(`.bg-slate-900,.bg-slate-900\\/30,.bg-slate-900\\/40,.bg-slate-900\\/45,.bg-slate-900\\/50,.bg-slate-900\\/55,.bg-slate-900\\/60,.bg-slate-900\\/70,.bg-slate-800\\/30,.bg-slate-800\\/40,.bg-slate-800\\/50{color:var(--mc-text-surface) !important}`);
+    rules.push(`.bg-slate-900 *,.bg-slate-900\\/40 *,.bg-slate-900\\/55 *,.bg-slate-900\\/60 *{color:var(--mc-text-surface)}`);
   }
 
   // Chat bubbles
