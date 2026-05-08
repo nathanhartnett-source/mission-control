@@ -2663,7 +2663,11 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
                     ) : (
                       <div className="text-slate-500 italic text-xs">
                         {r.agent_state === "queued" ? "Waiting in agent inbox…"
-                          : r.agent_state === "running" ? `${agentName} is ${r.activity_kind === "doing" ? "working" : "thinking"}…`
+                          : r.agent_state === "running" ? (
+                              r.activity_kind === "doing"
+                                ? `${agentName} is working…`
+                                : HUMOR_LINES[Math.floor((r.elapsed_ms || 0) / 5000) % HUMOR_LINES.length]
+                            )
                           : r.agent_state === "error" ? `Error: ${r.error || "unknown"}`
                         : "—"}
                       </div>
