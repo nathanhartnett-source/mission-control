@@ -199,7 +199,7 @@ export default function Nav() {
           </button>
           {/* Hardcoded product wordmark — not theme-able, not user-editable.
               The "Allhart AIOS" prefix is fixed; only the version number changes. */}
-          <div className="text-[10px] text-gray-500 text-right px-3 select-none" data-mc-product-stamp>
+          <div className="text-[10px] text-gray-500 text-left px-3 select-none" data-mc-product-stamp>
             Allhart AIOS v0.1
           </div>
         </div>
