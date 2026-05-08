@@ -7,15 +7,9 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { provisionWorkspace, memoryDir } from "./workspace";
+import { provisionWorkspace } from "./workspace";
 
 export type UserStatus = "pending" | "active" | "denied";
-export type UserRole = "admin" | "staff" | "client";
-
-export function userRole(u: { role?: UserRole; isAdmin?: boolean }): UserRole {
-  if (u.role) return u.role;
-  return u.isAdmin ? "admin" : "staff";
-}
 
 export type User = {
   id: string;
@@ -24,7 +18,6 @@ export type User = {
   passwordHash: string;
   status: UserStatus;
   isAdmin: boolean;
-  role?: UserRole;
   createdAt: string;
   approvedAt?: string;
   approvedBy?: string;
@@ -35,7 +28,6 @@ export type User = {
   personaCompletedAt?: string;
   avatarSeed?: string;
   agentAvatarSeeds?: Record<string, string>;
-  agentNames?: Record<string, string>;
 };
 
 export type ApprovalToken = {
@@ -245,68 +237,6 @@ export function setAgentAvatarSeed(userId: string, agent: string, seed: string):
   return u;
 }
 
-export function setAgentName(userId: string, agent: string, name: string): User | null {
-  const store = read();
-  const u = store.users.find(x => x.id === userId);
-  if (!u) return null;
-  if (!u.agentNames) u.agentNames = {};
-  const slug = agent.toLowerCase();
-  const trimmed = name.trim().slice(0, 64);
-  if (!trimmed) {
-    delete u.agentNames[slug];
-  } else {
-    u.agentNames[slug] = trimmed;
-  }
-  write(store);
-  // The runner reads the agent name from persona.md's `**Agent name:**` line.
-  // Mirror the rename of the user's primary agent there so chat picks it up
-  // on the next turn.
-  if (slug === "me" || slug === "agent") {
-    try {
-      const dir = memoryDir(u.username);
-      fs.mkdirSync(dir, { recursive: true });
-      const personaFile = path.join(dir, "persona.md");
-      const finalName = trimmed || "Agent";
-      if (fs.existsSync(personaFile)) {
-        const cur = fs.readFileSync(personaFile, "utf8");
-        const next = /^\*\*Agent name:\*\*.*$/m.test(cur)
-          ? cur.replace(/^\*\*Agent name:\*\*.*$/m, `**Agent name:** ${finalName}`)
-          : `**Agent name:** ${finalName}\n\n${cur}`;
-        if (next !== cur) fs.writeFileSync(personaFile, next, "utf8");
-      } else {
-        // No onboarding yet — seed a minimal persona so the runner picks up
-        // the chosen name on its very next turn.
-        const body = `---
-name: agent-persona
-description: Agent name + tone for ${u.username}.
-type: feedback
----
-
-# Agent persona for ${u.username}
-
-**Agent name:** ${finalName}
-**Tone:** warm
-**Emoji:** no
-**Formality:** balanced
-
-**How to apply:** read this every turn. Use the agent name when self-referring. Match the tone/emoji/formality. Don't break character.
-`;
-        fs.writeFileSync(personaFile, body, "utf8");
-        const indexFile = path.join(dir, "MEMORY.md");
-        let idx = fs.existsSync(indexFile) ? fs.readFileSync(indexFile, "utf8") : "# Memory Index\n\n";
-        if (!idx.includes("persona.md")) {
-          if (!idx.endsWith("\n")) idx += "\n";
-          idx += `- [persona.md](persona.md) — agent persona (name, tone, formality)\n`;
-          fs.writeFileSync(indexFile, idx, "utf8");
-        }
-      }
-    } catch (e) {
-      console.error("[users] persona.md rename mirror failed", e);
-    }
-  }
-  return u;
-}
-
 export function markPersonaCompleted(userId: string): User | null {
   const store = read();
   const u = store.users.find(x => x.id === userId);
@@ -395,13 +325,12 @@ export function approveById(userId: string, approvedBy: string): User | null {
   return u;
 }
 
-export type AssignableRole = UserRole;
+export type AssignableRole = "admin" | "staff";
 
 export function setUserRole(userId: string, role: AssignableRole): User | null {
   const store = read();
   const u = store.users.find(x => x.id === userId);
   if (!u) return null;
-  u.role = role;
   u.isAdmin = role === "admin";
   write(store);
   return u;

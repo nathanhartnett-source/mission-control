@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 
 export type AuditEvent =
-  | "register" | "register_blocked" | "approve" | "deny"
+  | "register" | "register_blocked" | "register_mail_failed" | "approve" | "deny"
   | "login_ok" | "login_fail" | "logout"
   | "token_invalid" | "onboarding_complete";
 

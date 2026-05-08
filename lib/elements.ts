@@ -10,15 +10,7 @@ import path from "path";
 import os from "os";
 import crypto from "crypto";
 
-// Where each tenant's element specs + run history live. Defaults to
-// `<MC_HOME>/data/user-elements/`. MC_HOME falls back to cwd because that's
-// where the systemd unit's WorkingDirectory points (the cloned mission-control
-// dir on whatever box this is running on — Nathan's messy box, OBT, demo, etc).
-const DATA_ROOT = path.join(
-  process.env.MC_HOME || process.cwd(),
-  "data",
-  "user-elements"
-);
+const DATA_ROOT = path.join(os.homedir(), ".openclaw", "workspace", "mission-control", "data", "user-elements");
 
 export type ElementInput = {
   name: string;

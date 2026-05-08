@@ -4,11 +4,8 @@ import { useState, FormEvent } from "react";
 import Link from "next/link";
 import PixelAvatar from "@/app/components/PixelAvatar";
 import { rollAvatarSeed } from "@/lib/avatar";
-import { useBranding } from "@/lib/use-branding";
 
 export default function RegisterPage() {
-  const branding = useBranding();
-  const BRAND_NAME = branding.name;
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -162,22 +159,11 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  const branding = useBranding();
   return (
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          {branding.logoDataUrl ? (
-            <img src={branding.logoDataUrl} alt={branding.name} className="h-16 mx-auto mb-3 object-contain" />
-          ) : branding.logoSvg ? (
-            <div
-              className="h-16 mx-auto mb-3 flex items-center justify-center [&>svg]:h-full [&>svg]:w-auto"
-              dangerouslySetInnerHTML={{ __html: branding.logoSvg }}
-              aria-label={branding.name}
-            />
-          ) : (
-            <h1 className="text-2xl font-bold text-white tracking-tight">{branding.name}</h1>
-          )}
+          <h1 className="text-2xl font-bold text-white tracking-tight">Allhart MC</h1>
         </div>
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl shadow-2xl p-8">
           {children}

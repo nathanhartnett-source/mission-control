@@ -1,0 +1,55 @@
+{
+  "slug": "deep-research-report",
+  "name": "Deep Research Report",
+  "description": "Hunts every corner of the web on a topic and outputs a comprehensive PDF report with charts and data",
+  "icon": "🔍",
+  "inputs": [
+    {
+      "name": "topic",
+      "label": "Research Topic",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g. lithium battery supply chain disruptions 2025"
+    },
+    {
+      "name": "focus_areas",
+      "label": "Specific Angles / Sub-topics (optional)",
+      "type": "textarea",
+      "required": false,
+      "placeholder": "e.g. geopolitical risks, price trends, key players, emerging alternatives"
+    },
+    {
+      "name": "recency",
+      "label": "Time Horizon",
+      "type": "select",
+      "required": true,
+      "options": [
+        "Last 30 days",
+        "Last 6 months",
+        "Last 12 months",
+        "Last 3 years",
+        "All time"
+      ]
+    },
+    {
+      "name": "report_depth",
+      "label": "Report Depth",
+      "type": "select",
+      "required": true,
+      "options": [
+        "Standard (6-10 pages)",
+        "Comprehensive (12-20 pages)",
+        "Executive Brief (3-5 pages)"
+      ]
+    }
+  ],
+  "promptTemplate": "You are a world-class investigative research analyst. Your task is to produce an exhaustive, deeply sourced research report on the following topic:\n\nTOPIC: {{topic}}\nFOCUS AREAS: {{focus_areas}}\nTIME HORIZON: {{recency}}\nDEPTH: {{report_depth}}\n\nCONDUCT YOUR RESEARCH:\n1. Run at least 8-12 distinct WebSearch queries covering the topic from every angle: mainstream coverage, niche forums, academic sources, industry publications, government/regulatory filings, financial data, social sentiment, and contrarian/critical perspectives.\n2. For each promising result, use WebFetch to read the full article or page — do not rely on snippets alone.\n3. Chase the dark corners: search for leaked documents, court filings, obscure technical papers, Reddit/HN discussions, LinkedIn posts from insiders, patent filings, SEC/ASIC filings if financial, GitHub repos if technical.\n4. Compile statistics, data points, trends, and timelines as you go — you will use these for charts.\n5. Cross-reference claims across multiple sources. Note contradictions or contested facts explicitly.\n6. Keep running notes of key facts, quotes, and source URLs using TodoWrite.\n\nREPORT STRUCTURE — produce a polished, publication-quality PDF report with these sections (adapt headings to suit the topic):\n\n# {{topic}} — Deep Research Report\n*Prepared: [today's date] | Sources: [N sources consulted] | Horizon: {{recency}}*\n\n## Executive Summary\n3-5 bullet points capturing the most important findings.\n\n## Background & Context\nHistory, definitions, why this topic matters now.\n\n## Current Landscape\nLatest state of play with inline citations. Quote key voices.\n\n## Key Players / Stakeholders\nWho are the major actors, what are their positions/interests?\n\n## Data & Trends\nEmbed 2-4 charts using ```chart blocks with Chart.js JSON. Charts should visualise real data you found: timelines, comparisons, market share, growth rates, sentiment breakdowns, etc. Each chart must be preceded by a paragraph explaining what it shows and where the data came from.\n\nExample chart block format:\n```chart\n{\"type\":\"line\",\"data\":{\"labels\":[\"2021\",\"2022\",\"2023\",\"2024\",\"2025\"],\"datasets\":[{\"label\":\"Example Metric\",\"data\":[10,25,40,60,90],\"borderColor\":\"#4f46e5\",\"tension\":0.3}]},\"options\":{\"plugins\":{\"title\":{\"display\":true,\"text\":\"Chart Title\"}}}}\n```\n\n## Critical Analysis / Risks / Controversies\nWhat are the hidden risks, dark angles, contested claims, or underreported stories? Be direct and analytical.\n\n## Emerging Developments\nWhat is on the horizon in the next 6-24 months? Expert predictions, pipeline items, pending legislation, etc.\n\n## Key Takeaways\nNumbered list of 5-8 actionable or noteworthy conclusions.\n\n## Sources\nFull list of URLs consulted, each with a one-line description.\n\nTONE: Authoritative, analytical, data-driven. No padding. Every paragraph must add new information. Cite sources inline with [Source: URL]. Flag uncertainty clearly (\"unverified\", \"disputed\", \"single source\").\n\nDo not stop researching until you have consulted at least 10 distinct sources. The report must be thorough enough to brief a senior executive or journalist who knows nothing about the topic.",
+  "outputFormat": "pdf",
+  "letterhead": {
+    "mode": "none"
+  },
+  "timeoutMin": 30,
+  "shareWithOrg": false,
+  "createdAt": "2026-05-06T22:45:18.628Z",
+  "createdBy": "nathan"
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
-import { findById, listUsers, userRole } from "@/lib/users";
+import { findById, listUsers } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     username: u.username,
     email: u.email,
     status: u.status,
-    role: userRole(u),
+    role: u.isAdmin ? "admin" : "staff",
     isSelf: u.id === me.id,
   }));
   return NextResponse.json({ ok: true, users });

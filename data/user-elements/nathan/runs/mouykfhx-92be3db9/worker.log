@@ -1,0 +1,6 @@
+[2026-05-07T14:00:31+10:00] start: user=nathan run=/home/nathan/.openclaw/workspace/mission-control/data/user-elements/nathan/runs/mouykfhx-92be3db9 timeout=30m
+[2026-05-07T14:00:31+10:00] cwd=/tmp/mc-element-nExliN allowed=WebSearch WebFetch Read Glob Grep TodoWrite
+[2026-05-07T14:05:47+10:00] rendering PDF via /home/nathan/bin/mc-element-pdf-render.cjs
+puppeteer not installed — run `npm i puppeteer` in mission-control
+[2026-05-07T14:05:48+10:00] PDF render FAILED — keeping markdown output
+[2026-05-07T14:05:48+10:00] done rc=0

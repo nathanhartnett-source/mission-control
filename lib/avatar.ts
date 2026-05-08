@@ -123,7 +123,7 @@ export function avatarSvg(seed: string, size: number = 80): string {
     for (let x = 0; x < 12; x++) {
       const c = grid[y][x];
       if (!c) continue;
-      rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`;
+      rects += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${c}"/>`;
     }
   }
 

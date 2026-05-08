@@ -723,15 +723,20 @@ function CopyButton({ text }: { text: string }) {
 type Attachment = { name: string; path: string; size: number; mime: string; localPreview?: string };
 
 export default function AgentsClient() {
-  const { me, loaded, clientMode } = useMe();
-  if (!loaded || !me) {
+  const { me, loaded } = useMe();
+  // me is server-rendered into MeProvider, so usually available on first paint.
+  // Show empty shell only if we genuinely have no user resolution yet.
+  if (!loaded) {
+    return <div className="fixed inset-x-0 top-0 bottom-[56px] md:bottom-0 md:left-52 bg-[#0a0a0a]" />;
+  }
+  if (!me) {
     return <div className="fixed inset-x-0 top-0 bottom-[56px] md:bottom-0 md:left-52 bg-[#0a0a0a]" />;
   }
   const username = me.username;
   const avatarSeed = me.avatarSeed || `user:${username || "me"}`;
   const agentSeedOverrides = me.agentAvatarSeeds || {};
   const agentName = me.agentName ?? null;
-  if (!me.isAdmin || clientMode) {
+  if (!me.isAdmin) {
     return <UserAgentChat agentName={agentName || "Your agent"} userSeed={avatarSeed} agentSeedOverrides={agentSeedOverrides} />;
   }
   return <AdminAgentsClient userSeed={avatarSeed} username={username} agentSeedOverrides={agentSeedOverrides} />;
@@ -956,12 +961,14 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
   useEffect(() => {
     refresh();
     if (!polling) return;
+    // SSE-driven refresh: server pings whenever the outbox changes.
     let es: EventSource | null = null;
     try {
       es = new EventSource("/api/agents/messages/stream");
       es.addEventListener("ping", () => { refresh(); });
       es.addEventListener("ready", () => { refresh(); });
-    } catch { /* SSE unavailable — fall back to interval below */ }
+    } catch { /* fall back to interval below */ }
+    // Long-interval safety net in case SSE drops or never connects.
     const id = setInterval(refresh, 30_000);
     return () => { es?.close(); clearInterval(id); };
   }, [refresh, polling]);
@@ -1913,7 +1920,7 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
                           {visibleText ? <MessageActions text={visibleText} author="You" onReply={onReply} /> : null}
                           {visibleText ? <div className="whitespace-pre-wrap break-words">{visibleText}</div> : null}
                           {r.user_attachments && r.user_attachments.length > 0 ? <AttachmentList files={r.user_attachments} /> : null}
-                          {r.user_ts ? <div className="text-[10px] text-slate-500 mt-1">{new Date(r.user_ts).toLocaleTimeString()}</div> : null}
+                          {r.user_ts ? <div className="text-[10px] text-slate-500 mt-1 tabular-nums">{new Date(r.user_ts).toLocaleTimeString()}</div> : null}
                         </div>
                         <PixelAvatar seed={userSeed} size={28} title="You" />
                       </div>
@@ -1921,7 +1928,7 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
                   })() : null}
                   <div className="flex justify-start items-start gap-2">
                     <PixelAvatar seed={resolveAgentSeed(r.agent)} size={28} title={AGENT_META[r.agent].name} activity={r.agent_state === "running" ? (r.activity_kind || "thinking") : null} />
-                    <div className="group relative max-w-[85%] rounded-2xl rounded-bl-sm bg-slate-800/40 border border-slate-700/30 px-3 py-2 text-sm text-slate-200">
+                    <div className="group relative max-w-[85%] rounded-2xl rounded-bl-sm bg-slate-800/40 border border-slate-700/30 px-3 py-2 text-sm leading-relaxed text-slate-200">
                       {r.agent_text ? <MessageActions text={r.agent_text} author={AGENT_META[r.agent].name} onReply={onReply} /> : null}
                       <div className="flex items-center gap-2 mb-1">
                         <StateBadge
@@ -2037,7 +2044,7 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
                           ))}
                         </div>
                       ) : null}
-                      {r.agent_ts && r.agent_state === "done" ? <div className="text-[10px] text-slate-500 mt-1">{new Date(r.agent_ts).toLocaleTimeString()}</div> : null}
+                      {r.agent_ts && r.agent_state === "done" ? <div className="text-[10px] text-slate-500 mt-1 tabular-nums">{new Date(r.agent_ts).toLocaleTimeString()}</div> : null}
                     </div>
                   </div>
                 </div>
@@ -2272,22 +2279,6 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
     return () => window.clearInterval(id);
   }, [hasRunning]);
 
-  // Per-row toggle for the in-flight tool disclosure (the "+/−" next to Stop).
-  const [toolDisclosure, setToolDisclosure] = useState<Record<string, boolean>>({});
-  const toggleToolDisclosure = useCallback((corrId: string) => {
-    setToolDisclosure((prev) => ({ ...prev, [corrId]: !prev[corrId] }));
-  }, []);
-
-  const stopTurn = useCallback(async (corrId: string) => {
-    try {
-      await fetch(`/api/agents/me/stop`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ corr_id: corrId }),
-      });
-    } catch { /* ignore */ }
-  }, []);
-
   const refresh = useCallback(async () => {
     try {
       const r = await fetch("/api/agents/messages?limit=200", { cache: "no-store" });
@@ -2304,7 +2295,7 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
       es = new EventSource("/api/agents/messages/stream");
       es.addEventListener("ping", () => { refresh(); });
       es.addEventListener("ready", () => { refresh(); });
-    } catch { /* SSE unavailable — fall back to interval below */ }
+    } catch { /* fall back to interval below */ }
     const id = setInterval(refresh, 30_000);
     return () => { es?.close(); clearInterval(id); };
   }, [refresh]);
@@ -2646,7 +2637,7 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
                         {visibleText ? <MessageActions text={visibleText} author="You" onReply={onReply} /> : null}
                         {visibleText ? <div className="whitespace-pre-wrap break-words">{visibleText}</div> : null}
                         {r.user_attachments && r.user_attachments.length > 0 ? <AttachmentList files={r.user_attachments} /> : null}
-                        {r.user_ts ? <div className="text-[10px] text-slate-500 mt-1">{new Date(r.user_ts).toLocaleTimeString()}</div> : null}
+                        {r.user_ts ? <div className="text-[10px] text-slate-500 mt-1 tabular-nums">{new Date(r.user_ts).toLocaleTimeString()}</div> : null}
                       </div>
                       <PixelAvatar seed={userSeed} size={28} title="You" />
                     </div>
@@ -2654,7 +2645,7 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
                 })() : null}
                 <div className="flex justify-start items-start gap-2">
                   <PixelAvatar seed={resolveAgentSeed(r.agent || "me")} size={28} title={agentName} activity={r.agent_state === "running" ? (r.activity_kind || "thinking") : null} />
-                  <div className="group relative max-w-[85%] rounded-2xl rounded-bl-sm bg-slate-800/40 border border-slate-700/30 px-3 py-2 text-sm text-slate-200">
+                  <div className="group relative max-w-[85%] rounded-2xl rounded-bl-sm bg-slate-800/40 border border-slate-700/30 px-3 py-2 text-sm leading-relaxed text-slate-200">
                     {r.agent_text ? <MessageActions text={r.agent_text} author={agentName} onReply={onReply} /> : null}
                     <div className="flex items-center gap-2 mb-1">
                       <StateBadge
@@ -2664,69 +2655,15 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
                         currentTool={r.current_tool}
                         now={now}
                       />
-                      {(r.agent_state === "queued" || r.agent_state === "running") ? (
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); stopTurn(r.corr_id); }}
-                          title="Stop this turn"
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors"
-                        >
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
-                            <rect x="6" y="6" width="12" height="12" rx="1.5" />
-                          </svg>
-                          Stop
-                        </button>
-                      ) : null}
-                      {(r.agent_state === "running" && !r.agent_text) ? (
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); toggleToolDisclosure(r.corr_id); }}
-                          title={toolDisclosure[r.corr_id] ? "Hide tool detail" : "Show tool detail"}
-                          className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[12px] leading-none font-medium border border-slate-600/40 bg-slate-700/30 text-slate-400 hover:bg-slate-700/60 hover:text-slate-200 transition-colors"
-                        >
-                          {toolDisclosure[r.corr_id] ? "−" : "+"}
-                        </button>
-                      ) : null}
-                      {(() => {
-                        // Live running counter — uses agent_ts (running
-                        // envelope's ts = runner-spawn time) to avoid the
-                        // "starts at 60s" bug when queued messages wait on
-                        // flock for an in-flight turn.
-                        const startTs = r.agent_ts || r.user_ts;
-                        if (r.agent_state === "running" && startTs) {
-                          const ageS = Math.max(0, Math.floor((now - new Date(startTs).getTime()) / 1000));
-                          const label = ageS < 60 ? `${ageS}s` : `${Math.floor(ageS / 60)}m${ageS % 60 ? ` ${ageS % 60}s` : ""}`;
-                          return <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{label}</span>;
-                        }
-                        if (r.elapsed_ms) {
-                          return <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{Math.round(r.elapsed_ms / 1000)}s</span>;
-                        }
-                        return null;
-                      })()}
+                      {r.elapsed_ms ? <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{Math.round(r.elapsed_ms / 1000)}s</span> : null}
                     </div>
                     {r.agent_text ? (
                       <RichAgentText text={r.agent_text} />
-                    ) : r.agent_state === "error" ? (
-                      <div className="text-slate-500 italic text-xs">{`Error: ${r.error || "unknown"}`}</div>
-                    ) : (r.agent_state === "running" && toolDisclosure[r.corr_id]) ? (() => {
-                      let line: string;
-                      if (r.current_tool && r.current_tool_summary) {
-                        line = r.current_tool_summary;
-                      } else if (r.current_tool_summary && r.current_tool_summary_ts) {
-                        const ageS = Math.max(0, Math.floor((now - new Date(r.current_tool_summary_ts).getTime()) / 1000));
-                        line = ageS >= 1 ? `${r.current_tool_summary} · ${ageS}s ago` : r.current_tool_summary;
-                      } else {
-                        line = HUMOR_LINES[Math.floor(now / 4000) % HUMOR_LINES.length];
-                      }
-                      return (
-                        <div className="text-slate-400 italic text-xs font-mono truncate" title={line}>
-                          {line}
-                        </div>
-                      );
-                    })() : (
+                    ) : (
                       <div className="text-slate-500 italic text-xs">
                         {r.agent_state === "queued" ? "Waiting in agent inbox…"
                           : r.agent_state === "running" ? `${agentName} is ${r.activity_kind === "doing" ? "working" : "thinking"}…`
+                          : r.agent_state === "error" ? `Error: ${r.error || "unknown"}`
                         : "—"}
                       </div>
                     )}
@@ -2770,7 +2707,7 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
                         ))}
                       </div>
                     ) : null}
-                    {r.agent_ts && r.agent_state === "done" ? <div className="text-[10px] text-slate-500 mt-1">{new Date(r.agent_ts).toLocaleTimeString()}</div> : null}
+                    {r.agent_ts && r.agent_state === "done" ? <div className="text-[10px] text-slate-500 mt-1 tabular-nums">{new Date(r.agent_ts).toLocaleTimeString()}</div> : null}
                   </div>
                 </div>
               </div>

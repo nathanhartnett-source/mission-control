@@ -5,8 +5,6 @@ import { findById, setUserRole, listUsers } from "@/lib/users";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const VALID = new Set(["admin", "staff", "client"]);
-
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const session = verify(req.cookies.get(SESSION_COOKIE)?.value);
   if (!session) return NextResponse.json({ ok: false }, { status: 401 });
@@ -17,7 +15,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const { id } = await ctx.params;
   const body = await req.json().catch(() => ({}));
   const role = body?.role;
-  if (!VALID.has(role)) {
+  if (role !== "admin" && role !== "staff") {
     return NextResponse.json({ ok: false, error: "invalid_role" }, { status: 400 });
   }
   if (id === me.id && role !== "admin") {

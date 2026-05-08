@@ -3,13 +3,8 @@
 import { useState, FormEvent } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
-import { useBranding } from "@/lib/use-branding";
 
 function LoginForm() {
-  const branding = useBranding();
-  const BRAND_NAME = branding.name;
-  const BRAND_LOGO_SVG = branding.logoSvg;
-  const BRAND_LOGO = branding.logoDataUrl || branding.logo;
   const searchParams  = useSearchParams();
   const router        = useRouter();
   const [username, setUsername] = useState("");
@@ -51,19 +46,7 @@ function LoginForm() {
       <div className="w-full max-w-sm">
         {/* Logo / title */}
         <div className="text-center mb-8">
-          {branding.logoDataUrl ? (
-            <img src={branding.logoDataUrl} alt={BRAND_NAME} className="h-16 mx-auto mb-3 object-contain" />
-          ) : BRAND_LOGO_SVG ? (
-            <div
-              className="h-16 mx-auto mb-3 flex items-center justify-center [&>svg]:h-full [&>svg]:w-auto"
-              dangerouslySetInnerHTML={{ __html: BRAND_LOGO_SVG }}
-              aria-label={BRAND_NAME}
-            />
-          ) : BRAND_LOGO ? (
-            <img src={BRAND_LOGO} alt={BRAND_NAME} className="h-16 mx-auto mb-3" />
-          ) : (
-            <h1 className="text-2xl font-bold text-white tracking-tight">{BRAND_NAME}</h1>
-          )}
+          <h1 className="text-2xl font-bold text-white tracking-tight">Allhart MC</h1>
           <p className="text-sm text-slate-400 mt-1">Sign in to continue</p>
         </div>
 

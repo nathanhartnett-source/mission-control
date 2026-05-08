@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   const res = NextResponse.json({ ok: true, personaCompleted: !!user.personaCompleted });
   res.cookies.set(SESSION_COOKIE, value, {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/",
     maxAge,
     secure,

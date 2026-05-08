@@ -1,0 +1,2 @@
+[2026-05-07T13:39:21+10:00] start: user=nathan run=/home/nathan/.openclaw/workspace/mission-control/data/user-elements/nathan/runs/mouxt7ia-f7314e8e timeout=30m
+[2026-05-07T13:39:21+10:00] cwd=/tmp/mc-element-5tZJfW allowed=WebSearch WebFetch Read Glob Grep TodoWrite

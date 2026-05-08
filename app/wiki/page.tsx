@@ -6,9 +6,7 @@ export const metadata = { title: "Wiki — Allhart MC" };
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const WIKI_ROOT =
-  process.env.MC_WIKI_ROOT ||
-  (process.env.MC_HOME ? path.join(process.env.MC_HOME, "wiki") : "/home/nathan/wiki");
+const WIKI_ROOT = "/home/nathan/wiki";
 
 type EntryJson = {
   path: string;
@@ -34,7 +32,6 @@ function slugFor(entryPath: string) {
 }
 
 function readEntries(): WikiEntry[] {
-  if (!fs.existsSync(WIKI_ROOT)) return [];
   const catalogPath = path.join(WIKI_ROOT, ".entries.json");
   let rawEntries: EntryJson[] = [];
 

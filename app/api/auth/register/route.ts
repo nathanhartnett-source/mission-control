@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPending, validateRegistration, findAdminEmails, bootstrapAdminIfEmpty } from "@/lib/users";
-import { sendApprovalEmail } from "@/lib/mailer";
 import { checkLimit, clientIp } from "@/lib/rate-limit";
 import { audit } from "@/lib/auth-audit";
-import { fanout } from "@/lib/alerts";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -61,47 +59,13 @@ export async function POST(req: NextRequest) {
       adminEmails.push(process.env.MC_ADMIN_EMAIL || "nathanhartnett@allhart.com.au");
     }
 
-    // Fire emails in parallel; catch per-recipient errors so one bad address
-    // doesn't kill the whole request.
-    await Promise.allSettled(
-      adminEmails.map(to =>
-        sendApprovalEmail({
-          to,
-          username: user.username,
-          email: user.email,
-          ip,
-          ua,
-          approveUrl,
-          denyUrl,
-        }),
-      ),
-    );
-
     audit("register", { username: user.username, email: user.email, ip, ua });
-
-    // Discord ping so admin can approve fast even if SMTP is unconfigured.
-    fanout({
-      source: "auth",
-      type: "auth.registration.pending",
-      severity: "warn",
-      title: `New registration: ${user.username}`,
-      message: `Approve: ${approveUrl}\nDeny: ${denyUrl}`,
-      context: { username: user.username, email: user.email, ip },
-    }).catch(() => { /* don't block response on alert failure */ });
-
     return NextResponse.json(GENERIC_OK);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "";
     if (msg === "USERNAME_TAKEN" || msg === "EMAIL_TAKEN") {
       audit("register_blocked", { reason: msg.toLowerCase(), ip, ua, username: body.username });
-      fanout({
-        source: "auth",
-        type: "auth.registration.duplicate",
-        severity: "warn",
-        title: `Registration retry blocked: ${body.username}`,
-        message: `Reason: ${msg}. Email: ${body.email}. IP: ${ip}.\nClear the existing user from data/users.json if this is a stuck pending row.`,
-        context: { username: body.username, email: body.email, ip, reason: msg },
-      }).catch(() => {});
+      // Generic response to avoid leaking which one collided.
       return NextResponse.json(GENERIC_OK);
     }
     audit("register_blocked", { reason: "internal_error", ip, ua, error: msg });

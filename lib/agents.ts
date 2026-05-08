@@ -81,17 +81,9 @@ export function userInboxDir(username: string): string {
   return path.join(HOME, ".claude", "channels", `user-${u}`, "inbox");
 }
 
-// Per-install paths. Clean installs scope under MC_HOME so demo + OBT + clients
-// don't collide with the legacy /home/nathan layout. Env overrides win for
-// runners that already set MC_HISTORY_FILE / MC_OUTBOX_DIR.
-const _MC_HOME = process.env.MC_HOME || HOME;
-export const OUTBOX_DIR =
-  process.env.MC_OUTBOX_DIR ||
-  (process.env.MC_HOME ? path.join(_MC_HOME, "data", "agent-outbox") : path.join(HOME, "wiki", "_outbox", "mc-agent"));
-export const HISTORY_DIR =
-  process.env.MC_HISTORY_DIR ||
-  (process.env.MC_HOME ? path.join(_MC_HOME, "data", "agent-chat") : path.join(HOME, "legacy-workspace", "mission-control", "data", "agent-chat"));
-export const HISTORY_FILE = process.env.MC_HISTORY_FILE || path.join(HISTORY_DIR, "messages.jsonl");
+export const OUTBOX_DIR = path.join(HOME, "wiki", "_outbox", "mc-agent");
+export const HISTORY_DIR = path.join(HOME, "legacy-workspace", "mission-control", "data", "agent-chat");
+export const HISTORY_FILE = path.join(HISTORY_DIR, "messages.jsonl");
 export const HISTORY_ARCHIVE_DIR = path.join(HISTORY_DIR, "archive");
 const HISTORY_ACTIVE_DAYS = 90;
 const HISTORY_ARCHIVE_DAYS = 365;
@@ -379,50 +371,3 @@ export async function readMessages(opts?: { sinceIso?: string; limit?: number; u
   });
   return sorted.slice(-limit);
 }
-
-/**
- * Drop a single agent-authored opening message into the chat history so a
- * brand-new user lands on /agents with something to read instead of a blank
- * page. Inbound envelope has empty text (UI hides the user bubble when
- * user_text is falsy); outbound envelope is state="done" with the welcome.
- */
-export async function seedWelcomeMessage(opts: {
-  user: string;
-  agentText: string;
-  agent?: AgentName;
-}): Promise<void> {
-  const agent: AgentName = opts.agent || "me";
-  const corr_id = ulid();
-  const ts = new Date().toISOString();
-  const stub: InboundEnvelope = {
-    schema: "mc-agent/v1",
-    corr_id,
-    agent,
-    ts,
-    from: "mc-web",
-    user: opts.user,
-    user_id: opts.user,
-    text: "",
-    attachments: [],
-    context: { thread_id: "welcome" },
-  };
-  await fs.mkdir(HISTORY_DIR, { recursive: true });
-  await fs.appendFile(HISTORY_FILE, JSON.stringify(stub) + "\n", "utf-8");
-
-  const done: OutboundEnvelope = {
-    schema: "mc-agent-response/v1",
-    corr_id,
-    agent,
-    ts,
-    state: "done",
-    text: opts.agentText,
-    elapsed_ms: 0,
-  };
-  await fs.mkdir(OUTBOX_DIR, { recursive: true });
-  await fs.writeFile(
-    path.join(OUTBOX_DIR, `mc-agent-${corr_id}-done.json`),
-    JSON.stringify(done, null, 2),
-    "utf-8",
-  );
-}
-

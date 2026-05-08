@@ -9,9 +9,7 @@ import { getElement, listRuns, newRunId, persistRun, renderPrompt, _runDir, type
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Worker script — installed to /usr/local/bin/mc-element-worker.sh by
-// install/mc-install.sh. MC_ELEMENT_WORKER env var lets dev/demo override.
-const WORKER = process.env.MC_ELEMENT_WORKER || "/usr/local/bin/mc-element-worker.sh";
+const WORKER = path.join(os.homedir(), "bin", "mc-element-worker.sh");
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const auth = requireUser(req);
