@@ -15,7 +15,7 @@ export default function MyAgentPanel() {
 
   useEffect(() => {
     if (me?.agentName) setName(me.agentName);
-    const seed = me?.agentAvatarSeeds?.me || agentAvatarSeed("me", me?.username || "user");
+    const seed = me?.agentAvatarSeeds?.me || agentAvatarSeed("me");
     setAgentSeed(seed);
   }, [me?.agentName, me?.agentAvatarSeeds, me?.username]);
 
@@ -37,7 +37,7 @@ export default function MyAgentPanel() {
 
   const rerollAvatar = useCallback(async () => {
     setBusy("avatar"); setErr(null); setMsg(null);
-    const newSeed = rollAvatarSeed("agent:me");
+    const newSeed = rollAvatarSeed();
     setAgentSeed(newSeed);
     try {
       const r = await fetch("/api/me/avatar", {
