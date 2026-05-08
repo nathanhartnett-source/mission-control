@@ -35,7 +35,7 @@ function hairCells(style: number, hair: string): Array<[number, number, string]>
   // Returns list of [x, y, color] cells to paint over/around the head.
   const cells: Array<[number, number, string]> = [];
   const add = (x: number, y: number) => cells.push([x, y, hair]);
-  switch (style % 5) {
+  switch (style % 10) {
     case 0: // flat top
       for (let x = 3; x <= 8; x++) add(x, 2);
       add(3, 3); add(8, 3);
@@ -49,7 +49,7 @@ function hairCells(style: number, hair: string): Array<[number, number, string]>
       add(2, 3); add(9, 3);
       add(2, 4); add(9, 4);
       break;
-    case 3: // long
+    case 3: // long straight
       for (let x = 3; x <= 8; x++) add(x, 2);
       add(3, 3); add(8, 3);
       add(2, 4); add(9, 4);
@@ -60,6 +60,35 @@ function hairCells(style: number, hair: string): Array<[number, number, string]>
     case 4: // side parted
       add(3, 2); add(4, 2); add(6, 2); add(7, 2); add(8, 2);
       add(3, 3);
+      break;
+    case 5: // bob (chin-length, framed)
+      for (let x = 2; x <= 9; x++) add(x, 2);
+      add(2, 3); add(9, 3);
+      add(2, 4); add(9, 4);
+      add(2, 5); add(9, 5);
+      add(2, 6); add(9, 6);
+      break;
+    case 6: // ponytail (short top + tail down right side)
+      for (let x = 3; x <= 8; x++) add(x, 2);
+      add(3, 3); add(8, 3);
+      add(9, 4); add(9, 5); add(9, 6); add(10, 5); add(10, 6); add(10, 7);
+      break;
+    case 7: // pigtails
+      for (let x = 3; x <= 8; x++) add(x, 2);
+      add(3, 3); add(8, 3);
+      add(2, 5); add(2, 6); add(1, 6);
+      add(9, 5); add(9, 6); add(10, 6);
+      break;
+    case 8: // bun on top
+      for (let x = 3; x <= 8; x++) add(x, 2);
+      add(3, 3); add(8, 3);
+      add(5, 0); add(6, 0); add(5, 1); add(6, 1);
+      break;
+    case 9: // bangs + medium length
+      for (let x = 2; x <= 9; x++) add(x, 2);
+      add(3, 3); add(4, 3); add(7, 3); add(8, 3);
+      add(2, 4); add(9, 4);
+      add(2, 5); add(9, 5);
       break;
   }
   return cells;
@@ -72,9 +101,11 @@ export function avatarSvg(seed: string, size: number = 80): string {
   const shirt = SHIRT[b[2] % SHIRT.length];
   const bg = BG[b[3] % BG.length];
   const eye = EYE[b[4] % EYE.length];
-  const hairStyle = b[5] % 5;
-  const mouthStyle = b[6] % 3;
+  const hairStyle = b[5] % 10;
+  const mouthStyle = b[6] % 4;
   const eyeStyle = b[7] % 3;
+  const accessory = b[8] % 6; // 0-1: none, 2-3: earrings, 4: glasses, 5: glasses+earrings
+  const lipstick = (b[9] % 4) === 0; // ~25% chance, mostly on longer-hair styles
 
   // 12x12 grid
   const grid: Cell[][] = Array.from({ length: 12 }, () => Array<Cell>(12).fill(null));
@@ -105,10 +136,23 @@ export function avatarSvg(seed: string, size: number = 80): string {
     grid[6][4] = eye; grid[6][7] = eye;
   }
 
-  // Mouth
-  if (mouthStyle === 0) { grid[7][5] = "#7a2c2c"; grid[7][6] = "#7a2c2c"; }
-  else if (mouthStyle === 1) { grid[7][5] = "#7a2c2c"; }
-  else { grid[7][4] = "#7a2c2c"; grid[7][5] = "#7a2c2c"; grid[7][6] = "#7a2c2c"; }
+  // Mouth (lipstick variants use brighter pink/red)
+  const lip = lipstick ? "#d6336c" : "#7a2c2c";
+  if (mouthStyle === 0) { grid[7][5] = lip; grid[7][6] = lip; }
+  else if (mouthStyle === 1) { grid[7][5] = lip; }
+  else if (mouthStyle === 2) { grid[7][4] = lip; grid[7][5] = lip; grid[7][6] = lip; }
+  else { grid[7][5] = lip; grid[7][6] = lip; grid[8][5] = lip; grid[8][6] = lip; } // fuller lip
+
+  // Accessories
+  if (accessory === 2 || accessory === 3 || accessory === 5) {
+    // earrings — small dot under each ear
+    grid[7][2] = "#d4af37"; grid[7][9] = "#d4af37";
+  }
+  if (accessory === 4 || accessory === 5) {
+    // glasses — frames around eyes
+    grid[5][3] = "#1a1a1a"; grid[5][8] = "#1a1a1a";
+    grid[5][6] = "#1a1a1a"; // bridge
+  }
 
   // Neck (row 9)
   grid[9][5] = skin; grid[9][6] = skin;

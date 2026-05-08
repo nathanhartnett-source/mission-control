@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import PixelAvatar from "@/app/components/PixelAvatar";
+import { rollAvatarSeed, agentAvatarSeed } from "@/lib/avatar";
 
 type Tone = "concise" | "warm" | "dry-wit" | "professional" | "playful";
 type Formality = "casual" | "balanced" | "formal";
@@ -27,6 +29,8 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [agentName, setAgentName] = useState("");
+  const [agentSeed, setAgentSeed] = useState<string>(() => agentAvatarSeed("me"));
+  const [seedSaving, setSeedSaving] = useState(false);
   const [tone, setTone] = useState<Tone>("concise");
   const [emoji, setEmoji] = useState(false);
   const [formality, setFormality] = useState<Formality>("balanced");
@@ -102,6 +106,25 @@ export default function OnboardingPage() {
           {step === 1 && (
             <>
               <label className="block text-sm text-slate-300 mb-2">What do you want to call your agent?</label>
+              <div className="flex items-center gap-4 mb-3">
+                <PixelAvatar seed={agentSeed} size={72} />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const seed = rollAvatarSeed();
+                    setAgentSeed(seed);
+                    setSeedSaving(true);
+                    try {
+                      await fetch("/api/me/avatar", {
+                        method: "POST", headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ seed, agent: "me" }),
+                      });
+                    } catch {} finally { setSeedSaving(false); }
+                  }}
+                  disabled={seedSaving}
+                  className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-medium"
+                >🎲 Re-roll avatar</button>
+              </div>
               <input
                 value={agentName}
                 onChange={e => setAgentName(e.target.value)}
@@ -110,7 +133,7 @@ export default function OnboardingPage() {
                 placeholder="e.g. Hazel"
                 autoFocus
               />
-              <p className="text-xs text-slate-500">It will introduce itself with this name.</p>
+              <p className="text-xs text-slate-500">It will introduce itself with this name. Avatar saves immediately.</p>
               <div className="flex justify-end pt-2">
                 <button onClick={() => agentName.trim() ? setStep(2) : setError("Pick a name first.")}
                   className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm">
