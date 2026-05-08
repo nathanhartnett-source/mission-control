@@ -105,9 +105,11 @@ function buildCss(t: Theme): string {
   if (t.bgBubbleAgent) rules.push(`.bg-slate-800\\/40,.bg-slate-800\\/60,.bg-slate-800{background-color:var(--mc-bg-bubble-agent) !important}`);
   if (t.textBubbleAgent) rules.push(`.bg-slate-800\\/40 *,.bg-slate-800\\/60 *{color:var(--mc-text-bubble-agent) !important}`);
 
-  // Composer / inputs
-  if (t.bgComposer) rules.push(`.bg-slate-950\\/70,textarea.bg-slate-800,input.bg-slate-800{background-color:var(--mc-bg-composer) !important}`);
-  if (t.textComposer) rules.push(`textarea.bg-slate-800,input.bg-slate-800{color:var(--mc-text-composer) !important}`);
+  // Composer / inputs (chat composer + element/spec form fields).
+  // Element forms use bg-slate-950 on input/textarea/select, so remap those too —
+  // otherwise on light themes the fields stay near-black with invisible text.
+  if (t.bgComposer) rules.push(`.bg-slate-950\\/70,textarea.bg-slate-800,input.bg-slate-800,textarea.bg-slate-900,input.bg-slate-900,select.bg-slate-900,textarea.bg-slate-950,input.bg-slate-950,select.bg-slate-950{background-color:var(--mc-bg-composer) !important}`);
+  if (t.textComposer) rules.push(`textarea.bg-slate-800,input.bg-slate-800,textarea.bg-slate-900,input.bg-slate-900,select.bg-slate-900,textarea.bg-slate-950,input.bg-slate-950,select.bg-slate-950{color:var(--mc-text-composer) !important}`);
 
   // Borders
   if (t.borderDefault) rules.push(`.border-slate-700,.border-slate-800{border-color:var(--mc-border) !important}`);
