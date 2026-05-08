@@ -27,7 +27,8 @@ export default function SetupPage() {
   // Step 2 — brand
   const [brandName, setBrandName] = useState("Mission Control");
   const [brandDescription, setBrandDescription] = useState("");
-  const [agentName, setAgentName] = useState("Assistant");
+  // Agent name is configured later (Settings → Agents); not asked in wizard.
+  const agentName = "Assistant";
 
   // Step 3 — probe
   const [probe, setProbe] = useState<Probe | null>(null);
@@ -121,8 +122,7 @@ export default function SetupPage() {
             <p className="text-xs text-slate-400">Tells your agent who it works for. You can change this later.</p>
             <label className="text-xs text-slate-300">Brand name<input value={brandName} onChange={(e) => setBrandName(e.target.value)} className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" /></label>
             <label className="text-xs text-slate-300">What does the team do? (1-2 sentences)<textarea value={brandDescription} onChange={(e) => setBrandDescription(e.target.value)} rows={3} placeholder="Accounting firm in Sydney, mostly small-business clients, helps them with bookkeeping and BAS" className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" /></label>
-            <label className="text-xs text-slate-300">Agent name<input value={agentName} onChange={(e) => setAgentName(e.target.value)} className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" /></label>
-            <p className="text-[11px] text-slate-500">Logo upload + theme detection happen later in Settings → Branding.</p>
+            <p className="text-[11px] text-slate-500">Logo upload, theme detection, and agent setup happen later in Settings.</p>
             <button onClick={goStep2} disabled={!brandName} className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm">Continue</button>
           </div>
         )}

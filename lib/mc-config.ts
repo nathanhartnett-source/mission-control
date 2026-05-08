@@ -48,7 +48,11 @@ export const mcConfig = {
   bentoDataRoot: clientMode
     ? appDataRoot
     : resolveRoot(process.env.MC_DATA_ROOT, path.join(process.cwd(), "../data")),
-  wikiRoot: resolveRoot(process.env.MC_WIKI_ROOT || readInstalledWikiRoot(appDataRoot), path.join(process.env.HOME || "/root", "wiki")),
+  // Lazy getter so an install-time wikiRoot pick (data/install.json) is
+  // picked up on the next request, not stale-cached at module load.
+  get wikiRoot(): string {
+    return resolveRoot(process.env.MC_WIKI_ROOT || readInstalledWikiRoot(appDataRoot), path.join(process.env.HOME || "/root", "wiki"));
+  },
   uploadRoot: resolveRoot(process.env.MC_UPLOAD_ROOT, clientMode ? path.join(appDataRoot, "uploads") : "/tmp/mc-staging"),
   agentName: process.env.MC_AGENT_NAME || (clientMode ? "OBT Assistant" : "Your agent"),
   agentRunner: process.env.MC_AGENT_RUNNER || "",
