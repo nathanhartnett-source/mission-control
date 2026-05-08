@@ -100,6 +100,12 @@ fi
 if [[ -f "$MC_HOME/install/scripts/mc-element-pdf-render.cjs" ]]; then
     install -m 0644 "$MC_HOME/install/scripts/mc-element-pdf-render.cjs" /usr/local/bin/mc-element-pdf-render.cjs
 fi
+if [[ -f "$MC_HOME/install/scripts/mc-element-xlsx-render.cjs" ]]; then
+    install -m 0644 "$MC_HOME/install/scripts/mc-element-xlsx-render.cjs" /usr/local/bin/mc-element-xlsx-render.cjs
+fi
+if [[ -f "$MC_HOME/install/scripts/mc-element-pptx-render.cjs" ]]; then
+    install -m 0644 "$MC_HOME/install/scripts/mc-element-pptx-render.cjs" /usr/local/bin/mc-element-pptx-render.cjs
+fi
 
 # 6. Build
 echo "==> npm install + build"

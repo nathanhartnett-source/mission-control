@@ -86,19 +86,32 @@ fi
 rm -rf "$WORK_CWD" 2>/dev/null
 
 if [ $RC -eq 0 ]; then
-  # If the spec snapshot says outputFormat=pdf, render the PDF before marking done.
+  # If spec says outputFormat=pdf|xlsx|pptx, run the matching renderer before marking done.
   SPEC_JSON="$RUN_DIR/spec.json"
-  if [ -f "$SPEC_JSON" ] && grep -q '"outputFormat"[[:space:]]*:[[:space:]]*"pdf"' "$SPEC_JSON"; then
-    PDF_RENDER="${MC_PDF_RENDER:-/usr/local/bin/mc-element-pdf-render.cjs}"
-    if [ -x "$PDF_RENDER" ] || [ -f "$PDF_RENDER" ]; then
-      echo "[$(date -Iseconds)] rendering PDF via $PDF_RENDER" >> "$LOG"
-      if node "$PDF_RENDER" "$RUN_DIR" "$SPEC_JSON" >> "$LOG" 2>&1; then
-        echo "[$(date -Iseconds)] PDF render ok" >> "$LOG"
-      else
-        echo "[$(date -Iseconds)] PDF render FAILED — keeping markdown output" >> "$LOG"
-      fi
+  if [ -f "$SPEC_JSON" ]; then
+    if grep -q '"outputFormat"[[:space:]]*:[[:space:]]*"pdf"' "$SPEC_JSON"; then
+      RENDERER="${MC_PDF_RENDER:-/usr/local/bin/mc-element-pdf-render.cjs}"
+      FMT="PDF"
+    elif grep -q '"outputFormat"[[:space:]]*:[[:space:]]*"xlsx"' "$SPEC_JSON"; then
+      RENDERER="${MC_XLSX_RENDER:-/usr/local/bin/mc-element-xlsx-render.cjs}"
+      FMT="XLSX"
+    elif grep -q '"outputFormat"[[:space:]]*:[[:space:]]*"pptx"' "$SPEC_JSON"; then
+      RENDERER="${MC_PPTX_RENDER:-/usr/local/bin/mc-element-pptx-render.cjs}"
+      FMT="PPTX"
     else
-      echo "[$(date -Iseconds)] PDF renderer not found at $PDF_RENDER — markdown only" >> "$LOG"
+      RENDERER=""
+    fi
+    if [ -n "$RENDERER" ]; then
+      if [ -x "$RENDERER" ] || [ -f "$RENDERER" ]; then
+        echo "[$(date -Iseconds)] rendering $FMT via $RENDERER" >> "$LOG"
+        if node "$RENDERER" "$RUN_DIR" "$SPEC_JSON" >> "$LOG" 2>&1; then
+          echo "[$(date -Iseconds)] $FMT render ok" >> "$LOG"
+        else
+          echo "[$(date -Iseconds)] $FMT render FAILED — keeping markdown output" >> "$LOG"
+        fi
+      else
+        echo "[$(date -Iseconds)] $FMT renderer not found at $RENDERER — markdown only" >> "$LOG"
+      fi
     fi
   fi
   touch "$RUN_DIR/done"

@@ -1,25 +1,37 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Input = { name: string; label: string; type: "text"|"textarea"|"select"|"number"|"file"; required: boolean; placeholder?: string; options?: string[]; acceptMime?: string; maxMB?: number };
 type Letterhead = { mode: "none" | "upload"; stagedPath?: string; imagePath?: string; previewUrl?: string };
 type Spec = {
   slug: string; name: string; description: string; icon: string;
   inputs: Input[]; promptTemplate: string; timeoutMin: number; shareWithOrg: boolean;
-  outputFormat: "markdown" | "pdf";
+  outputFormat: "markdown" | "pdf" | "xlsx" | "pptx";
   letterhead: Letterhead;
 };
 
 export default function NewElement() {
   const router = useRouter();
-  const [phase, setPhase] = useState<"describe"|"review">("describe");
+  const search = useSearchParams();
+  const editSlug = search?.get("slug") || "";
+  const isEdit = !!editSlug;
+  const [phase, setPhase] = useState<"describe"|"review">(isEdit ? "review" : "describe");
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [needsMoreInfo, setNeedsMoreInfo] = useState("");
   const [spec, setSpec] = useState<Spec | null>(null);
+
+  // Edit mode: load the existing spec.
+  useEffect(() => {
+    if (!isEdit) return;
+    fetch(`/api/elements/${editSlug}`).then(r => r.json()).then(d => {
+      if (d.spec) setSpec({ shareWithOrg: false, timeoutMin: 10, outputFormat: "markdown", letterhead: { mode: "none" }, ...d.spec });
+      else setError(d.error || "Could not load app");
+    });
+  }, [isEdit, editSlug]);
 
   async function generate() {
     setBusy(true); setError(""); setNeedsMoreInfo("");
@@ -38,7 +50,9 @@ export default function NewElement() {
     if (!spec) return;
     setBusy(true); setError("");
     try {
-      const r = await fetch("/api/elements", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(spec) });
+      const url = isEdit ? `/api/elements/${editSlug}` : "/api/elements";
+      const method = isEdit ? "PUT" : "POST";
+      const r = await fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(spec) });
       const data = await r.json();
       if (!r.ok) { setError(data.error || "Save failed"); return; }
       router.push(`/elements/${data.spec.slug}`);
@@ -138,6 +152,8 @@ export default function NewElement() {
               <select value={spec.outputFormat} onChange={e => updateSpec("outputFormat", e.target.value as any)} className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm">
                 <option value="markdown">Markdown (text)</option>
                 <option value="pdf">PDF (with charts)</option>
+                <option value="xlsx">Excel spreadsheet</option>
+                <option value="pptx">PowerPoint deck</option>
               </select>
             </div>
             <div>

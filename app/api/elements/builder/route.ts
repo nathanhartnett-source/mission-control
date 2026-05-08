@@ -26,7 +26,7 @@ Output ONLY a single JSON object (no prose, no markdown fences) with this shape:
     { "name": "snake_case_field", "label": "Human label", "type": "text|textarea|select|number|file", "required": true, "placeholder": "optional", "options": ["only","for","select"], "acceptMime": "image/*,application/pdf (file-only)", "maxMB": 20 }
   ],
   "promptTemplate": "Instructions to the AI worker. Use {{snake_case_field}} to interpolate user inputs. For file inputs, {{snake_case_field}} expands to the absolute file path on disk — tell the worker to Read it. Be specific about brand voice, structure, and what the output should look like.",
-  "outputFormat": "markdown" | "pdf",
+  "outputFormat": "markdown" | "pdf" | "xlsx" | "pptx",
   "timeoutMin": 10
 }
 
@@ -34,8 +34,12 @@ Rules:
 - Worker tools: WebSearch, WebFetch, Read, Glob, Grep, TodoWrite (read-only). It can Read uploaded files via the path interpolated from a file input.
 - Inputs ONLY for things that change each run. If the task always pulls the same data, no inputs.
 - timeoutMin: quick lookup 3-5, normal task 10, deep research 25-30.
-- outputFormat: "pdf" when the user wants a printable/shareable document (reports, recaps, briefs, PDPs to send). "markdown" for quick text outputs.
-- For PDF apps with data: tell the worker to embed Chart.js charts via fenced \`\`\`chart blocks (the renderer handles them).
+- outputFormat:
+  - "markdown" for quick text answers / drafts the user just wants to read or copy.
+  - "pdf" for printable/shareable documents (reports, recaps, briefs, customer-facing PDPs). Worker embeds Chart.js charts via \`\`\`chart blocks.
+  - "xlsx" when the user wants a SPREADSHEET with rows/columns/multiple tabs (stock lists, sales exports, contact lists, schedules to filter & sort). Worker emits \`\`\`sheet:TabName fenced CSV blocks per tab.
+  - "pptx" when the user wants a SLIDE DECK to present (board updates, kickoff decks, training intros). Worker emits \`\`\`slide JSON-per-slide blocks.
+  Pick xlsx/pptx ONLY when the user genuinely wants that format — when in doubt prefer pdf.
 - Keep inputs to 0-5 fields. Use file type for letterheads, CSVs, photos to analyse, etc.
 - If the user's description is too vague (especially: what's the REPETITIVE task?), output: {"error":"Need more info: <one specific question>"}`;
 

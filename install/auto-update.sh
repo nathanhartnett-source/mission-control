@@ -63,6 +63,10 @@ log "build complete"
     install -m 0755 "$MC_HOME/install/scripts/mc-element-worker.sh" /usr/local/bin/mc-element-worker.sh
 [[ -f "$MC_HOME/install/scripts/mc-element-pdf-render.cjs" ]] && \
     install -m 0644 "$MC_HOME/install/scripts/mc-element-pdf-render.cjs" /usr/local/bin/mc-element-pdf-render.cjs
+[[ -f "$MC_HOME/install/scripts/mc-element-xlsx-render.cjs" ]] && \
+    install -m 0644 "$MC_HOME/install/scripts/mc-element-xlsx-render.cjs" /usr/local/bin/mc-element-xlsx-render.cjs
+[[ -f "$MC_HOME/install/scripts/mc-element-pptx-render.cjs" ]] && \
+    install -m 0644 "$MC_HOME/install/scripts/mc-element-pptx-render.cjs" /usr/local/bin/mc-element-pptx-render.cjs
 [[ -f "$MC_HOME/install/mc-user-agent-runner.sh" ]] && \
     install -m 0755 "$MC_HOME/install/mc-user-agent-runner.sh" /usr/local/bin/mc-user-agent-runner.sh
 

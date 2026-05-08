@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
     letterhead = { mode: "none" };
   }
 
-  const outputFormat: ElementSpec["outputFormat"] = body.outputFormat === "pdf" ? "pdf" : "markdown";
+  const validFormats = ["markdown", "pdf", "xlsx", "pptx"] as const;
+  const outputFormat: ElementSpec["outputFormat"] = validFormats.includes(body.outputFormat) ? body.outputFormat : "markdown";
 
   const spec: ElementSpec = {
     slug,

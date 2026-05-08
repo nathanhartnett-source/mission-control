@@ -12,19 +12,25 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
   const { slug, runId } = await ctx.params;
   const run = getRun(auth.username, runId);
   if (!run || !run.pdfPath || !fs.existsSync(run.pdfPath)) {
-    return NextResponse.json({ error: "no pdf for this run" }, { status: 404 });
+    return NextResponse.json({ error: "no rendered output for this run" }, { status: 404 });
   }
   const buf = fs.readFileSync(run.pdfPath);
-  // `inline` (not `attachment`) so the Tauri desktop webview displays the PDF
-  // inline in its built-in viewer rather than silently failing to handle the
-  // download. Browsers honour the suggested filename either way; users can
-  // still save via the in-page viewer's UI. Toggle to ?download=1 to force.
+  // Route originally served PDFs only; now also serves xlsx/pptx. Path kept
+  // as /pdf for back-compat with existing run pages.
+  const ext = (run.outputExt || "pdf") as "pdf" | "xlsx" | "pptx";
+  const mime: Record<"pdf" | "xlsx" | "pptx", string> = {
+    pdf: "application/pdf",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  };
   const url = new URL(req.url);
-  const disposition = url.searchParams.get("download") === "1" ? "attachment" : "inline";
+  // PDF defaults to inline (Tauri webview shows it). xlsx/pptx always
+  // attachment since browsers can't render Office docs inline.
+  const disposition = url.searchParams.get("download") === "1" || ext !== "pdf" ? "attachment" : "inline";
   return new NextResponse(new Uint8Array(buf), {
     headers: {
-      "content-type": "application/pdf",
-      "content-disposition": `${disposition}; filename="${slug}-${runId}.pdf"`,
+      "content-type": mime[ext],
+      "content-disposition": `${disposition}; filename="${slug}-${runId}.${ext}"`,
       "cache-control": "private, no-store",
     },
   });

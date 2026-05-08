@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-type Run = { id: string; status: string; startedAt: string; endedAt?: string; output?: string; error?: string; inputs: Record<string,string>; pdfPath?: string };
+type Run = { id: string; status: string; startedAt: string; endedAt?: string; output?: string; error?: string; inputs: Record<string,string>; pdfPath?: string; outputExt?: "pdf" | "xlsx" | "pptx" };
+
+const EXT_LABEL: Record<string, { open: string; mime: string }> = {
+  pdf: { open: "Open PDF", mime: "application/pdf" },
+  xlsx: { open: "Open Excel", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  pptx: { open: "Open PowerPoint", mime: "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
+};
 
 export default function RunPage() {
   const { slug, runId } = useParams<{ slug: string; runId: string }>();
@@ -51,12 +57,16 @@ export default function RunPage() {
             "bg-red-900/40 text-red-300"
           }`}>{run.status}</span>
           {run.status === "running" && <button onClick={kill} className="text-xs text-red-400 hover:text-red-300">Kill</button>}
-          {run.pdfPath && (
-            <>
-              <a href={`/api/elements/${slug}/runs/${runId}/pdf`} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1 bg-rose-600 hover:bg-rose-500 rounded text-white">Open PDF</a>
-              <a href={`/api/elements/${slug}/runs/${runId}/pdf?download=1`} download={`${slug}-${runId}.pdf`} className="text-xs px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-slate-200">Save…</a>
-            </>
-          )}
+          {run.pdfPath && (() => {
+            const ext = run.outputExt || "pdf";
+            const label = EXT_LABEL[ext] || EXT_LABEL.pdf;
+            return (
+              <>
+                <a href={`/api/elements/${slug}/runs/${runId}/pdf`} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1 bg-rose-600 hover:bg-rose-500 rounded text-white">{label.open}</a>
+                <a href={`/api/elements/${slug}/runs/${runId}/pdf?download=1`} download={`${slug}-${runId}.${ext}`} className="text-xs px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-slate-200">Save…</a>
+              </>
+            );
+          })()}
           {run.output && <button onClick={download} className="text-xs px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded text-white">Download .md</button>}
         </div>
       </div>

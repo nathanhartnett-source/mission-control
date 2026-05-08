@@ -36,7 +36,7 @@ export type ElementSpec = {
   icon: string;
   inputs: ElementInput[];
   promptTemplate: string;
-  outputFormat: "markdown" | "pdf";
+  outputFormat: "markdown" | "pdf" | "xlsx" | "pptx";
   letterhead?: ElementLetterhead;
   timeoutMin: number;
   shareWithOrg: boolean;
@@ -55,7 +55,8 @@ export type ElementRun = {
   pid?: number;
   output?: string;
   error?: string;
-  pdfPath?: string;      // set when outputFormat=pdf and render succeeded
+  pdfPath?: string;      // path to rendered binary output (pdf/xlsx/pptx); name kept for back-compat
+  outputExt?: "pdf" | "xlsx" | "pptx";  // matches the rendered file extension
 };
 
 function userDir(username: string): string {
@@ -224,19 +225,20 @@ function refreshRun(username: string, run: ElementRun): ElementRun {
   const doneMarker = path.join(dir, "done");
   const errMarker = path.join(dir, "error");
   const outFile = path.join(dir, "output.md");
-  const pdfFile = path.join(dir, "output.pdf");
+  const renderedExt = (["pdf", "xlsx", "pptx"] as const).find(e => fs.existsSync(path.join(dir, `output.${e}`)));
+  const renderedFile = renderedExt ? path.join(dir, `output.${renderedExt}`) : null;
   if (fs.existsSync(doneMarker)) {
     run.status = "done";
     run.endedAt = new Date().toISOString();
     if (fs.existsSync(outFile)) run.output = fs.readFileSync(outFile, "utf8").slice(0, 2_000_000);
-    if (fs.existsSync(pdfFile)) run.pdfPath = pdfFile;
+    if (renderedFile) { run.pdfPath = renderedFile; run.outputExt = renderedExt; }
     persistRun(username, run);
   } else if (fs.existsSync(errMarker)) {
     run.status = "failed";
     run.endedAt = new Date().toISOString();
     run.error = fs.readFileSync(errMarker, "utf8").slice(0, 4000);
     if (fs.existsSync(outFile)) run.output = fs.readFileSync(outFile, "utf8").slice(0, 2_000_000);
-    if (fs.existsSync(pdfFile)) run.pdfPath = pdfFile;
+    if (renderedFile) { run.pdfPath = renderedFile; run.outputExt = renderedExt; }
     persistRun(username, run);
   } else if (run.pid && !pidAlive(run.pid)) {
     // Process gone but no marker — treat as failed
@@ -278,6 +280,10 @@ export function renderPrompt(spec: ElementSpec, inputs: Record<string, string>):
   }
   if (spec.outputFormat === "pdf") {
     out += `\n\n---\nIMPORTANT: This output will be rendered to PDF. Produce well-structured Markdown with clear headings (#, ##), bullet lists, and tables (|---|). For charts, embed a fenced block with language \`chart\` containing valid Chart.js JSON config, e.g.:\n\n\`\`\`chart\n{"type":"bar","data":{"labels":["A","B","C"],"datasets":[{"label":"Sales","data":[10,20,15]}]},"options":{"plugins":{"title":{"display":true,"text":"Weekly sales"}}}}\n\`\`\`\n\nOnly produce charts when the data genuinely benefits from visualisation. Don't fabricate data; if a chart would need numbers you don't have, leave it out.`;
+  } else if (spec.outputFormat === "xlsx") {
+    out += `\n\n---\nIMPORTANT: This output will be rendered to an Excel (.xlsx) workbook. Output ONE OR MORE fenced blocks with language \`sheet:<TabName>\` containing CSV-formatted data (header row first). Example:\n\n\`\`\`sheet:Summary\nMetric,Value\nTotal sales,12345\nOrders,87\n\`\`\`\n\n\`\`\`sheet:Orders\nOrder ID,Customer,Total\n1001,Acme,250.00\n1002,Globex,1100.00\n\`\`\`\n\nOne fenced block per worksheet tab. CSV values may be wrapped in double-quotes if they contain commas. You may also include a brief markdown summary OUTSIDE the fenced blocks — that text is ignored by the renderer. Don't fabricate data; if you can't fill a tab honestly, omit it.`;
+  } else if (spec.outputFormat === "pptx") {
+    out += `\n\n---\nIMPORTANT: This output will be rendered to a PowerPoint (.pptx) deck. Output ONE OR MORE fenced blocks with language \`slide\` containing a JSON object per slide. Example:\n\n\`\`\`slide\n{"title":"Q3 Recap","bullets":["Revenue up 12%","Two new clients","Team expanded to 14"]}\n\`\`\`\n\n\`\`\`slide\n{"title":"What's next","bullets":["Launch portal","Hire ops lead","Close partnership"],"notes":"Speaker notes here"}\n\`\`\`\n\nSchema per slide: {title: string, bullets?: string[], body?: string, notes?: string}. Use \`bullets\` for bulleted lists, \`body\` for a paragraph, both can co-exist. One fenced block per slide, in order. Keep it concise — slides aren't documents.`;
   }
   return out;
 }

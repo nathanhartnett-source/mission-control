@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
 type Input = { name: string; label: string; type: string; required: boolean; options?: string[]; placeholder?: string; acceptMime?: string; maxMB?: number };
-type Spec = { slug: string; name: string; description: string; icon: string; inputs: Input[]; timeoutMin: number; createdBy: string };
+type Spec = { slug: string; name: string; description: string; icon: string; inputs: Input[]; timeoutMin: number; createdBy: string; shareWithOrg?: boolean };
 type Run = { id: string; status: string; startedAt: string; endedAt?: string };
 
 export default function ElementPage() {
@@ -111,6 +111,19 @@ export default function ElementPage() {
           </button>
           {spec.createdBy === me && (
             <>
+              <button
+                onClick={async () => {
+                  const next = !spec.shareWithOrg;
+                  const r = await fetch(`/api/elements/${slug}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ shareWithOrg: next }) });
+                  if (!r.ok) { const d = await r.json().catch(() => ({})); alert(d.error || "share toggle failed"); return; }
+                  setSpec(s => s ? { ...s, shareWithOrg: next } : s);
+                }}
+                title={spec.shareWithOrg ? "Currently shared with org — click to make private" : "Currently private — click to share with org"}
+                className={`text-xs font-medium ${spec.shareWithOrg ? "text-emerald-300 hover:text-emerald-200" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                {spec.shareWithOrg ? "👥 Shared" : "Share"}
+              </button>
+              <Link href={`/elements/new?slug=${slug}`} className="text-xs text-indigo-400 hover:text-indigo-300">Edit</Link>
               <button onClick={rename} className="text-xs text-slate-400 hover:text-slate-200">Rename</button>
               <button onClick={del} className="text-xs text-red-400 hover:text-red-300">Delete</button>
             </>
