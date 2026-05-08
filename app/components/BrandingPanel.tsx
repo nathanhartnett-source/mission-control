@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { THEME_PRESETS } from "@/lib/theme-presets";
 
 type Branding = {
   logoPath: string | null;
@@ -138,6 +139,25 @@ export default function BrandingPanel() {
     finally { setBusy(null); }
   }, []);
 
+  const onApplyPreset = useCallback(async (presetId: string) => {
+    const preset = THEME_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    setBusy("save"); setErr(null); setMsg(null);
+    try {
+      const r = await fetch("/api/admin/branding", {
+        method: "PUT", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ theme: preset.theme }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      setB(d.branding);
+      setDraft({ ...preset.theme } as Record<string, string>);
+      applyLocally(preset.theme as Record<string, string>);
+      setMsg(`Applied ${preset.name}`);
+    } catch (e) { setErr(String(e)); }
+    finally { setBusy(null); }
+  }, []);
+
   const setToken = (k: string, v: string) => {
     const next = { ...draft, [k]: v };
     setDraft(next);
@@ -196,6 +216,29 @@ export default function BrandingPanel() {
         </div>
         {b?.sourceUrl && <p className="text-[11px] text-slate-500 mt-2">Last detected from {b.sourceUrl}</p>}
         <p className="text-[11px] text-slate-500 mt-1">Detection takes ~30–90s. Applies instantly to all users via server-side branding.</p>
+      </div>
+
+      <div className="mb-5">
+        <div className="text-xs uppercase tracking-wide text-slate-400 mb-2">Theme presets</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {THEME_PRESETS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => onApplyPreset(p.id)}
+              disabled={busy === "save"}
+              className="rounded-lg border border-slate-700 bg-slate-900/60 hover:border-slate-500 disabled:opacity-40 p-2 text-left"
+              title={`Apply ${p.name}`}
+            >
+              <div className="flex gap-1 mb-1.5">
+                <span className="h-5 w-5 rounded" style={{ background: p.theme.bgApp }} />
+                <span className="h-5 w-5 rounded" style={{ background: p.theme.bgSidebar }} />
+                <span className="h-5 w-5 rounded" style={{ background: p.theme.bgBubbleUser }} />
+                <span className="h-5 w-5 rounded" style={{ background: p.theme.accent }} />
+              </div>
+              <div className="text-[11px] text-slate-200">{p.name}</div>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div>

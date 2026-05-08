@@ -4,7 +4,8 @@ import os from "os";
 import path from "path";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
-import { writeBranding } from "@/lib/branding";
+import { readBranding, writeBranding } from "@/lib/branding";
+import { getPreset, DEFAULT_PRESET_ID } from "@/lib/theme-presets";
 import { mcConfig } from "@/lib/mc-config";
 
 export const dynamic = "force-dynamic";
@@ -94,8 +95,13 @@ Be direct, conversational, and helpful. When something is uncertain, say so.
   ensureDir(path.join(HOME, "wiki", "_outbox", "mc-agent"));
   ensureDir(path.join(HOME, "legacy-workspace", "mission-control", "data", "agent-chat"));
 
-  // Branding
-  if (brandName || brandDescription) {
+  // Branding — apply Slate as default theme if none set yet (no logo/URL detection during wizard).
+  const cur = readBranding();
+  const hasTheme = cur.theme && Object.keys(cur.theme).length > 0;
+  if (!hasTheme) {
+    const slate = getPreset(DEFAULT_PRESET_ID);
+    if (slate) writeBranding({ theme: slate.theme });
+  } else if (brandName || brandDescription) {
     writeBranding({});
   }
 
