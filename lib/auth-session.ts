@@ -7,17 +7,42 @@
  *  - Node:  sign / verify (used in API routes — bcrypt route can't be Edge anyway)
  *  - Edge:  verifyEdge    (used in middleware, Web Crypto only)
  */
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { join, resolve } from "path";
 
 const COOKIE_NAME = "mc_auth";
 const TTL_SEC = 30 * 24 * 60 * 60;
 
 export type SessionPayload = { userId: string; exp: number };
 
+let cachedSecret: string | null = null;
+
 function getSecret(): string {
-  const s = process.env.MC_COOKIE_SECRET;
-  if (!s) throw new Error("MC_COOKIE_SECRET not set");
-  return s;
+  if (cachedSecret) return cachedSecret;
+  // Prefer env override (lets ops rotate explicitly).
+  const fromEnv = process.env.MC_COOKIE_SECRET;
+  if (fromEnv && fromEnv.trim()) {
+    cachedSecret = fromEnv.trim();
+    return cachedSecret;
+  }
+  // Persist a generated secret to data/cookie-secret so it survives
+  // restarts. Fresh installs no longer need MC_COOKIE_SECRET set.
+  const dataRoot = resolve(process.env.MC_DATA_ROOT || join(process.cwd(), "data"));
+  const file = join(dataRoot, "cookie-secret");
+  try {
+    if (existsSync(file)) {
+      const v = readFileSync(file, "utf-8").trim();
+      if (v) { cachedSecret = v; return v; }
+    }
+    mkdirSync(dataRoot, { recursive: true });
+    const v = randomBytes(48).toString("hex");
+    writeFileSync(file, v, { encoding: "utf-8", mode: 0o600 });
+    cachedSecret = v;
+    return v;
+  } catch (e) {
+    throw new Error(`MC_COOKIE_SECRET not set and could not auto-generate at ${file}: ${(e as Error).message}`);
+  }
 }
 
 export function sign(userId: string): { value: string; maxAge: number } {
