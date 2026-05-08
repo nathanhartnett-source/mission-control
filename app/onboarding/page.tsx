@@ -83,7 +83,7 @@ export default function OnboardingPage() {
         setError(data?.error || "Failed to save. Try again.");
         return;
       }
-      router.replace("/");
+      setStep(6); // welcome video before redirecting
     } finally {
       setLoading(false);
     }
@@ -241,6 +241,26 @@ export default function OnboardingPage() {
                 </button>
               </div>
             </>
+          )}
+
+          {step === 6 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Welcome — quick tour</h2>
+              <p className="text-sm text-slate-300">2-minute walkthrough of your new dashboard. Skip if you want to dive straight in.</p>
+              <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                <iframe
+                  src="https://www.youtube.com/embed/C9xymdtMIr0?autoplay=1"
+                  title="Mission Control walkthrough"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              </div>
+              <button
+                onClick={() => router.replace("/")}
+                className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm"
+              >Open dashboard →</button>
+            </div>
           )}
         </div>
       </div>
