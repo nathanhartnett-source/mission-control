@@ -2289,6 +2289,11 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
     } catch { /* ignore */ }
   }, []);
 
+  const [toolDisclosure, setToolDisclosure] = useState<Record<string, boolean>>({});
+  const toggleToolDisclosure = useCallback((corrId: string) => {
+    setToolDisclosure((prev) => ({ ...prev, [corrId]: !prev[corrId] }));
+  }, []);
+
   const stopTurn = useCallback(async (corrId: string) => {
     try {
       await fetch("/api/agents/me/stop", {
@@ -2680,6 +2685,16 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
                           Stop
                         </button>
                       ) : null}
+                      {(r.agent_state === "running" && !r.agent_text) ? (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); toggleToolDisclosure(r.corr_id); }}
+                          title={toolDisclosure[r.corr_id] ? "Hide tool detail" : "Show tool detail"}
+                          className="text-[14px] leading-none text-slate-400 hover:text-slate-200 transition-colors px-1"
+                        >
+                          {toolDisclosure[r.corr_id] ? "−" : "+"}
+                        </button>
+                      ) : null}
                       {(() => {
                         const startTs = r.agent_ts || r.user_ts;
                         if (r.agent_state === "running" && startTs) {
@@ -2699,9 +2714,11 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
                       <div className="text-slate-500 italic text-xs">
                         {r.agent_state === "queued" ? "Waiting in agent inbox…"
                           : r.agent_state === "running" ? (
-                              r.activity_kind === "doing"
-                                ? `${agentName} is working…`
-                                : HUMOR_LINES[Math.floor((r.elapsed_ms || 0) / 5000) % HUMOR_LINES.length]
+                              toolDisclosure[r.corr_id] && r.current_tool_summary
+                                ? `${r.current_tool_summary}${r.current_tool_summary_ts && !r.current_tool ? ` · ${Math.max(0, Math.floor((now - new Date(r.current_tool_summary_ts).getTime()) / 1000))}s ago` : ""}`
+                                : r.activity_kind === "doing"
+                                  ? `${agentName} is working…`
+                                  : HUMOR_LINES[Math.floor((r.elapsed_ms || now) / 5000) % HUMOR_LINES.length]
                             )
                           : r.agent_state === "error" ? `Error: ${r.error || "unknown"}`
                         : "—"}
