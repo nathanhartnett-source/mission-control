@@ -7,7 +7,9 @@ export const metadata = { title: "Wiki — Allhart AIOS" };
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const WIKI_ROOT = mcConfig.wikiRoot;
+// Resolve per-invocation via mcConfig getter so the install.json-picked path
+// applies without a server restart. Don't cache in a module-level const.
+function wikiRoot() { return mcConfig.wikiRoot; }
 
 type EntryJson = {
   path: string;
@@ -34,8 +36,8 @@ function slugFor(entryPath: string) {
 
 function readEntries(): WikiEntry[] {
   // Wiki dir might not exist yet on a fresh install — render empty rather than crash.
-  if (!fs.existsSync(WIKI_ROOT)) return [];
-  const catalogPath = path.join(WIKI_ROOT, ".entries.json");
+  if (!fs.existsSync(wikiRoot())) return [];
+  const catalogPath = path.join(wikiRoot(), ".entries.json");
   let rawEntries: EntryJson[] = [];
 
   if (fs.existsSync(catalogPath)) {
@@ -43,9 +45,9 @@ function readEntries(): WikiEntry[] {
     rawEntries = Array.isArray(parsed.entries) ? parsed.entries : [];
   } else {
     rawEntries = fs
-      .readdirSync(WIKI_ROOT, { recursive: true, withFileTypes: true })
+      .readdirSync(wikiRoot(), { recursive: true, withFileTypes: true })
       .filter((d) => d.isFile() && d.name.endsWith(".md"))
-      .map((d) => ({ path: path.relative(WIKI_ROOT, path.join(d.parentPath, d.name)) }));
+      .map((d) => ({ path: path.relative(wikiRoot(), path.join(d.parentPath, d.name)) }));
   }
 
   const bySlug = new Map<string, string>();
@@ -56,7 +58,7 @@ function readEntries(): WikiEntry[] {
   return rawEntries
     .filter((entry) => entry.path.endsWith(".md"))
     .map((entry) => {
-      const abs = path.join(WIKI_ROOT, entry.path);
+      const abs = path.join(wikiRoot(), entry.path);
       let outbound: string[] = [];
       if (fs.existsSync(abs)) {
         const text = fs.readFileSync(abs, "utf-8");

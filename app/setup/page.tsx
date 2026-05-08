@@ -27,6 +27,11 @@ export default function SetupPage() {
   // Step 2 — brand
   const [brandName, setBrandName] = useState("Mission Control");
   const [brandDescription, setBrandDescription] = useState("");
+  const [brandUrl, setBrandUrl] = useState("");
+  const [logoUploaded, setLogoUploaded] = useState(false);
+  const [themeDetected, setThemeDetected] = useState(false);
+  const [brandingBusy, setBrandingBusy] = useState<null | "logo" | "theme">(null);
+  const [showVideo, setShowVideo] = useState(false);
   // Agent name is configured later (Settings → Agents); not asked in wizard.
   const agentName = "Assistant";
 
@@ -86,6 +91,7 @@ export default function SetupPage() {
         throw new Error(msg);
       }
       setStep(4);
+      setShowVideo(true);
     } catch (e) { setErr(String((e as Error).message || e)); }
     finally { setBusy(false); }
   }, [brandName, brandDescription, agentName, seedWiki]);
@@ -122,8 +128,57 @@ export default function SetupPage() {
             <p className="text-xs text-slate-400">Tells your agent who it works for. You can change this later.</p>
             <label className="text-xs text-slate-300">Brand name<input value={brandName} onChange={(e) => setBrandName(e.target.value)} className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" /></label>
             <label className="text-xs text-slate-300">What does the team do? (1-2 sentences)<textarea value={brandDescription} onChange={(e) => setBrandDescription(e.target.value)} rows={3} placeholder="Accounting firm in Sydney, mostly small-business clients, helps them with bookkeeping and BAS" className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" /></label>
-            <p className="text-[11px] text-slate-500">Logo upload, theme detection, and agent setup happen later in Settings.</p>
-            <button onClick={goStep2} disabled={!brandName} className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm">Continue</button>
+            <div className="pt-2 border-t border-slate-800">
+              <div className="text-xs uppercase tracking-wide text-slate-400 mb-1.5">Logo (optional)</div>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0]; if (!f) return;
+                  setBrandingBusy("logo"); setErr(null);
+                  try {
+                    const fd = new FormData(); fd.append("file", f);
+                    const r = await fetch("/api/admin/branding/logo", { method: "POST", body: fd });
+                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                    setLogoUploaded(true);
+                  } catch (er) { setErr(`logo: ${(er as Error).message}`); }
+                  finally { setBrandingBusy(null); }
+                }}
+                disabled={!!brandingBusy}
+                className="text-xs text-slate-300"
+              />
+              {logoUploaded && <span className="ml-2 text-[11px] text-emerald-400">✓ uploaded</span>}
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-slate-400 mb-1.5">Theme from website (optional)</div>
+              <div className="flex gap-2">
+                <input
+                  value={brandUrl} onChange={(e) => setBrandUrl(e.target.value)}
+                  placeholder="https://yourbrand.com"
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm"
+                />
+                <button
+                  onClick={async () => {
+                    if (!/^https?:\/\//i.test(brandUrl)) { setErr("Enter a full https:// URL"); return; }
+                    setBrandingBusy("theme"); setErr(null);
+                    try {
+                      const r = await fetch("/api/admin/branding/detect-theme", {
+                        method: "POST", headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ url: brandUrl }),
+                      });
+                      if (!r.ok) { let m = `HTTP ${r.status}`; try { const d = await r.json(); if (d?.error) m = d.error; } catch {} throw new Error(m); }
+                      setThemeDetected(true);
+                    } catch (er) { setErr(`theme: ${(er as Error).message}`); }
+                    finally { setBrandingBusy(null); }
+                  }}
+                  disabled={brandingBusy === "theme" || !brandUrl}
+                  className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs whitespace-nowrap"
+                >{brandingBusy === "theme" ? "Detecting…" : "Detect"}</button>
+              </div>
+              {themeDetected && <p className="text-[11px] text-emerald-400 mt-1">✓ theme applied</p>}
+              <p className="text-[11px] text-slate-500 mt-1">Skip both and Slate theme will be applied. Detection takes ~30-90s.</p>
+            </div>
+            <button onClick={goStep2} disabled={!brandName || !!brandingBusy} className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm">Continue</button>
           </div>
         )}
 
@@ -228,6 +283,28 @@ export default function SetupPage() {
           </div>
         )}
       </div>
+      {showVideo && (
+        <div
+          onClick={() => setShowVideo(false)}
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+        >
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-3xl bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800">
+              <h3 className="text-sm font-semibold">Welcome — quick tour</h3>
+              <button onClick={() => setShowVideo(false)} className="text-slate-400 hover:text-white text-xl leading-none">×</button>
+            </div>
+            <div className="aspect-video bg-black">
+              <iframe
+                src="https://www.youtube.com/embed/C9xymdtMIr0?autoplay=1"
+                title="Mission Control walkthrough"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

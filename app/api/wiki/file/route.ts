@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 import { mcConfig } from "@/lib/mc-config";
-const WIKI_ROOT = mcConfig.wikiRoot;
 
 function safeWikiPath(input: string | null) {
   if (!input) return null;
@@ -14,8 +13,10 @@ function safeWikiPath(input: string | null) {
   if (!normalized.endsWith(".md")) return null;
   if (normalized.split(path.sep).includes("..")) return null;
 
-  const absolute = path.resolve(WIKI_ROOT, normalized);
-  const root = path.resolve(WIKI_ROOT);
+  // Read mcConfig.wikiRoot per-invocation so the install.json pick applies live.
+  const wikiRoot = mcConfig.wikiRoot;
+  const absolute = path.resolve(wikiRoot, normalized);
+  const root = path.resolve(wikiRoot);
   if (absolute !== root && !absolute.startsWith(`${root}${path.sep}`)) return null;
   return absolute;
 }
