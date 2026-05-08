@@ -17,7 +17,9 @@ export default function NewElement() {
   const search = useSearchParams();
   const editSlug = search?.get("slug") || "";
   const isEdit = !!editSlug;
-  const [phase, setPhase] = useState<"describe"|"review">(isEdit ? "review" : "describe");
+  // Both create AND edit start in "describe" — for edit it's the change-request prompt.
+  // User can skip to direct-field editing from the describe screen if they prefer.
+  const [phase, setPhase] = useState<"describe"|"review">("describe");
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -36,11 +38,18 @@ export default function NewElement() {
   async function generate() {
     setBusy(true); setError(""); setNeedsMoreInfo("");
     try {
-      const r = await fetch("/api/elements/builder", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ description }) });
+      const payload: { description: string; existingSpec?: Spec } = { description };
+      if (isEdit && spec) payload.existingSpec = spec;
+      const r = await fetch("/api/elements/builder", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const data = await r.json();
       if (!r.ok) { setError(data.error || "Build failed"); return; }
       if (data.needsMoreInfo) { setNeedsMoreInfo(data.needsMoreInfo); return; }
-      setSpec({ shareWithOrg: false, timeoutMin: 10, outputFormat: "markdown", letterhead: { mode: "none" }, ...data.spec });
+      // In edit mode, preserve the original slug/createdBy/createdAt — only the
+      // editable fields (name, prompt, inputs, format, etc) come from the builder.
+      const merged = isEdit && spec
+        ? { ...spec, ...data.spec, slug: spec.slug }
+        : { shareWithOrg: false, timeoutMin: 10, outputFormat: "markdown" as const, letterhead: { mode: "none" as const }, ...data.spec };
+      setSpec(merged);
       setPhase("review");
     } catch (e: any) { setError(e.message); }
     finally { setBusy(false); }
@@ -74,22 +83,47 @@ export default function NewElement() {
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-10 text-slate-200">
-      <h1 className="text-2xl font-semibold mb-2">Build an Element</h1>
-      <p className="text-sm text-slate-400 mb-6">Describe what you want — your agent will draft a spec. You review and tweak before saving.</p>
+      <h1 className="text-2xl font-semibold mb-2">{isEdit ? `Edit ${spec?.name || "app"}` : "Build an Element"}</h1>
+      <p className="text-sm text-slate-400 mb-6">
+        {isEdit
+          ? "Describe how you'd like to change this app — your agent will rewrite the spec. You review and tweak before saving."
+          : "Describe what you want — your agent will draft a spec. You review and tweak before saving."}
+      </p>
 
       {phase === "describe" && (
         <div className="space-y-4">
+          {isEdit && spec && (
+            <div className="border border-slate-800 rounded-lg p-3 bg-slate-900/40 text-xs text-slate-400">
+              <div className="font-medium text-slate-300 mb-1">Current app</div>
+              <div className="flex items-start gap-2">
+                <span className="text-2xl leading-none">{spec.icon}</span>
+                <div>
+                  <div className="text-slate-200">{spec.name}</div>
+                  <div className="text-slate-500">{spec.description}</div>
+                </div>
+              </div>
+            </div>
+          )}
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
-            placeholder='e.g. "Weekly stock-low report — pulls Woo stock data across our 5 sites, outputs a PDF with charts of low SKUs by site." Or: "New product PDP draft — I enter product name + material + price, get back Tessa-voice copy and an image brief."'
+            placeholder={isEdit
+              ? 'e.g. "Add a field for budget cap" • "Change output to Excel" • "Make the tone more casual" • "Add a field for the customer\'s industry"'
+              : 'e.g. "Weekly stock-low report — pulls Woo stock data across our 5 sites, outputs a PDF with charts of low SKUs by site." Or: "New product PDP draft — I enter product name + material + price, get back Tessa-voice copy and an image brief."'}
             className="w-full h-48 px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:border-indigo-500 focus:outline-none"
           />
-          {needsMoreInfo && <div className="text-amber-400 text-sm bg-amber-950/30 border border-amber-900/50 rounded-lg p-3"><strong>Need more info:</strong> {needsMoreInfo}</div>}
+          {needsMoreInfo && <div className="text-amber-400 text-sm bg-amber-950/30 border border-amber-900/50 rounded-lg p-3"><strong>Heads up:</strong> {needsMoreInfo}</div>}
           {error && <div className="text-red-400 text-sm">{error}</div>}
-          <button onClick={generate} disabled={busy || !description.trim()} className="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium">
-            {busy ? "Drafting…" : "Draft spec"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={generate} disabled={busy || !description.trim() || (isEdit && !spec)} className="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium">
+              {busy ? (isEdit ? "Updating…" : "Drafting…") : (isEdit ? "Apply change" : "Draft spec")}
+            </button>
+            {isEdit && spec && (
+              <button onClick={() => setPhase("review")} className="text-xs text-slate-400 hover:text-slate-200 underline">
+                Skip — edit fields directly
+              </button>
+            )}
+          </div>
         </div>
       )}
 

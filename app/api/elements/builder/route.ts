@@ -43,6 +43,21 @@ Rules:
 - Keep inputs to 0-5 fields. Use file type for letterheads, CSVs, photos to analyse, etc.
 - If the user's description is too vague (especially: what's the REPETITIVE task?), output: {"error":"Need more info: <one specific question>"}`;
 
+const EDIT_SYSTEM_SUFFIX = `
+
+You are EDITING an existing app rather than creating a new one. The user will provide:
+1. The current spec (JSON).
+2. A change request in plain English (e.g. "make the depth select default to Standard", "add a field for budget", "change the output to PDF").
+
+Output the FULL updated spec JSON in the same shape (name, description, icon, inputs[], promptTemplate, outputFormat, timeoutMin) — not a diff. Preserve fields the user didn't ask to change.
+
+What you CAN'T change via this edit flow:
+- Scheduling/automation (managed separately via Settings → Crons; tell the user politely if they ask).
+- Worker capabilities (still read-only: WebSearch, WebFetch, Read, Glob, Grep). Can't add Bash/Write/code execution.
+- Image generation (parked until per-tenant API keys are wired).
+
+If the user's edit request requires one of those, output {"error":"Need more info: <one specific note explaining what's not possible and what alternative might work>"}.`;
+
 export async function POST(req: NextRequest) {
   const auth = requireUser(req);
   if (auth instanceof NextResponse) return auth;
@@ -50,7 +65,12 @@ export async function POST(req: NextRequest) {
   const description = (body?.description || "").toString().trim();
   if (!description) return NextResponse.json({ error: "description required" }, { status: 400 });
 
-  const fullPrompt = `${BUILDER_SYSTEM}\n\n---\nUser request: ${description}\n\nOutput the JSON now.`;
+  const existingSpec = body?.existingSpec && typeof body.existingSpec === "object" ? body.existingSpec : null;
+  const isEdit = !!existingSpec;
+  const sys = isEdit ? `${BUILDER_SYSTEM}${EDIT_SYSTEM_SUFFIX}` : BUILDER_SYSTEM;
+  const fullPrompt = isEdit
+    ? `${sys}\n\n---\nCURRENT SPEC:\n${JSON.stringify(existingSpec, null, 2)}\n\nCHANGE REQUEST: ${description}\n\nOutput the full updated JSON now.`
+    : `${sys}\n\n---\nUser request: ${description}\n\nOutput the JSON now.`;
 
   try {
     const result = await runClaude(fullPrompt, 90_000);
