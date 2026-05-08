@@ -7,7 +7,7 @@ import { writeBranding, type ThemeColors, THEME_KEYS } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 240;
 
 function findClaudeBin(): string {
   // Try MC_CLAUDE_BIN, then common install paths used by Nathan's WSL and the
@@ -52,7 +52,7 @@ function runClaude(prompt: string): Promise<string> {
       console.error(`[detect-theme] claude -p hit 110s timeout, killing`);
       try { child.kill("SIGTERM"); } catch {}
       reject(new Error("claude -p timeout"));
-    }, 110000);
+    }, 220000);
   });
 }
 
