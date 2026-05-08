@@ -5,7 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const WIKI_ROOT = "/home/nathan/wiki";
+import { mcConfig } from "@/lib/mc-config";
+const WIKI_ROOT = mcConfig.wikiRoot;
 
 function safeWikiPath(input: string | null) {
   if (!input) return null;

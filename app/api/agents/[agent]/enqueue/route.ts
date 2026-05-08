@@ -92,7 +92,18 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ agent: str
     // Kick the agent's runner immediately so the user doesn't wait up to 60s
     // for the cron tick. Cron remains the fallback.
     if (agent === "me") {
-      const child = spawn("/home/nathan/bin/mc-user-agent-runner.sh", [sessionUser.username], {
+      // Resolve runner location: env override → /usr/local/bin (install kit's
+      // canonical destination) → ~/bin/ (Nathan's WSL dev box). First match wins.
+      let runnerPath = process.env.MC_USER_AGENT_RUNNER || "";
+      if (!runnerPath) {
+        const candidates = [
+          "/usr/local/bin/mc-user-agent-runner.sh",
+          path.join(os.homedir(), "bin", "mc-user-agent-runner.sh"),
+        ];
+        for (const c of candidates) { try { if (require("fs").existsSync(c)) { runnerPath = c; break; } } catch {} }
+      }
+      if (!runnerPath) runnerPath = "/usr/local/bin/mc-user-agent-runner.sh"; // fall through, will surface ENOENT loudly
+      const child = spawn(runnerPath, [sessionUser.username], {
         detached: true,
         stdio: "ignore",
         env: { ...process.env, HOME: os.homedir() },

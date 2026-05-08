@@ -36,7 +36,7 @@ export const mcConfig = {
   bentoDataRoot: clientMode
     ? appDataRoot
     : resolveRoot(process.env.MC_DATA_ROOT, path.join(process.cwd(), "../data")),
-  wikiRoot: resolveRoot(process.env.MC_WIKI_ROOT, clientMode ? path.join(appDataRoot, "wiki") : "/home/nathan/wiki"),
+  wikiRoot: resolveRoot(process.env.MC_WIKI_ROOT, path.join(process.env.HOME || "/root", "wiki")),
   uploadRoot: resolveRoot(process.env.MC_UPLOAD_ROOT, clientMode ? path.join(appDataRoot, "uploads") : "/tmp/mc-staging"),
   agentName: process.env.MC_AGENT_NAME || (clientMode ? "OBT Assistant" : "Your agent"),
   agentRunner: process.env.MC_AGENT_RUNNER || "",
