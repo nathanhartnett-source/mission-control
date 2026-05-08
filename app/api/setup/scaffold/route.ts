@@ -6,6 +6,7 @@ import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
 import { readBranding, writeBranding } from "@/lib/branding";
 import { getPreset, DEFAULT_PRESET_ID } from "@/lib/theme-presets";
+import { writeInstallConfig } from "@/lib/install-config";
 import { mcConfig } from "@/lib/mc-config";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   const user = findById(session.userId);
   if (!user || !user.isAdmin) return NextResponse.json({ error: "admin only" }, { status: 403 });
 
-  let body: { brandName?: string; brandDescription?: string; agentName?: string; seedWiki?: boolean; useExistingCC?: boolean } = {};
+  let body: { brandName?: string; brandDescription?: string; agentName?: string; seedWiki?: boolean; useExistingCC?: boolean; wikiPath?: string } = {};
   try { body = await req.json(); } catch {}
   const brandName = (body.brandName || "Mission Control").trim().slice(0, 64);
   const brandDescription = (body.brandDescription || "").trim().slice(0, 600);
@@ -82,9 +83,19 @@ Be direct, conversational, and helpful. When something is uncertain, say so.
     created.push(personaPath + " (overwritten)");
   }
 
-  // Wiki
-  const wikiPath = path.join(HOME, "wiki");
+  // Wiki — operator may have picked an existing dir (e.g. ~/obt-wiki) in the wizard.
+  // Validate input is absolute and reasonable, else fall back to ~/wiki.
+  let wikiPath = path.join(HOME, "wiki");
+  if (body.wikiPath && typeof body.wikiPath === "string") {
+    const candidate = path.resolve(body.wikiPath.trim());
+    // Must be absolute and not be an obvious system dir.
+    const forbidden = ["/", "/etc", "/usr", "/bin", "/var", "/root", "/home"];
+    if (path.isAbsolute(candidate) && !forbidden.includes(candidate)) {
+      wikiPath = candidate;
+    }
+  }
   ensureDir(wikiPath);
+  writeInstallConfig({ wikiRoot: wikiPath });
   if (seedWiki) {
     writeIfMissing(path.join(wikiPath, "welcome.md"), `# Welcome to ${brandName}\n\nThis is your wiki — a markdown knowledge base your AI assistant can read.\n\nDrop notes, references, project specs, anything you want ${agentName} to remember and use as context.\n\nFiles are plain \`.md\` — edit them in your editor of choice or via the Mission Control wiki tab.\n`);
     writeIfMissing(path.join(wikiPath, "using-mission-control.md"), `# Using Mission Control\n\n## Chat with your agent\n\nThe **Agents** tab is your primary way to talk to ${agentName}. Type a message, hit send. The reply streams back in chat.\n\n## Wiki\n\nAnything in this wiki is accessible to ${agentName} as context. Reference files by name and the agent can read them.\n\n## Settings\n\n- **Branding**: upload a logo, detect a theme from a website URL, or fine-tune individual colours.\n- **Personalise theme**: each user can override colours for their own browser without affecting anyone else.\n- **Avatar**: re-roll your pixel-art identity until you find one you like.\n\n## Adding more users\n\nFrom Settings → Pending approvals (admin only) you can approve registrations.\n`);

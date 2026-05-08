@@ -32,32 +32,61 @@ export async function GET() {
     } catch {}
   }
   let claudeVersion: string | null = null;
+  let claudeAuthed = false;
+  let claudeAuthError: string | null = null;
   if (claudeBin) {
     try {
       claudeVersion = execSync(`${claudeBin} --version`, { stdio: ["ignore", "pipe", "ignore"], timeout: 4000 }).toString().trim();
     } catch {}
+    // Auth check: a tiny `claude -p` round-trip. If it returns 0, the user has logged in.
+    // A non-zero exit (or stderr mentioning login/auth) means the operator must run `claude login` first.
+    try {
+      execSync(`${claudeBin} -p "ok" --output-format text`, {
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: 25000,
+        env: { ...process.env, HOME, IS_SANDBOX: "1" },
+      });
+      claudeAuthed = true;
+    } catch (e) {
+      const msg = (e as { stderr?: Buffer; message?: string }).stderr?.toString() || (e as Error).message || "";
+      claudeAuthError = msg.slice(0, 400);
+    }
   }
 
-  // Wiki
-  const wikiPath = path.join(HOME, "wiki");
-  const wikiExists = fs.existsSync(wikiPath);
-  let wikiFileCount = 0;
-  if (wikiExists) {
+  // Wiki — scan HOME for any dir whose name contains "wiki" so existing
+  // wikis like ~/obt-wiki / ~/team-wiki get detected, not just ~/wiki.
+  const countMd = (dir: string): number => {
     try {
-      const walk = (dir: string, depth = 0): number => {
+      const walk = (d: string, depth = 0): number => {
         if (depth > 3) return 0;
         let n = 0;
-        for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+        for (const ent of fs.readdirSync(d, { withFileTypes: true })) {
           if (ent.name.startsWith(".") || ent.name === "node_modules" || ent.name === "_outbox" || ent.name === "_inbox") continue;
-          const p = path.join(dir, ent.name);
+          const p = path.join(d, ent.name);
           if (ent.isDirectory()) n += walk(p, depth + 1);
           else if (ent.name.endsWith(".md")) n++;
         }
         return n;
       };
-      wikiFileCount = walk(wikiPath);
-    } catch {}
-  }
+      return walk(dir);
+    } catch { return 0; }
+  };
+  const wikiCandidates: { path: string; fileCount: number }[] = [];
+  try {
+    for (const ent of fs.readdirSync(HOME, { withFileTypes: true })) {
+      if (!ent.isDirectory()) continue;
+      if (!/wiki/i.test(ent.name)) continue;
+      if (ent.name.startsWith(".")) continue;
+      const p = path.join(HOME, ent.name);
+      wikiCandidates.push({ path: p, fileCount: countMd(p) });
+    }
+  } catch {}
+  wikiCandidates.sort((a, b) => b.fileCount - a.fileCount);
+  const defaultWikiPath = path.join(HOME, "wiki");
+  const primary = wikiCandidates[0] || { path: defaultWikiPath, fileCount: 0 };
+  const wikiPath = primary.path;
+  const wikiExists = fs.existsSync(wikiPath);
+  const wikiFileCount = primary.fileCount;
 
   // CC memory dirs
   const projectsRoot = path.join(HOME, ".claude", "projects");
@@ -92,8 +121,9 @@ export async function GET() {
     ok: true,
     home: HOME,
     user: USER,
-    claude: { found: !!claudeBin, path: claudeBin, version: claudeVersion },
+    claude: { found: !!claudeBin, path: claudeBin, version: claudeVersion, authed: claudeAuthed, authError: claudeAuthError },
     wiki: { path: wikiPath, exists: wikiExists, fileCount: wikiFileCount },
+    wikiCandidates,
     memoryDirs,
     userClaudeMd: { path: claudeMd, exists: userClaudeMdExists },
     hasAdmin,

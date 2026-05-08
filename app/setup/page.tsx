@@ -6,8 +6,9 @@ type Probe = {
   ok: boolean;
   home: string;
   user: string;
-  claude: { found: boolean; path: string | null; version: string | null };
+  claude: { found: boolean; path: string | null; version: string | null; authed: boolean; authError: string | null };
   wiki: { path: string; exists: boolean; fileCount: number };
+  wikiCandidates: { path: string; fileCount: number }[];
   memoryDirs: { dir: string; fileCount: number; hasPersona: boolean }[];
   hasAdmin: boolean;
 };
@@ -32,6 +33,7 @@ export default function SetupPage() {
   const [probe, setProbe] = useState<Probe | null>(null);
   const [seedWiki, setSeedWiki] = useState(true);
   const [useExistingCC, setUseExistingCC] = useState(true);
+  const [wikiPath, setWikiPath] = useState<string>("");
 
   const goStep1 = useCallback(async () => {
     setErr(null);
@@ -56,7 +58,9 @@ export default function SetupPage() {
     if (step !== 3) return;
     fetch("/api/setup/probe").then(async (r) => {
       if (!r.ok) return;
-      setProbe(await r.json());
+      const p = await r.json();
+      setProbe(p);
+      setWikiPath(p?.wiki?.path || "");
     }).catch(() => {});
   }, [step]);
 
@@ -67,7 +71,7 @@ export default function SetupPage() {
       const r = await fetch("/api/setup/scaffold", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ brandName, brandDescription, agentName, seedWiki, useExistingCC }),
+        body: JSON.stringify({ brandName, brandDescription, agentName, seedWiki, useExistingCC, wikiPath }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
@@ -126,9 +130,43 @@ export default function SetupPage() {
                     <span className={probe.claude.found ? "text-emerald-400" : "text-rose-400"}>{probe.claude.found ? "✓" : "✗"}</span>
                     <span>Claude Code: {probe.claude.found ? <code className="text-slate-300">{probe.claude.path}</code> : <span className="text-slate-300">not found — install before continuing (<code>npm i -g @anthropic-ai/claude-code</code>)</span>}</span>
                   </li>
-                  <li className="flex items-center gap-2">
+                  {probe.claude.found && (
+                    <li className="flex items-center gap-2">
+                      <span className={probe.claude.authed ? "text-emerald-400" : "text-rose-400"}>{probe.claude.authed ? "✓" : "✗"}</span>
+                      <span>Claude Code authenticated: {probe.claude.authed ? "yes" : <span className="text-slate-300">no — run <code>claude login</code> in a terminal as this user, then refresh this page</span>}</span>
+                    </li>
+                  )}
+                  <li className="flex items-start gap-2">
                     <span className={probe.wiki.exists ? "text-emerald-400" : "text-amber-400"}>{probe.wiki.exists ? "✓" : "+"}</span>
-                    <span>Wiki at <code className="text-slate-300">{probe.wiki.path}</code>{probe.wiki.exists ? ` — ${probe.wiki.fileCount} markdown file${probe.wiki.fileCount === 1 ? "" : "s"} (will not be overwritten)` : " — will be created"}</span>
+                    <span>
+                      Wiki path:
+                      <select
+                        value={probe.wikiCandidates.some((c) => c.path === wikiPath) ? wikiPath : "__custom"}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v !== "__custom") setWikiPath(v);
+                          else setWikiPath("");
+                        }}
+                        className="ml-2 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs text-slate-100"
+                      >
+                        {probe.wikiCandidates.map((c) => (
+                          <option key={c.path} value={c.path}>{c.path.replace(probe.home, "~")} ({c.fileCount} md)</option>
+                        ))}
+                        {probe.wikiCandidates.length === 0 && (
+                          <option value={probe.wiki.path}>{probe.wiki.path.replace(probe.home, "~")} (will create)</option>
+                        )}
+                        <option value="__custom">Custom path…</option>
+                      </select>
+                      {(!probe.wikiCandidates.some((c) => c.path === wikiPath)) && (
+                        <input
+                          value={wikiPath}
+                          onChange={(e) => setWikiPath(e.target.value)}
+                          placeholder="/absolute/path/to/wiki"
+                          className="ml-2 mt-1 w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-100"
+                        />
+                      )}
+                      <span className="block text-[11px] text-slate-500 mt-0.5">Existing markdown will be preserved. Choice persists to <code>data/install.json</code>.</span>
+                    </span>
                   </li>
                   {probe.memoryDirs.length === 0 ? (
                     <li className="flex items-center gap-2"><span className="text-amber-400">+</span><span>No CC memory dir — will be created</span></li>
@@ -164,7 +202,7 @@ export default function SetupPage() {
                 {err && <div className="text-xs text-rose-400">{err}</div>}
                 <div className="flex gap-2 mt-2">
                   <button onClick={() => setStep(2)} className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm">Back</button>
-                  <button onClick={goStep3} disabled={busy || !probe.claude.found} className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm">{busy ? "Setting up…" : "Set up agent & finish"}</button>
+                  <button onClick={goStep3} disabled={busy || !probe.claude.found || !probe.claude.authed || !wikiPath} className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm">{busy ? "Setting up…" : "Set up agent & finish"}</button>
                 </div>
               </>
             )}

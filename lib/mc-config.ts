@@ -1,4 +1,16 @@
 import path from "path";
+import fs from "fs";
+
+function readInstalledWikiRoot(dataRoot: string): string | undefined {
+  try {
+    const raw = fs.readFileSync(path.join(dataRoot, "install.json"), "utf-8");
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.wikiRoot === "string" && parsed.wikiRoot.trim()) {
+      return parsed.wikiRoot.trim();
+    }
+  } catch {}
+  return undefined;
+}
 
 const TRUE_VALUES = new Set(["1", "true", "yes", "on"]);
 
@@ -36,7 +48,7 @@ export const mcConfig = {
   bentoDataRoot: clientMode
     ? appDataRoot
     : resolveRoot(process.env.MC_DATA_ROOT, path.join(process.cwd(), "../data")),
-  wikiRoot: resolveRoot(process.env.MC_WIKI_ROOT, path.join(process.env.HOME || "/root", "wiki")),
+  wikiRoot: resolveRoot(process.env.MC_WIKI_ROOT || readInstalledWikiRoot(appDataRoot), path.join(process.env.HOME || "/root", "wiki")),
   uploadRoot: resolveRoot(process.env.MC_UPLOAD_ROOT, clientMode ? path.join(appDataRoot, "uploads") : "/tmp/mc-staging"),
   agentName: process.env.MC_AGENT_NAME || (clientMode ? "OBT Assistant" : "Your agent"),
   agentRunner: process.env.MC_AGENT_RUNNER || "",
