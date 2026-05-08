@@ -56,13 +56,19 @@ WORK_CWD="$(mktemp -d -t mc-element-XXXXXX)"
 
 cd "$WORK_CWD" || { echo "cd failed" > "$ERR"; exit 1; }
 
-# Use Opus 4.7. Pass --permission-mode bypassPermissions so it doesn't pause for
-# tool confirmations, but the allowed-tools list still bounds what it CAN call.
+# Use Opus 4.7. Normally pass --permission-mode bypassPermissions so it doesn't
+# pause for tool confirmations, but claude refuses that flag under root/sudo —
+# omit it when EUID=0 (the allowed-tools list still bounds what it CAN call).
+PERM_ARGS=(--permission-mode bypassPermissions)
+if [ "$(id -u)" = "0" ]; then
+  PERM_ARGS=()
+fi
+
 timeout "${TIMEOUT_MIN}m" "$CLAUDE_BIN" \
   -p \
   --model claude-opus-4-7 \
   --output-format text \
-  --permission-mode bypassPermissions \
+  "${PERM_ARGS[@]}" \
   --allowedTools "$ALLOWED" \
   < "$PROMPT_FILE" \
   > "$OUT" 2>> "$LOG"
