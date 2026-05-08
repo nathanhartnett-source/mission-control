@@ -66,9 +66,19 @@ export async function POST(req: NextRequest) {
   }
 }
 
+function findClaudeBin(): string {
+  const fs = require("fs");
+  if (process.env.MC_CLAUDE_BIN && fs.existsSync(process.env.MC_CLAUDE_BIN)) return process.env.MC_CLAUDE_BIN;
+  if (process.env.CLAUDE_BIN && fs.existsSync(process.env.CLAUDE_BIN)) return process.env.CLAUDE_BIN;
+  for (const c of ["/home/nathan/.npm-global/bin/claude", "/root/.npm-global/bin/claude", "/usr/local/bin/claude", "/usr/bin/claude"]) {
+    if (fs.existsSync(c)) return c;
+  }
+  return "claude";
+}
+
 function runClaude(prompt: string, timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
-    const claudeBin = process.env.CLAUDE_BIN || "/home/nathan/.npm-global/bin/claude";
+    const claudeBin = findClaudeBin();
     const child = spawn(claudeBin, ["-p", "--model", "claude-sonnet-4-6", "--output-format", "text", "--permission-mode", "bypassPermissions"], {
       stdio: ["pipe", "pipe", "pipe"],
     });
