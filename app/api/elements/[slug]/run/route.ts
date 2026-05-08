@@ -9,7 +9,18 @@ import { getElement, listRuns, newRunId, persistRun, renderPrompt, _runDir, type
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const WORKER = path.join(os.homedir(), "bin", "mc-element-worker.sh");
+function findWorker(): string {
+  const candidates = [
+    process.env.MC_ELEMENT_WORKER,
+    path.join(os.homedir(), "bin", "mc-element-worker.sh"),
+    "/usr/local/bin/mc-element-worker.sh",
+  ].filter(Boolean) as string[];
+  for (const c of candidates) {
+    try { if (fs.existsSync(c)) return c; } catch {}
+  }
+  return candidates[1];
+}
+const WORKER = findWorker();
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const auth = requireUser(req);
