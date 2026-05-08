@@ -276,6 +276,11 @@ export default function SetupPage() {
             <div className="text-3xl">🎉</div>
             <h2 className="text-lg font-semibold">Setup complete</h2>
             <p className="text-sm text-slate-300">Your agent <strong>{agentName}</strong> is ready.</p>
+            <div className="rounded-lg border border-slate-700 bg-slate-950/40 px-3 py-2.5 text-left">
+              <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Your dashboard</div>
+              <code className="text-xs text-indigo-300 break-all">{typeof window !== "undefined" ? window.location.origin : ""}</code>
+              <div className="text-[11px] text-slate-500 mt-1">Bookmark this URL. Share it with anyone you invite — they&apos;ll log in here.</div>
+            </div>
             <p className="text-xs text-slate-400">Send a message in the Agents tab to verify everything works end-to-end.</p>
             <a href="/agents" className="inline-block px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm">Open Agents →</a>
           </div>
