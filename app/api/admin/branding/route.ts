@@ -17,17 +17,34 @@ export async function PUT(req: NextRequest) {
   if (!user || !user.isAdmin) return NextResponse.json({ error: "admin only" }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
-  const incoming = (body?.theme || {}) as Record<string, unknown>;
-  const theme: ThemeColors = {};
-  for (const k of THEME_KEYS) {
-    const v = incoming[k];
-    if (typeof v === "string" && /^#[0-9a-fA-F]{3,8}$/.test(v)) {
-      (theme as Record<string, string>)[k] = v;
+  const patch: Parameters<typeof writeBranding>[0] = {};
+
+  // Brand name (string | null | omit)
+  if ("brandName" in body) {
+    if (body.brandName === null || body.brandName === "") {
+      patch.brandName = null;
+    } else if (typeof body.brandName === "string") {
+      patch.brandName = body.brandName.trim().slice(0, 64);
     }
   }
-  // Allow clearing by passing { theme: null } explicitly.
-  const next = body?.theme === null
-    ? writeBranding({ theme: {} })
-    : writeBranding({ theme });
+
+  // Theme (validated hex map | null clears | omit leaves alone)
+  if ("theme" in body) {
+    if (body.theme === null) {
+      patch.theme = {};
+    } else if (body.theme && typeof body.theme === "object") {
+      const incoming = body.theme as Record<string, unknown>;
+      const theme: ThemeColors = {};
+      for (const k of THEME_KEYS) {
+        const v = incoming[k];
+        if (typeof v === "string" && /^#[0-9a-fA-F]{3,8}$/.test(v)) {
+          (theme as Record<string, string>)[k] = v;
+        }
+      }
+      patch.theme = theme;
+    }
+  }
+
+  const next = writeBranding(patch);
   return NextResponse.json({ ok: true, branding: next });
 }

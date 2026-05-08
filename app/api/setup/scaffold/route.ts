@@ -112,14 +112,19 @@ Be direct, conversational, and helpful. When something is uncertain, say so.
   ensureDir(path.join(HOME, "wiki", "_outbox", "mc-agent"));
   ensureDir(path.join(HOME, "legacy-workspace", "mission-control", "data", "agent-chat"));
 
-  // Branding — apply Slate as default theme if none set yet (no logo/URL detection during wizard).
+  // Branding — persist the operator-provided brand name + apply Slate as
+  // default theme if none set yet (no logo/URL detection during wizard).
   const cur = readBranding();
   const hasTheme = cur.theme && Object.keys(cur.theme).length > 0;
+  const wantsBrandWrite = brandName && brandName !== "Mission Control";
   if (!hasTheme) {
     const slate = getPreset(DEFAULT_PRESET_ID);
-    if (slate) writeBranding({ theme: slate.theme });
-  } else if (brandName || brandDescription) {
-    writeBranding({});
+    writeBranding({
+      ...(slate ? { theme: slate.theme } : {}),
+      ...(wantsBrandWrite ? { brandName } : {}),
+    });
+  } else if (wantsBrandWrite) {
+    writeBranding({ brandName });
   }
 
   // Install-complete marker

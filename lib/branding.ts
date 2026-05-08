@@ -39,6 +39,7 @@ export const THEME_KEYS: (keyof ThemeColors)[] = [
 
 export type Branding = {
   logoPath: string | null;
+  brandName: string | null;
   theme: ThemeColors;
   sourceUrl: string | null;
   updatedAt: string | null;
@@ -48,6 +49,7 @@ const FILE = path.join(mcConfig.dataRoot, "branding.json");
 
 const DEFAULT: Branding = {
   logoPath: null,
+  brandName: null,
   theme: {},
   sourceUrl: null,
   updatedAt: null,

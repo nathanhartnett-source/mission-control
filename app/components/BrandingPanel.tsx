@@ -5,6 +5,7 @@ import { THEME_PRESETS } from "@/lib/theme-presets";
 
 type Branding = {
   logoPath: string | null;
+  brandName: string | null;
   theme: Record<string, string>;
   sourceUrl: string | null;
   updatedAt: string | null;
@@ -41,7 +42,8 @@ function applyLocally(theme: Record<string, string>) {
 export default function BrandingPanel() {
   const [b, setB] = useState<Branding | null>(null);
   const [url, setUrl] = useState("");
-  const [busy, setBusy] = useState<null | "logo" | "theme" | "delete" | "save" | "clear">(null);
+  const [brandNameDraft, setBrandNameDraft] = useState("");
+  const [busy, setBusy] = useState<null | "logo" | "theme" | "delete" | "save" | "clear" | "brand">(null);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -55,6 +57,7 @@ export default function BrandingPanel() {
       if (d?.ok) {
         setB(d.branding);
         setDraft({ ...(d.branding?.theme || {}) });
+        setBrandNameDraft(d.branding?.brandName || "");
       }
     } catch {}
   }, []);
@@ -139,6 +142,21 @@ export default function BrandingPanel() {
     finally { setBusy(null); }
   }, []);
 
+  const onSaveBrandName = useCallback(async () => {
+    setBusy("brand"); setErr(null); setMsg(null);
+    try {
+      const r = await fetch("/api/admin/branding", {
+        method: "PUT", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ brandName: brandNameDraft.trim() || null }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      setB(d.branding);
+      setMsg("Brand name saved");
+    } catch (e) { setErr(String(e)); }
+    finally { setBusy(null); }
+  }, [brandNameDraft]);
+
   const onApplyPreset = useCallback(async (presetId: string) => {
     const preset = THEME_PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
@@ -168,6 +186,26 @@ export default function BrandingPanel() {
     <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 mb-6">
       <h2 className="text-base font-semibold text-slate-100 mb-1">Branding</h2>
       <p className="text-xs text-slate-400 mb-4">Admin only. Logo replaces the dashboard wordmark; theme detection picks colours from a website.</p>
+
+      <div className="mb-5">
+        <div className="text-xs uppercase tracking-wide text-slate-400 mb-2">Brand name</div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            value={brandNameDraft}
+            onChange={(e) => setBrandNameDraft(e.target.value)}
+            placeholder="e.g. OBT Accounting"
+            maxLength={64}
+            className="flex-1 min-w-[180px] bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
+          />
+          <button
+            type="button"
+            onClick={onSaveBrandName}
+            disabled={busy === "brand" || brandNameDraft.trim() === (b?.brandName || "")}
+            className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs"
+          >{busy === "brand" ? "Saving…" : "Save"}</button>
+        </div>
+        <p className="text-[11px] text-slate-500 mt-1">Shown on login & request-access pages. Leave empty to fall back to &ldquo;Allhart AIOS&rdquo;.</p>
+      </div>
 
       <div className="mb-5">
         <div className="text-xs uppercase tracking-wide text-slate-400 mb-2">Logo</div>

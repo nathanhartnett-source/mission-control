@@ -13,7 +13,7 @@ function LoginForm() {
   const [error, setError]       = useState<string | null>(null);
   const [loading, setLoading]   = useState(false);
 
-  const next = decodeURIComponent(searchParams.get("next") || "") || "/support";
+  const next = decodeURIComponent(searchParams.get("next") || "") || "/";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
