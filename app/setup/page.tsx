@@ -60,19 +60,6 @@ export default function SetupPage() {
 
   const goStep2 = useCallback(() => { setErr(null); setStep(3); }, []);
 
-  // On mount: if an admin already exists (e.g. step 1 succeeded but the
-  // empty-body response confused the client), jump straight to step 2.
-  useEffect(() => {
-    fetch("/api/setup/probe").then(async (r) => {
-      if (!r.ok) return;
-      const p = await r.json();
-      if (p?.hasAdmin) {
-        setStep((s) => (s === 1 ? 2 : s));
-      }
-    }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
     if (step !== 3) return;
     fetch("/api/setup/probe").then(async (r) => {
