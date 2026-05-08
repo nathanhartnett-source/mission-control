@@ -171,8 +171,8 @@ export default function BrandingPanel() {
 
       <div className="mb-5">
         <div className="text-xs uppercase tracking-wide text-slate-400 mb-2">Logo</div>
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-32 rounded-lg bg-slate-950/60 border border-slate-800 flex items-center justify-center overflow-hidden">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="h-12 w-32 rounded-lg bg-slate-950/60 border border-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0">
             {b?.logoPath ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={b.logoPath} alt="logo" className="max-h-10 max-w-28 object-contain" />
@@ -186,17 +186,26 @@ export default function BrandingPanel() {
             accept="image/png,image/jpeg,image/svg+xml,image/webp"
             onChange={onLogo}
             disabled={!!busy}
-            className="text-xs text-slate-300"
+            className="hidden"
           />
-          {b?.logoPath && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={onDeleteLogo}
+              type="button"
+              onClick={() => fileRef.current?.click()}
               disabled={!!busy}
-              className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700"
-            >Remove</button>
-          )}
+              className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-medium"
+            >{busy === "logo" ? "Uploading…" : (b?.logoPath ? "Replace" : "Upload logo")}</button>
+            {b?.logoPath && (
+              <button
+                type="button"
+                onClick={onDeleteLogo}
+                disabled={!!busy}
+                className="px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-xs text-slate-300 border border-slate-700"
+              >Remove</button>
+            )}
+          </div>
         </div>
-        <p className="text-[11px] text-slate-500 mt-1">PNG / JPG / SVG / WebP, ≤ 1MB.</p>
+        <p className="text-[11px] text-slate-500 mt-2">PNG / JPG / SVG / WebP, ≤ 1MB.</p>
       </div>
 
       <div className="mb-5">
