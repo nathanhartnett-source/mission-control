@@ -249,7 +249,7 @@ export default function OnboardingPage() {
               <p className="text-sm text-slate-300">2-minute walkthrough of your new dashboard. Skip if you want to dive straight in.</p>
               <div className="aspect-video rounded-lg overflow-hidden bg-black">
                 <iframe
-                  src="https://www.youtube.com/embed/C9xymdtMIr0?autoplay=1"
+                  src="https://www.youtube-nocookie.com/embed/C9xymdtMIr0?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1"
                   title="Mission Control walkthrough"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
