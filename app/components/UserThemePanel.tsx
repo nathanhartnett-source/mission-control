@@ -58,12 +58,24 @@ export default function UserThemePanel() {
     const next = { ...draft, [k]: v };
     setDraft(next);
     applyLocally(next);
+    try { window.localStorage.setItem("mc-theme-user-locked", "1"); } catch {}
   };
+
+  const onSave = useCallback(() => {
+    applyLocally(draft);
+    try { window.localStorage.setItem("mc-theme-user-locked", "1"); } catch {}
+    setMsg("Saved — your tweaks will persist across refreshes");
+    setTimeout(() => setMsg(null), 2500);
+  }, [draft]);
 
   const onResetToShared = useCallback(() => {
     setDraft({ ...serverTheme });
     applyLocally(serverTheme);
-    try { window.localStorage.removeItem(STORAGE_KEY); window.dispatchEvent(new Event("mc-theme-changed")); } catch {}
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem("mc-theme-user-locked");
+      window.dispatchEvent(new Event("mc-theme-changed"));
+    } catch {}
     setMsg("Reset to the shared theme");
     setTimeout(() => setMsg(null), 2000);
   }, [serverTheme]);
@@ -102,14 +114,18 @@ export default function UserThemePanel() {
               </div>
             </div>
           ))}
-          <div className="flex items-center gap-2 pt-2">
+          <div className="flex items-center gap-2 pt-2 flex-wrap">
+            <button
+              onClick={onSave}
+              className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs"
+            >Save</button>
             <button
               onClick={onResetToShared}
               className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs border border-slate-700"
             >Reset to shared theme</button>
             {msg && <span className="text-xs text-emerald-400">{msg}</span>}
           </div>
-          <p className="text-[11px] text-slate-500">Changes apply instantly. To clear personal tweaks and use the shared theme, click Reset.</p>
+          <p className="text-[11px] text-slate-500">Changes preview instantly and save to this browser. Click Reset to clear your tweaks and use the shared theme.</p>
         </div>
       )}
     </section>

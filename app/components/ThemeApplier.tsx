@@ -182,7 +182,12 @@ export default function ThemeApplier() {
       const d = await r.json().catch(() => null);
       if (d?.branding?.theme) {
         try {
-          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(d.branding.theme));
+          // Don't clobber a user's personal theme override on every page load.
+          // Only seed from server if the user hasn't customised locally.
+          const userLocked = window.localStorage.getItem("mc-theme-user-locked") === "1";
+          if (!userLocked) {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(d.branding.theme));
+          }
           apply();
         } catch {}
       }
