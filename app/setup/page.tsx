@@ -45,14 +45,33 @@ export default function SetupPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ username, email, password: pw }),
       });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      // Tolerate empty-body success: server may have committed the user but
+      // the response body got dropped (Next 15 + Set-Cookie quirk we've seen).
+      // Trust r.ok; only try to read JSON for error details.
+      if (!r.ok) {
+        let msg = `HTTP ${r.status}`;
+        try { const d = await r.json(); if (d?.error) msg = d.error; } catch {}
+        throw new Error(msg);
+      }
       setStep(2);
     } catch (e) { setErr(String((e as Error).message || e)); }
     finally { setBusy(false); }
   }, [username, email, pw, pw2]);
 
   const goStep2 = useCallback(() => { setErr(null); setStep(3); }, []);
+
+  // On mount: if an admin already exists (e.g. step 1 succeeded but the
+  // empty-body response confused the client), jump straight to step 2.
+  useEffect(() => {
+    fetch("/api/setup/probe").then(async (r) => {
+      if (!r.ok) return;
+      const p = await r.json();
+      if (p?.hasAdmin) {
+        setStep((s) => (s === 1 ? 2 : s));
+      }
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (step !== 3) return;
@@ -73,8 +92,11 @@ export default function SetupPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ brandName, brandDescription, agentName, seedWiki, useExistingCC, wikiPath }),
       });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      if (!r.ok) {
+        let msg = `HTTP ${r.status}`;
+        try { const d = await r.json(); if (d?.error) msg = d.error; } catch {}
+        throw new Error(msg);
+      }
       setStep(4);
     } catch (e) { setErr(String((e as Error).message || e)); }
     finally { setBusy(false); }
