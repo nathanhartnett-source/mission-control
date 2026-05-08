@@ -516,7 +516,7 @@ function StateBadge({
     error: "Error",
   };
   return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border ${styles[state]}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium leading-none uppercase tracking-wider border ${styles[state]}`}>
       {labels[state]}
     </span>
   );
@@ -1944,7 +1944,7 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
                             type="button"
                             onClick={(e) => { e.stopPropagation(); stopTurn(r.corr_id, r.agent); }}
                             title="Stop this turn"
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium leading-none border border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors"
                           >
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
                               <rect x="6" y="6" width="12" height="12" rx="1.5" />
@@ -1957,7 +1957,7 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
                             type="button"
                             onClick={(e) => { e.stopPropagation(); toggleToolDisclosure(r.corr_id); }}
                             title={toolDisclosure[r.corr_id] ? "Hide tool detail" : "Show tool detail"}
-                            className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[12px] leading-none font-medium border border-slate-600/40 bg-slate-700/30 text-slate-400 hover:bg-slate-700/60 hover:text-slate-200 transition-colors"
+                            className="text-[14px] leading-none text-slate-400 hover:text-slate-200 transition-colors px-1"
                           >
                             {toolDisclosure[r.corr_id] ? "−" : "+"}
                           </button>
