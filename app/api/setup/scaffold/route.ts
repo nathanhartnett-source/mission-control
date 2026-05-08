@@ -27,12 +27,15 @@ export async function POST(req: NextRequest) {
   const user = findById(session.userId);
   if (!user || !user.isAdmin) return NextResponse.json({ error: "admin only" }, { status: 403 });
 
-  let body: { brandName?: string; brandDescription?: string; agentName?: string; seedWiki?: boolean } = {};
+  let body: { brandName?: string; brandDescription?: string; agentName?: string; seedWiki?: boolean; useExistingCC?: boolean } = {};
   try { body = await req.json(); } catch {}
   const brandName = (body.brandName || "Mission Control").trim().slice(0, 64);
   const brandDescription = (body.brandDescription || "").trim().slice(0, 600);
   const agentName = (body.agentName || "Assistant").trim().slice(0, 32);
   const seedWiki = body.seedWiki !== false; // default true
+  // useExistingCC=true (default) → preserve any existing persona.md.
+  // useExistingCC=false → operator wants a brand-new persona; overwrite if present.
+  const useExistingCC = body.useExistingCC !== false;
 
   const HOME = os.homedir();
   const username = user.username.toLowerCase().replace(/[^a-z0-9_-]/g, "");
@@ -69,7 +72,14 @@ ${brandDescription || "Help the operator with whatever they need — research, d
 
 Be direct, conversational, and helpful. When something is uncertain, say so.
 `;
-  writeIfMissing(personaPath, persona);
+  if (useExistingCC) {
+    writeIfMissing(personaPath, persona);
+  } else {
+    // Operator declined to reuse existing CC base — overwrite persona.
+    fs.mkdirSync(path.dirname(personaPath), { recursive: true });
+    fs.writeFileSync(personaPath, persona, "utf-8");
+    created.push(personaPath + " (overwritten)");
+  }
 
   // Wiki
   const wikiPath = path.join(HOME, "wiki");

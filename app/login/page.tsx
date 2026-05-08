@@ -67,7 +67,7 @@ function LoginForm() {
                 className="w-full px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm
                            placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1
                            focus:ring-indigo-500 transition-all"
-                placeholder="nathan"
+                placeholder="username"
               />
             </div>
 

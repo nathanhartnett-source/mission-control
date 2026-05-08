@@ -31,6 +31,7 @@ export default function SetupPage() {
   // Step 3 — probe
   const [probe, setProbe] = useState<Probe | null>(null);
   const [seedWiki, setSeedWiki] = useState(true);
+  const [useExistingCC, setUseExistingCC] = useState(true);
 
   const goStep1 = useCallback(async () => {
     setErr(null);
@@ -66,7 +67,7 @@ export default function SetupPage() {
       const r = await fetch("/api/setup/scaffold", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ brandName, brandDescription, agentName, seedWiki }),
+        body: JSON.stringify({ brandName, brandDescription, agentName, seedWiki, useExistingCC }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
@@ -140,6 +141,22 @@ export default function SetupPage() {
                     ))
                   )}
                 </ul>
+                {probe.memoryDirs.length > 0 && (
+                  <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-[11px] space-y-2">
+                    <div className="font-semibold text-amber-300">Existing Claude Code detected</div>
+                    <p className="text-slate-300">Use this Claude Code install as the base agent for Mission Control?</p>
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" checked={useExistingCC} onChange={(e) => setUseExistingCC(e.target.checked)} className="mt-0.5" />
+                      <span className="text-slate-200">Yes, use the existing Claude Code as the base</span>
+                    </label>
+                    <ul className="list-disc list-inside text-slate-400 ml-1 space-y-0.5">
+                      <li>MC will use the same Claude binary to power chats.</li>
+                      <li>Your existing conversation history and short-term memory <strong>won&apos;t carry over</strong> into MC chats — MC creates a fresh per-user memory dir for each MC user (you, plus anyone you invite later) so each person&apos;s chats are isolated.</li>
+                      <li>Existing <code>persona.md</code> is preserved untouched. Uncheck the box if you want MC to write a brand-new persona based on the brand info you entered.</li>
+                      <li>This becomes the <em>base agent</em> — every MC user spawns their own per-user agent from it.</li>
+                    </ul>
+                  </div>
+                )}
                 <label className="flex items-center gap-2 text-xs text-slate-300 mt-3">
                   <input type="checkbox" checked={seedWiki} onChange={(e) => setSeedWiki(e.target.checked)} />
                   Add welcome.md and using-mission-control.md to the wiki (only if missing)
