@@ -116,7 +116,7 @@ export default function Nav() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoPath} alt="logo" className="max-h-8 max-w-[140px] object-contain" />
           ) : (
-            <span className="text-[11px] font-semibold tracking-widest uppercase text-slate-500">Allhart MC</span>
+            <span className="text-[11px] font-semibold tracking-widest uppercase text-slate-500">Allhart AIOS</span>
           )}
         </div>
 

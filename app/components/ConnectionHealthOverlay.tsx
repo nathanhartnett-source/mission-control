@@ -68,19 +68,13 @@ export default function ConnectionHealthOverlay() {
           <div className="h-8 w-8 rounded-full border-2 border-slate-600 border-t-amber-400 animate-spin" />
         </div>
         <h2 className="text-lg font-semibold mb-1">
-          {isRebuilt ? "Allhart MC updated" : "Allhart MC restarting"}
+          {isRebuilt ? "Allhart AIOS updated" : "Allhart AIOS restarting"}
         </h2>
-        <p className="text-sm text-slate-400 mb-4">
+        <p className="text-sm text-slate-400">
           {isRebuilt
-            ? "A new build went live. Reload to pick up the latest version."
+            ? "A new build went live. The page will refresh automatically."
             : "The dashboard is reloading. This usually takes 10–20 seconds."}
         </p>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 rounded bg-amber-500 text-slate-950 font-medium hover:bg-amber-400 transition"
-        >
-          Reload now
-        </button>
       </div>
     </div>
   );
