@@ -197,8 +197,10 @@ export default function Nav() {
             <Icon d={ICONS.logout} size={18} />
             Sign out
           </button>
-          <div className="text-[10px] text-gray-500 text-right px-3">
-            v{process.env.NEXT_PUBLIC_BUILD_TIME}
+          {/* Hardcoded product wordmark — not theme-able, not user-editable.
+              The "Allhart AIOS" prefix is fixed; only the version number changes. */}
+          <div className="text-[10px] text-gray-500 text-right px-3 select-none" data-mc-product-stamp>
+            Allhart AIOS v0.1
           </div>
         </div>
       </aside>
