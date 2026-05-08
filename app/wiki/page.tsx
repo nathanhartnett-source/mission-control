@@ -1,12 +1,13 @@
 import fs from "fs";
 import path from "path";
 import WikiClient, { WikiEntry } from "./WikiClient";
+import { mcConfig } from "@/lib/mc-config";
 
-export const metadata = { title: "Wiki — Allhart MC" };
+export const metadata = { title: "Wiki — Allhart AIOS" };
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const WIKI_ROOT = "/home/nathan/wiki";
+const WIKI_ROOT = mcConfig.wikiRoot;
 
 type EntryJson = {
   path: string;
@@ -32,6 +33,8 @@ function slugFor(entryPath: string) {
 }
 
 function readEntries(): WikiEntry[] {
+  // Wiki dir might not exist yet on a fresh install — render empty rather than crash.
+  if (!fs.existsSync(WIKI_ROOT)) return [];
   const catalogPath = path.join(WIKI_ROOT, ".entries.json");
   let rawEntries: EntryJson[] = [];
 
