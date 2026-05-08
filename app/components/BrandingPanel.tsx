@@ -172,7 +172,16 @@ export default function BrandingPanel() {
       <div className="mb-5">
         <div className="text-xs uppercase tracking-wide text-slate-400 mb-2">Logo</div>
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="h-12 w-32 rounded-lg bg-slate-950/60 border border-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+          <div
+            className="h-12 w-32 rounded-lg border border-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0"
+            style={{
+              backgroundImage:
+                "linear-gradient(45deg,#1f2937 25%,transparent 25%),linear-gradient(-45deg,#1f2937 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1f2937 75%),linear-gradient(-45deg,transparent 75%,#1f2937 75%)",
+              backgroundSize: "10px 10px",
+              backgroundPosition: "0 0, 0 5px, 5px -5px, -5px 0",
+              backgroundColor: "#0f172a",
+            }}
+          >
             {b?.logoPath ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={b.logoPath} alt="logo" className="max-h-10 max-w-28 object-contain" />
