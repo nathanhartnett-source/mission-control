@@ -736,10 +736,11 @@ export default function AgentsClient() {
   const avatarSeed = me.avatarSeed || `user:${username || "me"}`;
   const agentSeedOverrides = me.agentAvatarSeeds || {};
   const agentName = me.agentName ?? null;
-  if (!me.isAdmin) {
-    return <UserAgentChat agentName={agentName || "Your agent"} userSeed={avatarSeed} agentSeedOverrides={agentSeedOverrides} />;
-  }
-  return <AdminAgentsClient userSeed={avatarSeed} username={username} agentSeedOverrides={agentSeedOverrides} />;
+  // Single-agent model: every user (including admin) gets one per-user agent.
+  // The legacy AdminAgentsClient grid was Allhart-specific (Ava/Mia/Ash/Overseer)
+  // and lives below as dead code until a future cleanup removes it entirely.
+  void username;
+  return <UserAgentChat agentName={agentName || "Your agent"} userSeed={avatarSeed} agentSeedOverrides={agentSeedOverrides} />;
 }
 
 function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSeed: string; username: string; agentSeedOverrides: Record<string,string> }) {

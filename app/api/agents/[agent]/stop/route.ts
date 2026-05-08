@@ -41,8 +41,7 @@ async function pidsMatching(pattern: string): Promise<number[]> {
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ agent: string }> }) {
   const { agent } = await ctx.params;
-  const valid: AgentName[] = ["ava", "mia", "ash", "overseer"];
-  if (!valid.includes(agent as AgentName)) {
+  if (agent !== "me") {
     return NextResponse.json({ error: "unknown agent" }, { status: 400 });
   }
   let body: { corr_id?: string } = {};

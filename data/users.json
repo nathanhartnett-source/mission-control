@@ -1,17 +1,1 @@
-{
-  "users": [
-    {
-      "id": "default-admin",
-      "username": "admin",
-      "email": "admin@example.com",
-      "passwordHash": "$2b$12$Yt8I4U4YftjCdTNqJET0hODzQZNikonHJv/0.r3P/0y1b35Qru9VK",
-      "status": "active",
-      "isAdmin": true,
-      "role": "admin",
-      "createdAt": "2026-05-08T00:00:00.000Z",
-      "avatarSeed": "user:admin",
-      "agentNames": {},
-      "agentAvatarSeeds": {}
-    }
-  ]
-}
+{"users": []}

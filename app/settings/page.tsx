@@ -266,52 +266,12 @@ export default function SettingsPage() {
       {isAdmin && <BrandingPanel />}
       <UserThemePanel />
 
-      {isAdmin && (
-        <section className="mb-6 space-y-4 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Agent avatars</h2>
-          <p className="text-xs text-slate-500 -mt-2">Re-roll the pixel-art for each agent. Shows in their chat bubbles everywhere.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {AGENTS.filter(a => username === "nathan" ? (a.slug !== "mia" && a.slug !== "switchboard") : true).map(a => {
-              const seed = agentSeeds[a.slug] || agentAvatarSeed(a.slug);
-              return (
-                <div key={a.slug} className="flex items-center gap-3 rounded-lg border border-slate-800/70 bg-slate-950/30 p-3">
-                  <PixelAvatar seed={seed} size={48} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-slate-200">{a.name}</div>
-                    <button
-                      onClick={() => rerollAgent(a.slug)}
-                      disabled={agentSaving === a.slug}
-                      className="mt-1 px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[11px] font-medium"
-                    >🎲 Re-roll</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* Multi-agent grid (Ava/Mia/Ash/Overseer/Switchboard) removed in
+          single-agent strip. Per-user agent rename + reroll lives in the
+          Agent panel rendered for all users. */}
 
-      <section className="mb-6 space-y-3 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Presets</h2>
-        <p className="text-xs text-slate-500 -mt-1">Pick a starting palette. You can still tweak individual colours below.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {PRESETS.map((p) => (
-            <button
-              key={p.name}
-              onClick={() => setTheme(p.theme)}
-              className="flex items-center gap-2 rounded-lg border border-slate-800/70 bg-slate-950/30 hover:border-slate-600 p-2 text-left"
-            >
-              <div className="flex gap-0.5">
-                <span className="h-7 w-2.5 rounded-sm" style={{ background: p.theme.dashboardBg }} />
-                <span className="h-7 w-2.5 rounded-sm" style={{ background: p.theme.sidebarBg }} />
-                <span className="h-7 w-2.5 rounded-sm" style={{ background: p.theme.userBubbleBg }} />
-                <span className="h-7 w-2.5 rounded-sm" style={{ background: p.theme.agentBubbleBg }} />
-              </div>
-              <span className="text-xs text-slate-200">{p.name}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+      {/* Legacy v1 "Theme presets" section removed — superseded by
+          BrandingPanel theme detection + UserThemePanel advanced controls. */}
 
       <section className="mb-6 space-y-3 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Change password</h2>

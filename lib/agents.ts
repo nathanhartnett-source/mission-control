@@ -6,7 +6,10 @@ import path from "path";
 import os from "os";
 import crypto from "crypto";
 
-export type AgentName = "ava" | "mia" | "ash" | "overseer" | "switchboard" | "me";
+// Single-agent model: each user has one per-user agent, slug "me".
+// Multi-agent grids (ava/mia/ash/overseer/switchboard from Allhart) removed
+// during the strip — dashboard talks to one agent per user.
+export type AgentName = "me";
 export type EnvelopeState = "queued" | "running" | "done" | "error";
 
 export interface InboundEnvelope {
@@ -64,16 +67,11 @@ export type AnyEnvelope = InboundEnvelope | OutboundEnvelope;
 
 const HOME = os.homedir();
 
-// Switchboard is a virtual routing-only agent — has no inbox/runner.
-// We give it a placeholder path that won't be written to so type system
-// stays happy without special-casing every consumer.
+// Single-agent model: the per-user "me" inbox is resolved via userInboxDir().
+// This placeholder map satisfies callers that iterate INBOX_DIRS for fallback
+// reads — the actual inbox is per-user, not per-agent.
 export const INBOX_DIRS: Record<AgentName, string> = {
-  ava:         path.join(HOME, ".claude", "channels", "discord",    "inbox"),
-  mia:         path.join(HOME, ".claude", "channels", "discord-b",  "inbox"),
-  ash:         path.join(HOME, "wiki",     "_inbox"),
-  overseer:    path.join(HOME, ".claude", "channels", "discord-os", "inbox"),
-  switchboard: path.join(HOME, ".claude", "channels", "switchboard-virtual"),
-  me:          path.join(HOME, ".claude", "channels", "user-virtual"),
+  me: path.join(HOME, ".claude", "channels", "user-virtual"),
 };
 
 export function userInboxDir(username: string): string {
