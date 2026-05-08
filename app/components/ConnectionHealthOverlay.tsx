@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 const POLL_MS = 3000;
 const FAIL_THRESHOLD = 3;
 
-type Phase = "ok" | "restarting" | "rebuilt";
+type Phase = "ok" | "restarting";
 
 export default function ConnectionHealthOverlay() {
   const [phase, setPhase] = useState<Phase>("ok");
@@ -29,13 +29,11 @@ export default function ConnectionHealthOverlay() {
         } else {
           const data = await res.json().catch(() => null) as { buildId?: string } | null;
           if (cancelled) return;
-          const id = data?.buildId ?? null;
-          if (initialBuildIdRef.current === null && id) {
-            initialBuildIdRef.current = id;
-          } else if (id && initialBuildIdRef.current && id !== initialBuildIdRef.current) {
-            setPhase("rebuilt");
-            return;
-          }
+          // Build-id rebuild detection removed: was firing spuriously on
+          // mobile when bfcache preserved the React ref across page shows,
+          // making a normal cold start look like a deploy. Users always
+          // get a fresh JS bundle on next hard load anyway.
+          void data;
           if (wasRestartingRef.current) {
             window.location.reload();
             return;
@@ -51,7 +49,7 @@ export default function ConnectionHealthOverlay() {
       if (cancelled) return;
       if (consecutiveFailsRef.current >= FAIL_THRESHOLD && everSucceededRef.current) {
         wasRestartingRef.current = true;
-        setPhase((p) => (p === "rebuilt" ? p : "restarting"));
+        setPhase("restarting");
       }
     };
 
@@ -65,21 +63,14 @@ export default function ConnectionHealthOverlay() {
 
   if (phase === "ok") return null;
 
-  const isRebuilt = phase === "rebuilt";
   return (
     <div className="fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-sm flex items-center justify-center">
       <div className="max-w-md mx-4 rounded-lg border border-slate-700 bg-slate-900 px-6 py-5 text-center text-slate-100 shadow-xl">
         <div className="mb-3 flex justify-center">
           <div className="h-8 w-8 rounded-full border-2 border-slate-600 border-t-amber-400 animate-spin" />
         </div>
-        <h2 className="text-lg font-semibold mb-1">
-          {isRebuilt ? "Allhart AIOS updated" : "Allhart AIOS restarting"}
-        </h2>
-        <p className="text-sm text-slate-400">
-          {isRebuilt
-            ? "A new build went live. The page will refresh automatically."
-            : "The dashboard is reloading. This usually takes 10–20 seconds."}
-        </p>
+        <h2 className="text-lg font-semibold mb-1">Allhart AIOS restarting</h2>
+        <p className="text-sm text-slate-400">The dashboard is reloading. This usually takes 10–20 seconds.</p>
       </div>
     </div>
   );
