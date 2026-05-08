@@ -40,9 +40,10 @@ export async function POST(req: NextRequest) {
       for (let i = 0; i < px.length; i += 4) {
         if (px[i] >= 245 && px[i + 1] >= 245 && px[i + 2] >= 245) px[i + 3] = 0;
       }
-      buf = await sharp(px, { raw: { width: info.width, height: info.height, channels: 4 } })
+      const out = await sharp(px, { raw: { width: info.width, height: info.height, channels: 4 } })
         .png({ compressionLevel: 9 })
         .toBuffer();
+      buf = Buffer.from(out);
     } catch (e) {
       console.warn("[logo] white-strip failed, saving as-is:", (e as Error).message);
     }
