@@ -94,12 +94,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <MeProvider initial={initialMe}>
           <ThemeApplier />
           {!isPublic && <Nav />}
-          <NotificationPoller />
-          <OnboardingGate />
-          <SessionWatcher />
-          <ConnectionHealthOverlay />
-          <AchievementOverlay />
-          <FloatingChatMount />
+          {!isPublic && <NotificationPoller />}
+          {!isPublic && <OnboardingGate />}
+          {!isPublic && <SessionWatcher />}
+          {!isPublic && <ConnectionHealthOverlay />}
+          {!isPublic && <AchievementOverlay />}
+          {!isPublic && <FloatingChatMount />}
           <div className={isPublic ? "mc-dashboard-shell" : "mc-dashboard-shell md:ml-52 pb-16 md:pb-0"}>
             {children}
           </div>
