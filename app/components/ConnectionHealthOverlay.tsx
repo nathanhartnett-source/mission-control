@@ -12,6 +12,10 @@ export default function ConnectionHealthOverlay() {
   const initialBuildIdRef = useRef<string | null>(null);
   const consecutiveFailsRef = useRef(0);
   const wasRestartingRef = useRef(false);
+  // Don't show "restarting" overlay until we've successfully reached the
+  // server at least once. Otherwise mobile cold-starts (slow connection,
+  // SW boot) trip the threshold before the page is even usable.
+  const everSucceededRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +40,7 @@ export default function ConnectionHealthOverlay() {
             window.location.reload();
             return;
           }
+          everSucceededRef.current = true;
           consecutiveFailsRef.current = 0;
           setPhase("ok");
           return;
@@ -44,7 +49,7 @@ export default function ConnectionHealthOverlay() {
         consecutiveFailsRef.current += 1;
       }
       if (cancelled) return;
-      if (consecutiveFailsRef.current >= FAIL_THRESHOLD) {
+      if (consecutiveFailsRef.current >= FAIL_THRESHOLD && everSucceededRef.current) {
         wasRestartingRef.current = true;
         setPhase((p) => (p === "rebuilt" ? p : "restarting"));
       }
