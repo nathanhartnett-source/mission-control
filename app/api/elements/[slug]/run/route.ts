@@ -67,23 +67,25 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
   // 2026-05-07: deep-research run mouxt7ia-f7314e8e was killed mid-run this
   // way (started 13:39:21, MC restarted 13:41:13, worker SIGKILL'd at 13:42:44).
   // Worker stdin is the rendered prompt — pipe it in via --pipe.
-  const child = spawn(
-    "systemd-run",
-    [
-      "--user",
-      "--quiet",
-      "--pipe",
-      "--collect",
-      "--unit", `mc-element-${runId}.service`,
-      "--description", `MC element worker ${slug} run ${runId}`,
-      "bash", WORKER, auth.username, dir, String(spec.timeoutMin),
-    ],
-    {
-      detached: true,
-      stdio: ["pipe", "ignore", "ignore"],
-      env: { ...process.env },
-    }
+  // systemd-run --user requires a user systemd instance, which root usually
+  // lacks unless `loginctl enable-linger` is set up. When MC runs as root
+  // (single-tenant installs like OBT), use system-mode systemd-run.
+  const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
+  const sdArgs: string[] = [];
+  if (!isRoot) sdArgs.push("--user");
+  sdArgs.push(
+    "--quiet",
+    "--pipe",
+    "--collect",
+    "--unit", `mc-element-${runId}.service`,
+    "--description", `MC element worker ${slug} run ${runId}`,
+    "bash", WORKER, auth.username, dir, String(spec.timeoutMin),
   );
+  const child = spawn("systemd-run", sdArgs, {
+    detached: true,
+    stdio: ["pipe", "ignore", "ignore"],
+    env: { ...process.env },
+  });
   child.stdin.write(prompt);
   child.stdin.end();
   child.unref();
