@@ -19,8 +19,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
 
 export const metadata: Metadata = {
-  title: "Allhart MC",
-  description: "Allhart MC",
+  title: "Allhart AIOS",
+  description: "Allhart AIOS",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -48,13 +48,21 @@ const NON_ADMIN_PAGE_ALLOW = new Set<string>([
 ]);
 
 const PUBLIC_PAGES = new Set<string>([
-  "/login", "/register", "/auth/result",
+  "/login", "/register", "/auth/result", "/setup",
 ]);
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const h = await headers();
   const pathname = h.get("x-pathname") || "/";
   const isPublic = PUBLIC_PAGES.has(pathname);
+
+  // First-run setup gate: if no active admin exists, force the wizard.
+  // /setup is in PUBLIC_PAGES so this redirect is safe (won't loop).
+  if (pathname !== "/setup" && !pathname.startsWith("/api/") && !pathname.startsWith("/_next/")) {
+    const { listUsers } = await import("@/lib/users");
+    const hasAdmin = listUsers().some((u) => u.isAdmin && u.status === "active");
+    if (!hasAdmin) redirect("/setup");
+  }
 
   let initialMe: Me = null;
   if (!isPublic && !pathname.startsWith("/api/") && !pathname.startsWith("/_next/")) {
