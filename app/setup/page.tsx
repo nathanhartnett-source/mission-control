@@ -1,0 +1,169 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+
+type Probe = {
+  ok: boolean;
+  home: string;
+  user: string;
+  claude: { found: boolean; path: string | null; version: string | null };
+  wiki: { path: string; exists: boolean; fileCount: number };
+  memoryDirs: { dir: string; fileCount: number; hasPersona: boolean }[];
+  hasAdmin: boolean;
+};
+
+export default function SetupPage() {
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Step 1 — admin
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+
+  // Step 2 — brand
+  const [brandName, setBrandName] = useState("Mission Control");
+  const [brandDescription, setBrandDescription] = useState("");
+  const [agentName, setAgentName] = useState("Assistant");
+
+  // Step 3 — probe
+  const [probe, setProbe] = useState<Probe | null>(null);
+  const [seedWiki, setSeedWiki] = useState(true);
+
+  const goStep1 = useCallback(async () => {
+    setErr(null);
+    if (pw !== pw2) { setErr("Passwords don't match"); return; }
+    setBusy(true);
+    try {
+      const r = await fetch("/api/setup/admin", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username, email, password: pw }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      setStep(2);
+    } catch (e) { setErr(String((e as Error).message || e)); }
+    finally { setBusy(false); }
+  }, [username, email, pw, pw2]);
+
+  const goStep2 = useCallback(() => { setErr(null); setStep(3); }, []);
+
+  useEffect(() => {
+    if (step !== 3) return;
+    fetch("/api/setup/probe").then(async (r) => {
+      if (!r.ok) return;
+      setProbe(await r.json());
+    }).catch(() => {});
+  }, [step]);
+
+  const goStep3 = useCallback(async () => {
+    setErr(null);
+    setBusy(true);
+    try {
+      const r = await fetch("/api/setup/scaffold", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ brandName, brandDescription, agentName, seedWiki }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      setStep(4);
+    } catch (e) { setErr(String((e as Error).message || e)); }
+    finally { setBusy(false); }
+  }, [brandName, brandDescription, agentName, seedWiki]);
+
+  return (
+    <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
+      <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+        <header className="mb-5">
+          <h1 className="text-xl font-semibold">Set up Mission Control</h1>
+          <p className="text-xs text-slate-400 mt-1">Step {step} of 4</p>
+          <div className="mt-3 flex gap-1">
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className={`h-1 flex-1 rounded ${n <= step ? "bg-indigo-500" : "bg-slate-800"}`} />
+            ))}
+          </div>
+        </header>
+
+        {step === 1 && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold">Create the admin account</h2>
+            <p className="text-xs text-slate-400">This is the operator account you&apos;ll use to log in.</p>
+            <input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))} placeholder="username" className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" type="email" className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+            <input value={pw} onChange={(e) => setPw(e.target.value)} placeholder="password (8+ chars)" type="password" className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+            <input value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="confirm password" type="password" className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+            {err && <div className="text-xs text-rose-400">{err}</div>}
+            <button onClick={goStep1} disabled={busy || !username || !email || pw.length < 8 || pw !== pw2} className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm">{busy ? "Creating…" : "Create admin & continue"}</button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold">Brand basics</h2>
+            <p className="text-xs text-slate-400">Tells your agent who it works for. You can change this later.</p>
+            <label className="text-xs text-slate-300">Brand name<input value={brandName} onChange={(e) => setBrandName(e.target.value)} className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" /></label>
+            <label className="text-xs text-slate-300">What does the team do? (1-2 sentences)<textarea value={brandDescription} onChange={(e) => setBrandDescription(e.target.value)} rows={3} placeholder="Accounting firm in Sydney, mostly small-business clients, helps them with bookkeeping and BAS" className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" /></label>
+            <label className="text-xs text-slate-300">Agent name<input value={agentName} onChange={(e) => setAgentName(e.target.value)} className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" /></label>
+            <p className="text-[11px] text-slate-500">Logo upload + theme detection happen later in Settings → Branding.</p>
+            <button onClick={goStep2} disabled={!brandName} className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm">Continue</button>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold">Detected environment</h2>
+            {!probe ? (
+              <p className="text-xs text-slate-400">Probing…</p>
+            ) : (
+              <>
+                <ul className="text-xs space-y-1.5">
+                  <li className="flex items-center gap-2">
+                    <span className={probe.claude.found ? "text-emerald-400" : "text-rose-400"}>{probe.claude.found ? "✓" : "✗"}</span>
+                    <span>Claude Code: {probe.claude.found ? <code className="text-slate-300">{probe.claude.path}</code> : <span className="text-slate-300">not found — install before continuing (<code>npm i -g @anthropic-ai/claude-code</code>)</span>}</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className={probe.wiki.exists ? "text-emerald-400" : "text-amber-400"}>{probe.wiki.exists ? "✓" : "+"}</span>
+                    <span>Wiki at <code className="text-slate-300">{probe.wiki.path}</code>{probe.wiki.exists ? ` — ${probe.wiki.fileCount} markdown file${probe.wiki.fileCount === 1 ? "" : "s"} (will not be overwritten)` : " — will be created"}</span>
+                  </li>
+                  {probe.memoryDirs.length === 0 ? (
+                    <li className="flex items-center gap-2"><span className="text-amber-400">+</span><span>No CC memory dir — will be created</span></li>
+                  ) : (
+                    probe.memoryDirs.map((m) => (
+                      <li key={m.dir} className="flex items-center gap-2">
+                        <span className="text-emerald-400">✓</span>
+                        <span>Memory dir <code className="text-slate-300">{m.dir.replace(probe.home, "~")}</code> — {m.fileCount} files{m.hasPersona ? ", persona.md exists (untouched)" : ""}</span>
+                      </li>
+                    ))
+                  )}
+                </ul>
+                <label className="flex items-center gap-2 text-xs text-slate-300 mt-3">
+                  <input type="checkbox" checked={seedWiki} onChange={(e) => setSeedWiki(e.target.checked)} />
+                  Add welcome.md and using-mission-control.md to the wiki (only if missing)
+                </label>
+                {err && <div className="text-xs text-rose-400">{err}</div>}
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => setStep(2)} className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm">Back</button>
+                  <button onClick={goStep3} disabled={busy || !probe.claude.found} className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm">{busy ? "Setting up…" : "Set up agent & finish"}</button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-4 text-center">
+            <div className="text-3xl">🎉</div>
+            <h2 className="text-lg font-semibold">Setup complete</h2>
+            <p className="text-sm text-slate-300">Your agent <strong>{agentName}</strong> is ready.</p>
+            <p className="text-xs text-slate-400">Send a message in the Agents tab to verify everything works end-to-end.</p>
+            <a href="/agents" className="inline-block px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm">Open Agents →</a>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
