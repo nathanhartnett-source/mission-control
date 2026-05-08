@@ -2289,6 +2289,17 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
     } catch { /* ignore */ }
   }, []);
 
+  const stopTurn = useCallback(async (corrId: string) => {
+    try {
+      await fetch("/api/agents/me/stop", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ corr_id: corrId }),
+      });
+      await refresh();
+    } catch { /* ignore */ }
+  }, [refresh]);
+
   useEffect(() => {
     refresh();
     let es: EventSource | null = null;
@@ -2656,7 +2667,31 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
                         currentTool={r.current_tool}
                         now={now}
                       />
-                      {r.elapsed_ms ? <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{Math.round(r.elapsed_ms / 1000)}s</span> : null}
+                      {(r.agent_state === "queued" || r.agent_state === "running") ? (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); stopTurn(r.corr_id); }}
+                          title="Stop this turn"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium leading-none border border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200 transition-colors"
+                        >
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="6" y="6" width="12" height="12" rx="1.5" />
+                          </svg>
+                          Stop
+                        </button>
+                      ) : null}
+                      {(() => {
+                        const startTs = r.agent_ts || r.user_ts;
+                        if (r.agent_state === "running" && startTs) {
+                          const ageS = Math.max(0, Math.floor((now - new Date(startTs).getTime()) / 1000));
+                          const label = ageS < 60 ? `${ageS}s` : `${Math.floor(ageS / 60)}m${ageS % 60 ? ` ${ageS % 60}s` : ""}`;
+                          return <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{label}</span>;
+                        }
+                        if (r.elapsed_ms) {
+                          return <span className="text-[10px] text-slate-500 ml-auto tabular-nums">{Math.round(r.elapsed_ms / 1000)}s</span>;
+                        }
+                        return null;
+                      })()}
                     </div>
                     {r.agent_text ? (
                       <RichAgentText text={r.agent_text} />
