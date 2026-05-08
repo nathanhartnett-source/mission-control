@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /.netlify
+
+# auth audit log — host-local, never commit
+data/auth-audit.jsonl
