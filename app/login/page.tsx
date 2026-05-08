@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
+import AuthHeader from "@/app/components/AuthHeader";
 
 function LoginForm() {
   const searchParams  = useSearchParams();
@@ -44,11 +45,7 @@ function LoginForm() {
   return (
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        {/* Logo / title */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Allhart AIOS</h1>
-          <p className="text-sm text-slate-400 mt-1">Sign in to continue</p>
-        </div>
+        <AuthHeader subtitle="Sign in to continue" />
 
         {/* Card */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl shadow-2xl p-8">

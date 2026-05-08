@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import PixelAvatar from "@/app/components/PixelAvatar";
+import AuthHeader from "@/app/components/AuthHeader";
 import { rollAvatarSeed } from "@/lib/avatar";
 
 export default function RegisterPage() {
@@ -162,9 +163,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Allhart AIOS</h1>
-        </div>
+        <AuthHeader />
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl shadow-2xl p-8">
           {children}
         </div>

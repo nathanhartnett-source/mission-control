@@ -23,20 +23,36 @@ export async function POST(req: NextRequest) {
   if (!ALLOWED_MIME.has(file.type)) return NextResponse.json({ error: `unsupported type ${file.type}` }, { status: 400 });
   if (file.size > MAX_BYTES) return NextResponse.json({ error: "file too large (>1MB)" }, { status: 400 });
 
-  const ext = file.type === "image/png" ? "png"
-    : file.type === "image/jpeg" ? "jpg"
-    : file.type === "image/svg+xml" ? "svg"
-    : "webp";
   const dir = path.join(process.cwd(), "public", "branding");
   fs.mkdirSync(dir, { recursive: true });
-  const outName = `logo.${ext}`;
-  const outPath = path.join(dir, outName);
+  let buf = Buffer.from(await file.arrayBuffer());
+  // For raster PNG/JPG, strip near-white pixels to transparent so logos
+  // exported as RGB (e.g. ChatGPT's image generator) display cleanly on
+  // any sidebar background. SVG/WebP pass through unchanged.
+  let finalExt: "png" | "svg" | "webp" = "png";
+  if (file.type === "image/svg+xml") finalExt = "svg";
+  else if (file.type === "image/webp") finalExt = "webp";
+  if (file.type === "image/png" || file.type === "image/jpeg") {
+    try {
+      const sharp = (await import("sharp")).default;
+      const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const px = Buffer.from(data);
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i] >= 245 && px[i + 1] >= 245 && px[i + 2] >= 245) px[i + 3] = 0;
+      }
+      buf = await sharp(px, { raw: { width: info.width, height: info.height, channels: 4 } })
+        .png({ compressionLevel: 9 })
+        .toBuffer();
+    } catch (e) {
+      console.warn("[logo] white-strip failed, saving as-is:", (e as Error).message);
+    }
+  }
   // Clear other extensions so we don't end up serving a stale logo.
   for (const e of ["png", "jpg", "svg", "webp"]) {
-    if (e === ext) continue;
+    if (e === finalExt) continue;
     try { fs.unlinkSync(path.join(dir, `logo.${e}`)); } catch {}
   }
-  const buf = Buffer.from(await file.arrayBuffer());
+  const outPath = path.join(dir, `logo.${finalExt}`);
   fs.writeFileSync(outPath, buf);
 
   const cacheBust = Date.now();

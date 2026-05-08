@@ -15,6 +15,8 @@ const PUBLIC_PATHS = [
   '/api/setup/admin',
   '/api/email/poll',
   '/api/health',
+  '/api/branding',
+  '/api/branding/logo',
 ];
 
 function isPublicPath(pathname: string): boolean {
