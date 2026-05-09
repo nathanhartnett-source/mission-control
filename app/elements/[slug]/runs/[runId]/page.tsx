@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { toast } from "sonner";
+import { Skeleton } from "../../../../components/Skeleton";
 
 type Run = { id: string; status: string; startedAt: string; endedAt?: string; output?: string; error?: string; inputs: Record<string,string>; pdfPath?: string; outputExt?: "pdf" | "xlsx" | "pptx" };
 
@@ -49,11 +51,26 @@ export default function RunPage() {
   }
 
   async function kill() {
-    if (!confirm("Kill this run?")) return;
-    await fetch(`/api/elements/${slug}/runs/${runId}`, { method: "DELETE" });
+    toast("Kill this run?", {
+      action: {
+        label: "Kill",
+        onClick: async () => {
+          await fetch(`/api/elements/${slug}/runs/${runId}`, { method: "DELETE" });
+          toast.success("Run killed");
+        },
+      },
+      cancel: { label: "Cancel", onClick: () => {} },
+      duration: 8000,
+    });
   }
 
-  if (!run) return <main className="max-w-4xl mx-auto px-6 py-10 text-slate-500">Loading…</main>;
+  if (!run) return (
+    <main className="max-w-4xl mx-auto px-6 py-10 text-slate-200 space-y-4">
+      <Skeleton className="h-6 w-1/3" />
+      <Skeleton className="h-4 w-1/4" />
+      <Skeleton className="h-40 w-full" />
+    </main>
+  );
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-10 text-slate-200">

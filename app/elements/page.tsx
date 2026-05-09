@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { SkeletonCard } from "../components/Skeleton";
 
 type Spec = {
   slug: string;
@@ -32,7 +33,11 @@ export default function ElementsIndex() {
         <Link href="/elements/new" className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium">+ Build new</Link>
       </div>
 
-      {loading ? <div className="text-slate-500 text-sm">Loading…</div> :
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      ) :
        items.length === 0 ? (
         <Link href="/elements/new" className="block border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-12 text-center text-slate-500 hover:text-indigo-400 transition-colors">
           <div className="text-5xl mb-3">+</div>

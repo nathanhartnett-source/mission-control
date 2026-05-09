@@ -11,6 +11,7 @@ import SessionWatcher from "./components/SessionWatcher";
 import ConnectionHealthOverlay from "./components/ConnectionHealthOverlay";
 import AchievementOverlay from "./components/AchievementOverlay";
 import FloatingChatMount from "./components/FloatingChatMount";
+import ToasterMount from "./components/ToasterMount";
 import { MeProvider, type Me } from "./components/MeProvider";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
@@ -100,6 +101,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {!isPublic && <ConnectionHealthOverlay />}
           {!isPublic && <AchievementOverlay />}
           {!isPublic && <FloatingChatMount />}
+          <ToasterMount />
           <div className={isPublic ? "mc-dashboard-shell" : "mc-dashboard-shell md:ml-52 pb-16 md:pb-0"}>
             {children}
           </div>

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { SkeletonCard } from "../../components/Skeleton";
 
 type Input = { name: string; label: string; type: string; required: boolean; options?: string[]; placeholder?: string; acceptMime?: string; maxMB?: number };
 type ScheduleCfg = { freq: "daily"|"weekly"|"monthly"; time: string; dayOfWeek?: number; dayOfMonth?: number; inputs: Record<string,string>; nextRunAt?: string; lastRunAt?: string };
@@ -19,6 +21,8 @@ export default function ElementPage() {
   const [error, setError] = useState("");
   const [me, setMe] = useState("");
   const [pinned, setPinned] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
 
   useEffect(() => {
     fetch("/api/auth/me").then(r => r.json()).then(d => setMe((d?.user?.username || "").toLowerCase())).catch(() => {});
@@ -71,28 +75,51 @@ export default function ElementPage() {
   }
 
   async function del() {
-    if (!confirm("Delete this element? Runs history will be kept.")) return;
-    await fetch(`/api/elements/${slug}`, { method: "DELETE" });
-    router.push("/elements");
+    toast("Delete this app? Runs history will be kept.", {
+      action: {
+        label: "Delete",
+        onClick: async () => {
+          await fetch(`/api/elements/${slug}`, { method: "DELETE" });
+          toast.success("App deleted");
+          router.push("/elements");
+        },
+      },
+      cancel: { label: "Cancel", onClick: () => {} },
+      duration: 8000,
+    });
   }
 
-  async function rename() {
-    const next = prompt("New name for this app:", spec?.name || "");
-    if (!next || !next.trim() || next.trim() === spec?.name) return;
-    const r = await fetch(`/api/elements/${slug}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: next.trim() }) });
+  function openRename() {
+    setRenameValue(spec?.name || "");
+    setRenaming(true);
+  }
+
+  async function submitRename() {
+    const next = renameValue.trim();
+    if (!next || next === spec?.name) { setRenaming(false); return; }
+    const r = await fetch(`/api/elements/${slug}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: next }) });
     const d = await r.json();
-    if (!r.ok) { alert(d.error || "rename failed"); return; }
+    if (!r.ok) { toast.error(d.error || "rename failed"); return; }
     setSpec(s => s ? { ...s, name: d.name } : s);
+    setRenaming(false);
+    toast.success("Renamed");
   }
 
   async function togglePin() {
     const next = !pinned;
     const r = await fetch(`/api/elements/${slug}/pin`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ pinned: next }) });
-    if (!r.ok) { const d = await r.json().catch(() => ({})); alert(d.error || "pin failed"); return; }
+    if (!r.ok) { const d = await r.json().catch(() => ({})); toast.error(d.error || "pin failed"); return; }
     setPinned(next);
   }
 
-  if (!spec) return <main className="max-w-3xl mx-auto px-6 py-10 text-slate-500">Loading…</main>;
+  if (!spec) return (
+    <main className="max-w-3xl mx-auto px-6 py-10 text-slate-200">
+      <div className="space-y-4">
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    </main>
+  );
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-10 text-slate-200">
@@ -116,7 +143,7 @@ export default function ElementPage() {
                 onClick={async () => {
                   const next = !spec.shareWithOrg;
                   const r = await fetch(`/api/elements/${slug}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ shareWithOrg: next }) });
-                  if (!r.ok) { const d = await r.json().catch(() => ({})); alert(d.error || "share toggle failed"); return; }
+                  if (!r.ok) { const d = await r.json().catch(() => ({})); toast.error(d.error || "share toggle failed"); return; }
                   setSpec(s => s ? { ...s, shareWithOrg: next } : s);
                 }}
                 title={spec.shareWithOrg ? "Currently shared with org — click to make private" : "Currently private — click to share with org"}
@@ -125,7 +152,7 @@ export default function ElementPage() {
                 {spec.shareWithOrg ? "👥 Shared" : "Share"}
               </button>
               <Link href={`/elements/new?slug=${slug}`} className="text-xs text-indigo-400 hover:text-indigo-300">Edit</Link>
-              <button onClick={rename} className="text-xs text-slate-400 hover:text-slate-200">Rename</button>
+              <button onClick={openRename} className="text-xs text-slate-400 hover:text-slate-200">Rename</button>
               <button onClick={del} className="text-xs text-red-400 hover:text-red-300">Delete</button>
             </>
           )}
@@ -162,6 +189,25 @@ export default function ElementPage() {
       </div>
 
       {spec.createdBy === me && <SchedulePanel spec={spec} onChange={s => setSpec(prev => prev ? { ...prev, schedule: s } : prev)} />}
+
+      {renaming && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setRenaming(false)}>
+          <div onClick={e => e.stopPropagation()} className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-2xl">
+            <h3 className="text-sm font-semibold text-slate-200 mb-3">Rename app</h3>
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={e => setRenameValue(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") submitRename(); if (e.key === "Escape") setRenaming(false); }}
+              className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded text-sm text-slate-100"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setRenaming(false)} className="text-xs px-3 py-1.5 text-slate-400 hover:text-slate-200">Cancel</button>
+              <button onClick={submitRename} className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <h2 className="text-sm font-semibold text-slate-300 mt-8 mb-2">Runs</h2>
       {runs.length === 0 ? <div className="text-xs text-slate-500">No runs yet.</div> : (
@@ -209,13 +255,22 @@ function SchedulePanel({ spec, onChange }: { spec: Spec; onChange: (s: ScheduleC
     } finally { setBusy(false); }
   }
   async function clearSchedule() {
-    if (!confirm("Stop running this app on a schedule?")) return;
-    setBusy(true);
-    try {
-      await fetch(`/api/elements/${spec.slug}/schedule`, { method: "DELETE" });
-      onChange(undefined);
-      setOpen(false);
-    } finally { setBusy(false); }
+    toast("Stop running this app on a schedule?", {
+      action: {
+        label: "Stop",
+        onClick: async () => {
+          setBusy(true);
+          try {
+            await fetch(`/api/elements/${spec.slug}/schedule`, { method: "DELETE" });
+            onChange(undefined);
+            setOpen(false);
+            toast.success("Schedule cleared");
+          } finally { setBusy(false); }
+        },
+      },
+      cancel: { label: "Cancel", onClick: () => {} },
+      duration: 8000,
+    });
   }
 
   if (!open) {

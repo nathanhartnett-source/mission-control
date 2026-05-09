@@ -410,7 +410,7 @@ function DelegationChip({ d }: { d: Delegation }) {
   //      display_name + display_reason picked by mc-agent-stream-parser.py
   //      from ~/.claude/assets/sub-agent-roster.json). Render a richer card
   //      with a pixel-art avatar so the sub-agent feels like a person.
-  if (d.kind === "task-tool" && d.display_name) {
+  if (d.display_name) {
     const reason = d.display_reason || "";
     return (
       <span
