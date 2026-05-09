@@ -105,11 +105,23 @@ function buildCss(t: Theme): string {
   if (t.bgBubbleAgent) rules.push(`.bg-slate-800\\/40,.bg-slate-800\\/60,.bg-slate-800{background-color:var(--mc-bg-bubble-agent) !important}`);
   if (t.textBubbleAgent) rules.push(`.bg-slate-800\\/40 *,.bg-slate-800\\/60 *{color:var(--mc-text-bubble-agent) !important}`);
 
-  // Composer / inputs (chat composer + element/spec form fields).
-  // Element forms use bg-slate-950 on input/textarea/select, so remap those too —
-  // otherwise on light themes the fields stay near-black with invisible text.
-  if (t.bgComposer) rules.push(`.bg-slate-950\\/70,textarea.bg-slate-800,input.bg-slate-800,textarea.bg-slate-900,input.bg-slate-900,select.bg-slate-900,textarea.bg-slate-950,input.bg-slate-950,select.bg-slate-950{background-color:var(--mc-bg-composer) !important}`);
-  if (t.textComposer) rules.push(`textarea.bg-slate-800,input.bg-slate-800,textarea.bg-slate-900,input.bg-slate-900,select.bg-slate-900,textarea.bg-slate-950,input.bg-slate-950,select.bg-slate-950{color:var(--mc-text-composer) !important}`);
+  // Composer (chat composer specifically — only fires if bgComposer is set).
+  if (t.bgComposer) rules.push(`.bg-slate-950\\/70,textarea.bg-slate-800,input.bg-slate-800{background-color:var(--mc-bg-composer) !important}`);
+  if (t.textComposer) rules.push(`textarea.bg-slate-800,input.bg-slate-800{color:var(--mc-text-composer) !important}`);
+
+  // Form-input remap (element forms, schedule pickers, etc) — independent of
+  // the chat composer setting. Triggered by ANY user-set surface/app/composer
+  // colour, because if those are configured the user has a non-default theme
+  // and the dark default field bg becomes unreadable on light themes.
+  // CSS-var fallback chain: prefer composer, then surface, then app — so even
+  // a partially-configured theme picks up SOMETHING readable.
+  const formInputs = `textarea.bg-slate-900,input.bg-slate-900,select.bg-slate-900,textarea.bg-slate-950,input.bg-slate-950,select.bg-slate-950`;
+  if (t.bgComposer || t.bgSurface || t.bgApp) {
+    rules.push(`${formInputs}{background-color:var(--mc-bg-composer, var(--mc-bg-surface, var(--mc-bg-app))) !important}`);
+  }
+  if (t.textComposer || t.textSurface || t.textApp) {
+    rules.push(`${formInputs}{color:var(--mc-text-composer, var(--mc-text-surface, var(--mc-text-app))) !important}`);
+  }
 
   // Borders
   if (t.borderDefault) rules.push(`.border-slate-700,.border-slate-800{border-color:var(--mc-border) !important}`);
