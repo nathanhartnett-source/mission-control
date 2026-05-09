@@ -33,17 +33,38 @@ export async function POST(req: NextRequest) {
     slug = `${slug}-${n}`;
   }
   // Letterhead: if a staged temp path was uploaded, persist it under the spec's letterhead dir.
+  // Defense: stagedPath MUST be inside the upload staging root, and the
+  // existing-imagePath branch MUST be inside the per-user letterhead dir
+  // — otherwise an authed user can smuggle /etc/passwd as a "letterhead"
+  // and download it via the spec view. Extensions also allowlisted to
+  // prevent SVG (XSS in puppeteer) and arbitrary other formats.
+  const STAGING_ROOT = "/tmp/mc-staging";
+  const ALLOWED_LH_EXT = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
+  function isUnderRoot(p: string, root: string): boolean {
+    const rp = path.resolve(p);
+    const rr = path.resolve(root);
+    return rp === rr || rp.startsWith(rr + path.sep);
+  }
   let letterhead: ElementLetterhead | undefined;
   const lhInput = body.letterhead;
   if (lhInput?.mode === "upload" && typeof lhInput?.stagedPath === "string" && fs.existsSync(lhInput.stagedPath)) {
+    if (!isUnderRoot(lhInput.stagedPath, STAGING_ROOT)) {
+      return NextResponse.json({ error: "stagedPath must be under upload staging dir" }, { status: 400 });
+    }
+    const ext = (path.extname(lhInput.stagedPath) || ".png").toLowerCase();
+    if (!ALLOWED_LH_EXT.has(ext)) {
+      return NextResponse.json({ error: `letterhead extension not allowed: ${ext}` }, { status: 400 });
+    }
     const dir = specLetterheadDir(auth.username, slug);
     fs.mkdirSync(dir, { recursive: true });
-    const ext = (path.extname(lhInput.stagedPath) || ".png").toLowerCase().slice(0, 8);
     const dest = path.join(dir, `letterhead${ext}`);
     fs.copyFileSync(lhInput.stagedPath, dest);
     letterhead = { mode: "upload", imagePath: dest };
   } else if (lhInput?.mode === "upload" && typeof lhInput?.imagePath === "string" && fs.existsSync(lhInput.imagePath)) {
-    // Already-persisted letterhead (overwrite case)
+    const userLhRoot = specLetterheadDir(auth.username, slug);
+    if (!isUnderRoot(lhInput.imagePath, userLhRoot)) {
+      return NextResponse.json({ error: "imagePath must be under your spec's letterhead dir" }, { status: 400 });
+    }
     letterhead = { mode: "upload", imagePath: lhInput.imagePath };
   } else {
     letterhead = { mode: "none" };

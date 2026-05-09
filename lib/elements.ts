@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import crypto from "crypto";
+import { spawnSync } from "child_process";
 
 const DATA_ROOT = path.join(os.homedir(), ".openclaw", "workspace", "mission-control", "data", "user-elements");
 
@@ -262,8 +263,35 @@ function refreshRun(username: string, run: ElementRun): ElementRun {
   return run;
 }
 
-function pidAlive(pid: number): boolean {
-  try { process.kill(pid, 0); return true; } catch { return false; }
+/**
+ * Check whether a worker is still running. Workers are spawned as systemd
+ * transient units (mc-element-<runId>.service), so the right check is
+ * `systemctl is-active`, not the pid (which can be reused across restarts).
+ *
+ * Falls back to a pid probe for old runs whose unit name we didn't record.
+ */
+function workerAlive(runId: string, pid?: number): boolean {
+  const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
+  const sdArgs = isRoot ? ["is-active"] : ["--user", "is-active"];
+  sdArgs.push(`mc-element-${runId}.service`);
+  try {
+    const r = spawnSync("systemctl", sdArgs, { encoding: "utf8" });
+    const out = (r.stdout || "").trim();
+    if (out === "active" || out === "activating") return true;
+    if (out === "inactive" || out === "failed") return false;
+    // Unknown / not loaded — fall through to pid probe.
+  } catch {}
+  if (typeof pid === "number") {
+    try { process.kill(pid, 0); return true; } catch { return false; }
+  }
+  return false;
+}
+
+// Back-compat shim — still referenced by refreshRun. Now backed by
+// systemctl-aware probe via workerAlive (uses the runId encoded in the
+// unit name, with pid as a fallback).
+function pidAlive(pid: number, runId?: string): boolean {
+  return workerAlive(runId || "", pid);
 }
 
 export function persistRun(username: string, run: ElementRun): void {
@@ -274,9 +302,18 @@ export function persistRun(username: string, run: ElementRun): void {
 
 export function killRun(username: string, runId: string): boolean {
   const run = getRun(username, runId);
-  if (!run || run.status !== "running" || !run.pid) return false;
-  try { process.kill(-run.pid, "SIGTERM"); } catch {}
-  try { process.kill(run.pid, "SIGTERM"); } catch {}
+  if (!run || run.status !== "running") return false;
+  // Worker runs in its own systemd transient unit, NOT as a child of MC, so
+  // process.kill(-pid) doesn't reach it. Use systemctl to stop the unit;
+  // pid kill is a fallback for runs predating the transient-unit setup.
+  const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
+  const stopArgs = isRoot ? ["stop"] : ["--user", "stop"];
+  stopArgs.push(`mc-element-${runId}.service`);
+  try { spawnSync("systemctl", stopArgs, { encoding: "utf8" }); } catch {}
+  if (run.pid) {
+    try { process.kill(-run.pid, "SIGTERM"); } catch {}
+    try { process.kill(run.pid, "SIGTERM"); } catch {}
+  }
   run.status = "killed";
   run.endedAt = new Date().toISOString();
   persistRun(username, run);
