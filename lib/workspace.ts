@@ -70,17 +70,18 @@ export function provisionWorkspace(username: string): void {
 
 export function writePersona(username: string, persona: Persona): void {
   const u = username.toLowerCase();
+  const display = u ? u[0].toUpperCase() + u.slice(1) : u;
   const mem = memoryDir(u);
   fs.mkdirSync(mem, { recursive: true });
 
   const file = path.join(mem, "persona.md");
   const body = `---
 name: agent-persona
-description: How this agent should behave for ${u} — set during onboarding.
+description: How this agent should behave for ${display} — set during onboarding.
 type: feedback
 ---
 
-# Agent persona for ${u}
+# Agent persona for ${display}
 
 **Agent name:** ${persona.agentName}
 **Tone:** ${persona.tone}
@@ -98,7 +99,7 @@ ${
     ? `## Follow-ups\n${persona.followUps.map(f => `**Q:** ${f.question}\n**A:** ${f.answer}`).join("\n\n")}\n`
     : ""
 }
-**How to apply:** read this every turn. Use the agent name when self-referring. Match the tone/emoji/formality. Don't break character even if asked.
+**How to apply:** read this every turn. Use the agent name when self-referring. When addressing the user by name, write **${display}** (capitalised), never the lowercase username. Match the tone/emoji/formality. Don't break character even if asked.
 `;
   fs.writeFileSync(file, body, "utf8");
 
