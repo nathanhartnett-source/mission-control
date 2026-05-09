@@ -98,15 +98,45 @@ async function main() {
   console.log("PDF written:", pdfPath);
 }
 
+// Resolve a JS file from a vendored npm package and return its contents.
+// We try a list of node_modules locations (same shape as require search),
+// because the worker runs from a fresh /tmp cwd and bare resolution misses
+// MC's own node_modules. Falls back to bare require() if the file form
+// doesn't exist for some reason. Output: a string of JS to inline into
+// the HTML scriptlet, replacing the previous CDN <script src=...>.
+function loadVendoredJs(pkgRelPath) {
+  const fs = require("fs");
+  const mcHome = process.env.MC_HOME || "";
+  const roots = [
+    process.env.MC_NODE_MODULES,
+    mcHome ? `${mcHome}/node_modules` : null,
+    "/root/mission-control/node_modules",
+    "/home/nathan/.openclaw/workspace/mission-control/node_modules",
+    "./node_modules",
+  ].filter(Boolean);
+  for (const r of roots) {
+    const p = `${r}/${pkgRelPath}`;
+    try { if (fs.existsSync(p)) return fs.readFileSync(p, "utf8"); } catch {}
+  }
+  throw new Error(`vendored JS not found: ${pkgRelPath} (checked ${roots.join(", ")})`);
+}
+
 function buildHtml({ markdown, letterheadDataUri, charts, title }) {
   const safeTitle = title.replace(/</g, "&lt;");
   const mdEscaped = JSON.stringify(markdown);
   const chartsJson = JSON.stringify(charts);
+
+  // Inline the libs from local node_modules — kills the jsdelivr supply-chain
+  // dependency, the offline-install break, and the networkidle0 60s hang.
+  const markedJs = loadVendoredJs("marked/marked.min.js");
+  const domPurifyJs = loadVendoredJs("dompurify/dist/purify.min.js");
+  const chartJs = loadVendoredJs("chart.js/dist/chart.umd.js");
+
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>${safeTitle}</title>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+<script>${markedJs}</script>
+<script>${domPurifyJs}</script>
+<script>${chartJs}</script>
 <style>
   body { font: 11pt/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #1f2937; margin: 0; padding: 0; }
   .letterhead { text-align: center; padding-bottom: 12mm; border-bottom: 1px solid #e5e7eb; margin-bottom: 8mm; }

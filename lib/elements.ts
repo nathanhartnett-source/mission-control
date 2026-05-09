@@ -87,16 +87,17 @@ export function newRunId(): string {
   return Date.now().toString(36) + "-" + crypto.randomBytes(4).toString("hex");
 }
 
-export function listElements(username: string): ElementSpec[] {
-  const dir = userDir(username);
-  if (!fs.existsSync(dir)) return [];
+// Per-user spec list cache. Invalidated by user-dir mtime — saveElement /
+// deleteElement implicitly bump the dir mtime when they write/unlink, so a
+// stale cache only persists until the next mutation. This kills the
+// O(users × specs) sync IO storm that the prior implementation did on
+// every list/get call.
+const listCache: Map<string, { mtime: number; specs: ElementSpec[] }> = new Map();
+
+function readUserSpecs(dir: string): ElementSpec[] {
   const out: ElementSpec[] = [];
   for (const f of fs.readdirSync(dir)) {
-    // Skip dotfiles (.pinned.json, .DS_Store, etc) — they're sidecar config,
-    // not specs. Without this guard, .pinned.json (an array) was being parsed
-    // as a spec and rendered as a blank card with just an icon.
-    if (f.startsWith(".")) continue;
-    if (!f.endsWith(".json")) continue;
+    if (f.startsWith(".") || !f.endsWith(".json")) continue;
     try {
       const parsed = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.slug) {
@@ -104,21 +105,36 @@ export function listElements(username: string): ElementSpec[] {
       }
     } catch {}
   }
-  // Also include shared (from other users marked shareWithOrg)
+  return out;
+}
+
+function readUserSpecsCached(dir: string, cacheKey: string): ElementSpec[] {
+  if (!fs.existsSync(dir)) return [];
+  let mtime = 0;
+  try { mtime = fs.statSync(dir).mtimeMs; } catch { return []; }
+  const hit = listCache.get(cacheKey);
+  if (hit && hit.mtime === mtime) return hit.specs;
+  const specs = readUserSpecs(dir);
+  listCache.set(cacheKey, { mtime, specs });
+  return specs;
+}
+
+export function listElements(username: string): ElementSpec[] {
+  const dir = userDir(username);
+  const out: ElementSpec[] = [...readUserSpecsCached(dir, username.toLowerCase())];
+  // Also include shared specs from other users (marked shareWithOrg). Each
+  // peer's spec list is cached the same way as our own — readUserSpecsCached
+  // is reused so the whole walk becomes a hashmap lookup once warm.
   if (fs.existsSync(DATA_ROOT)) {
     for (const otherUser of fs.readdirSync(DATA_ROOT)) {
       if (otherUser === username.toLowerCase()) continue;
       const otherDir = path.join(DATA_ROOT, otherUser);
-      if (!fs.statSync(otherDir).isDirectory()) continue;
-      for (const f of fs.readdirSync(otherDir)) {
-        if (f.startsWith(".")) continue;
-        if (!f.endsWith(".json")) continue;
-        try {
-          const parsed = JSON.parse(fs.readFileSync(path.join(otherDir, f), "utf8"));
-          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || !parsed.slug) continue;
-          const spec = parsed as ElementSpec;
-          if (spec.shareWithOrg && !out.find(x => x.slug === spec.slug)) out.push(spec);
-        } catch {}
+      let isDir = false;
+      try { isDir = fs.statSync(otherDir).isDirectory(); } catch { continue; }
+      if (!isDir) continue;
+      const peerSpecs = readUserSpecsCached(otherDir, otherUser);
+      for (const spec of peerSpecs) {
+        if (spec.shareWithOrg && !out.find(x => x.slug === spec.slug)) out.push(spec);
       }
     }
   }
