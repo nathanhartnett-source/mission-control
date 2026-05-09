@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -15,6 +15,19 @@ const EXT_LABEL: Record<string, { open: string; mime: string }> = {
 export default function RunPage() {
   const { slug, runId } = useParams<{ slug: string; runId: string }>();
   const [run, setRun] = useState<Run | null>(null);
+  const celebratedRef = useRef(false);
+
+  // Confetti burst the first time a watched run transitions to "done".
+  useEffect(() => {
+    if (run?.status !== "done" || celebratedRef.current) return;
+    celebratedRef.current = true;
+    let cancelled = false;
+    import("canvas-confetti").then(({ default: confetti }) => {
+      if (cancelled) return;
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.3 }, scalar: 0.9 });
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [run?.status]);
 
   useEffect(() => {
     let alive = true;

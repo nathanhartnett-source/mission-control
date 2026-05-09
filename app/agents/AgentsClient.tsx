@@ -15,10 +15,16 @@ type ThinkingEvent = {
 };
 
 type Delegation = {
-  to: "ava" | "ash" | "overseer";
+  // Widened from "ava"|"ash"|"overseer" so in-process Task/Agent sub-agents
+  // (subagent_type values like "Explore", "general-purpose") also fit. See
+  // lib/agents.ts for the canonical definition — this type mirrors it.
+  to: string;
   task: string;
   corr_id: string;
   ts: string;
+  display_name?: string;
+  display_reason?: string;
+  kind?: "task-tool" | "agent-delegate";
 };
 
 type MessageRow = {
@@ -395,6 +401,46 @@ function RichAgentText({ text }: { text: string }) {
   return <>{parts}</>;
 }
 
+
+function DelegationChip({ d }: { d: Delegation }) {
+  // Two flavours:
+  //   1. Cross-agent agent-delegate hand-off (legacy `to: "ash"|"overseer"`,
+  //      no display fields). Render the original compact pill.
+  //   2. In-process Task/Agent tool sub-agent (kind === "task-tool", with
+  //      display_name + display_reason picked by mc-agent-stream-parser.py
+  //      from ~/.claude/assets/sub-agent-roster.json). Render a richer card
+  //      with a pixel-art avatar so the sub-agent feels like a person.
+  if (d.kind === "task-tool" && d.display_name) {
+    const reason = d.display_reason || "";
+    return (
+      <span
+        key={`d-${d.corr_id}`}
+        className="inline-flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full text-[11px] text-rose-100 bg-rose-500/15 border border-rose-500/30"
+        title={`Sub-agent ${d.to}: ${d.task}`}
+      >
+        <PixelAvatar seed={d.display_name} size={22} />
+        <span>
+          <span className="opacity-70">I&apos;m giving this to </span>
+          <span className="font-semibold text-rose-50">{d.display_name}</span>
+          {reason ? <span className="opacity-70">, {reason}</span> : null}
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span
+      key={`d-${d.corr_id}`}
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-rose-200 bg-rose-500/15 border border-rose-500/30"
+      title={`Delegated to ${d.to}: ${d.task}`}
+    >
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 2 11 13" />
+        <path d="M22 2 15 22 11 13 2 9 22 2z" />
+      </svg>
+      → {d.to}
+    </span>
+  );
+}
 
 function AttachmentList({ files }: { files: { name: string; path: string; mime?: string; size?: number }[] }) {
   if (!files || files.length === 0) return null;
@@ -912,6 +958,61 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides, initialRows
       setTimeout(() => setToasts((cur) => cur.filter((x) => x.id !== t.id)), 4000);
     }
   }, [rows]);
+
+  // Soft chime when an agent's turn flips to `done` while the MC tab isn't
+  // the active window. Mirrors Discord — quiet when you're looking, audible
+  // when you're not. Synthesised via Web Audio API so there's no asset to
+  // ship; tone is a two-step "ding" (~250ms total) intentionally below the
+  // typical notification volume so it doesn't startle.
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const notifiedDoneRef = useRef<Set<string>>(new Set());
+  const playChime = useCallback(() => {
+    try {
+      let ctx = audioCtxRef.current;
+      if (!ctx) {
+        const Ctor = (window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext
+          || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!Ctor) return;
+        ctx = new Ctor();
+        audioCtxRef.current = ctx;
+      }
+      if (ctx.state === "suspended") { ctx.resume().catch(() => {}); }
+      const now = ctx.currentTime;
+      const tone = (freq: number, t0: number, dur: number, peak: number) => {
+        const osc = ctx!.createOscillator();
+        const gain = ctx!.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx!.destination);
+        gain.gain.setValueAtTime(0, t0);
+        gain.gain.linearRampToValueAtTime(peak, t0 + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        osc.start(t0);
+        osc.stop(t0 + dur);
+      };
+      tone(880, now, 0.25, 0.05);
+      tone(1318.5, now + 0.08, 0.25, 0.04);
+    } catch { /* audio blocked or unsupported */ }
+  }, []);
+  useEffect(() => {
+    // First pass on mount: snapshot all currently-done rows as "already
+    // notified" so historic completions don't ding when the tab opens.
+    if (notifiedDoneRef.current.size === 0 && rows.length > 0) {
+      for (const r of rows) {
+        if (r.agent_state === "done") notifiedDoneRef.current.add(r.corr_id);
+      }
+      return;
+    }
+    for (const r of rows) {
+      if (r.agent_state !== "done") continue;
+      if (notifiedDoneRef.current.has(r.corr_id)) continue;
+      notifiedDoneRef.current.add(r.corr_id);
+      if (typeof document !== "undefined" && document.hidden) {
+        playChime();
+      }
+    }
+  }, [rows, playChime]);
 
   // Per-agent unread tracking. New agent_text on a non-selected agent → bump.
   const seenAgentMsgRef = useRef<Set<string>>(new Set());
@@ -2006,15 +2107,9 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides, initialRows
                       })() : null}
                       {(r.memory_saved && r.memory_saved.length > 0) || (r.wiki_saved && r.wiki_saved.length > 0) || (r.skills_saved && r.skills_saved.length > 0) || (r.delegations && r.delegations.length > 0) ? (
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          {/* Delegation pills: one per outbound agent-delegate call recorded on this turn (d.to = recipient agent, d.task = brief). */}
+                          {/* Delegations: agent-delegate hand-offs render as the legacy compact pill; in-process Task/Agent tool sub-agents render as a roster card with pixel-art avatar + funny reason. See DelegationChip. */}
                           {(r.delegations || []).map((d) => (
-                            <span key={`d-${d.corr_id}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-rose-200 bg-rose-500/15 border border-rose-500/30" title={`Delegated to ${d.to}: ${d.task}`}>
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M22 2 11 13" />
-                                <path d="M22 2 15 22 11 13 2 9 22 2z" />
-                              </svg>
-                              → {d.to}
-                            </span>
+                            <DelegationChip key={`d-${d.corr_id}`} d={d} />
                           ))}
                           {(r.memory_saved || []).map((name) => (
                             <span key={`m-${name}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-violet-200 bg-violet-500/15 border border-violet-500/30" title={`Saved to memory: ${name}`}>
@@ -2727,13 +2822,7 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides, initialRows = 
                     {(r.memory_saved && r.memory_saved.length > 0) || (r.wiki_saved && r.wiki_saved.length > 0) || (r.skills_saved && r.skills_saved.length > 0) || (r.delegations && r.delegations.length > 0) ? (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {(r.delegations || []).map((d) => (
-                          <span key={`d-${d.corr_id}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-rose-200 bg-rose-500/15 border border-rose-500/30" title={`Delegated to ${d.to}: ${d.task}`}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M22 2 11 13" />
-                              <path d="M22 2 15 22 11 13 2 9 22 2z" />
-                            </svg>
-                            → {d.to}
-                          </span>
+                          <DelegationChip key={`d-${d.corr_id}`} d={d} />
                         ))}
                         {(r.memory_saved || []).map((name) => (
                           <span key={`m-${name}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-violet-200 bg-violet-500/15 border border-violet-500/30" title={`Saved to memory: ${name}`}>

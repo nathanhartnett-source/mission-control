@@ -29,10 +29,25 @@ export interface InboundEnvelope {
 export type ThinkingEvent = { kind: "thinking" | "tool_use"; text: string; ts?: string };
 
 export type Delegation = {
-  to: "ava" | "ash" | "overseer";
+  // "to" was originally just the cross-agent target ("ava"|"ash"|"overseer")
+  // emitted by `agent-delegate`. Widened to string so in-process Task/Agent
+  // tool sub-agents (subagent_type values like "Explore", "general-purpose")
+  // can also surface as delegation chips in the chat UI.
+  to: string;
   task: string;
   corr_id: string;
   ts: string;
+  // Optional in-process Task-tool decoration. When the stream parser detects
+  // a Task/Agent tool fire, it picks a random "office worker" character from
+  // ~/.claude/assets/sub-agent-roster.json and stamps these fields so the UI
+  // can render a pixel-art avatar + the chosen quip. Absent for legacy
+  // agent-delegate-emitted entries.
+  display_name?: string;
+  display_reason?: string;
+  // "task-tool" = in-process Claude Code Task/Agent tool (parallelisable).
+  // "agent-delegate" = cross-agent inbox/outbox hand-off via ~/bin/agent-delegate.
+  // Defaults to "agent-delegate" when absent (legacy data).
+  kind?: "task-tool" | "agent-delegate";
 };
 
 export interface OutboundEnvelope {
