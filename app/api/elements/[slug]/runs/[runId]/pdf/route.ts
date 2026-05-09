@@ -11,9 +11,17 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
   if (auth instanceof NextResponse) return auth;
   const { slug, runId } = await ctx.params;
   const run = getRun(auth.username, runId);
-  if (!run || !run.pdfPath || !fs.existsSync(run.pdfPath)) {
+  // Reject if the run doesn't exist OR if the URL slug doesn't match the run's
+  // recorded slug — without this, an authed user can iterate runIds across
+  // any of their other apps via a guessed slug.
+  if (!run || run.slug !== slug || !run.pdfPath || !fs.existsSync(run.pdfPath)) {
     return NextResponse.json({ error: "no rendered output for this run" }, { status: 404 });
   }
+  // Sanitize slug + runId before they hit Content-Disposition. Both are
+  // already constrained at create time, but defense-in-depth: any CR/LF or
+  // quote in the filename would enable response splitting / disposition spoof.
+  const safeSlug = slug.replace(/[^\w-]/g, "_");
+  const safeRunId = runId.replace(/[^\w-]/g, "_");
   const buf = fs.readFileSync(run.pdfPath);
   // Route originally served PDFs only; now also serves xlsx/pptx. Path kept
   // as /pdf for back-compat with existing run pages.
@@ -30,7 +38,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
   return new NextResponse(new Uint8Array(buf), {
     headers: {
       "content-type": mime[ext],
-      "content-disposition": `${disposition}; filename="${slug}-${runId}.${ext}"`,
+      "content-disposition": `${disposition}; filename="${safeSlug}-${safeRunId}.${ext}"`,
       "cache-control": "private, no-store",
     },
   });

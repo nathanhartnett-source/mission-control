@@ -63,7 +63,7 @@ function main() {
   if (!fs.existsSync(mdPath)) { console.error("no output.md to render"); process.exit(2); }
 
   const md = fs.readFileSync(mdPath, "utf8");
-  const XLSX = findModule("xlsx");
+  const XLSX = findModule("@e965/xlsx");
   const wb = XLSX.utils.book_new();
 
   // Extract ```sheet:TabName fenced blocks (CSV body).

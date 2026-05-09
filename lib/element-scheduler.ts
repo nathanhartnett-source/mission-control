@@ -76,13 +76,25 @@ function tick(): void {
     if (!due || due > now) continue;
     // Idempotency guard: if we already ran within the last 30s, skip.
     if (sched.lastRunAt && (now.getTime() - new Date(sched.lastRunAt).getTime()) < 30_000) continue;
+    // Defensive: a single bad run must not kill the per-minute tick.
+    // Without this guard, an exception in fireRun (ENOSPC, spawn failure,
+    // etc.) propagates and aborts the setInterval callback forever.
     try {
       fireRun(username, spec);
       sched.lastRunAt = now.toISOString();
       sched.nextRunAt = computeNextRunAt(sched, getTimezone(), now);
-      saveElement(username, spec);
+      try { saveElement(username, spec); } catch (e) {
+        console.error("[element-scheduler] saveElement failed for", spec.slug, e);
+      }
     } catch (e) {
-      console.error("[element-scheduler] failed to fire", spec.slug, e);
+      console.error("[element-scheduler] fireRun threw for", spec.slug, e);
+      // Even if the fire failed, advance nextRunAt so we don't tight-loop.
+      try {
+        sched.nextRunAt = computeNextRunAt(sched, getTimezone(), now);
+        saveElement(username, spec);
+      } catch (e2) {
+        console.error("[element-scheduler] recovery save failed for", spec.slug, e2);
+      }
     }
   }
 }

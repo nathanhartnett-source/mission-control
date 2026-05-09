@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/elements-auth";
 import { promises as fs } from "fs";
 import path from "path";
 import os from "os";
@@ -27,6 +28,8 @@ function synthesize(text: string, outPath: string, voice: string): Promise<void>
 }
 
 export async function POST(req: NextRequest) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
   try {
     const body = (await req.json()) as { text?: string; voice?: string };
     const text = (body.text || "").trim();

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/elements-auth";
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -39,6 +40,8 @@ const MIME_BY_EXT: Record<string, string> = {
 };
 
 export async function GET(req: NextRequest) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
   const raw = req.nextUrl.searchParams.get("path") || "";
   const resolved = path.resolve(raw);
   const ext = path.extname(resolved).toLowerCase();

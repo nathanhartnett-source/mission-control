@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/elements-auth";
 import { promises as fs } from "fs";
 import path from "path";
 import os from "os";
@@ -27,6 +28,8 @@ function transcribe(audioPath: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = requireUser(req);
+  if (auth instanceof NextResponse) return auth;
   try {
     const form = await req.formData();
     const file = form.get("audio");
