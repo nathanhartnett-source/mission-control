@@ -722,7 +722,7 @@ function CopyButton({ text }: { text: string }) {
 
 type Attachment = { name: string; path: string; size: number; mime: string; localPreview?: string };
 
-export default function AgentsClient() {
+export default function AgentsClient({ initialRows = [] }: { initialRows?: MessageRow[] } = {}) {
   const { me, loaded } = useMe();
   // me is server-rendered into MeProvider, so usually available on first paint.
   // Show empty shell only if we genuinely have no user resolution yet.
@@ -740,16 +740,16 @@ export default function AgentsClient() {
   // The legacy AdminAgentsClient grid was Allhart-specific (Ava/Mia/Ash/Overseer)
   // and lives below as dead code until a future cleanup removes it entirely.
   void username;
-  return <UserAgentChat agentName={agentName || "Your agent"} userSeed={avatarSeed} agentSeedOverrides={agentSeedOverrides} />;
+  return <UserAgentChat agentName={agentName || "Your agent"} userSeed={avatarSeed} agentSeedOverrides={agentSeedOverrides} initialRows={initialRows} />;
 }
 
-function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSeed: string; username: string; agentSeedOverrides: Record<string,string> }) {
+function AdminAgentsClient({ userSeed, username, agentSeedOverrides, initialRows = [] }: { userSeed: string; username: string; agentSeedOverrides: Record<string,string>; initialRows?: MessageRow[] }) {
   const resolveAgentSeed = (slug: string) => agentSeedOverrides[slug.toLowerCase()] || agentAvatarSeed(slug);
   const agentOrder = useMemo(
     () => AGENT_ORDER.filter(a => !(username === "nathan" && (a === "mia" || a === "switchboard"))),
     [username]
   );
-  const [rows, setRows] = useState<MessageRow[]>([]);
+  const [rows, setRows] = useState<MessageRow[]>(initialRows);
   const [polling, setPolling] = useState(true);
   const [lastError, setLastError] = useState<string | null>(null);
   const [selected, setSelectedRaw] = useState<AgentName>("ash");
@@ -949,7 +949,7 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/agents/messages?limit=200", { cache: "no-store" });
+      const res = await fetch("/api/agents/messages?limit=50", { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { rows: MessageRow[] };
       setRows(data.rows || []);
@@ -1442,7 +1442,7 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
                 while (Date.now() - start < MAX_REPLY_WAIT_MS) {
                   await new Promise((r) => setTimeout(r, 700));
                   if (!callActiveRef.current) return;
-                  const mres = await fetch("/api/agents/messages?limit=200", { cache: "no-store" });
+                  const mres = await fetch("/api/agents/messages?limit=50", { cache: "no-store" });
                   if (!mres.ok) continue;
                   const md = (await mres.json()) as { rows: MessageRow[] };
                   const row = md.rows.find((r) => r.corr_id === corrId);
@@ -2240,9 +2240,9 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides }: { userSee
   );
 }
 
-function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName: string; userSeed: string; agentSeedOverrides: Record<string,string> }) {
+function UserAgentChat({ agentName, userSeed, agentSeedOverrides, initialRows = [] }: { agentName: string; userSeed: string; agentSeedOverrides: Record<string,string>; initialRows?: MessageRow[] }) {
   const resolveAgentSeed = (slug: string) => agentSeedOverrides[slug.toLowerCase()] || agentAvatarSeed(slug);
-  const [rows, setRows] = useState<MessageRow[]>([]);
+  const [rows, setRows] = useState<MessageRow[]>(initialRows);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -2282,7 +2282,7 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides }: { agentName:
 
   const refresh = useCallback(async () => {
     try {
-      const r = await fetch("/api/agents/messages?limit=200", { cache: "no-store" });
+      const r = await fetch("/api/agents/messages?limit=50", { cache: "no-store" });
       if (!r.ok) return;
       const d = await r.json();
       if (Array.isArray(d?.rows)) setRows(d.rows);
