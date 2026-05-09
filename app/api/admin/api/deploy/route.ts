@@ -26,12 +26,16 @@ export async function POST(req: NextRequest) {
   }
 
   const cwd = process.env.MC_HOME || process.cwd();
+  // NODE_ENV=production tells npm to skip devDeps, but next build needs them
+  // (e.g. @tailwindcss/postcss). Force --include=dev for the install step,
+  // and unset NODE_ENV so npm doesn't strip devDeps anyway.
   const script = `set -euo pipefail
 cd '${cwd.replace(/'/g, "'\\''")}'
+unset NODE_ENV
 echo "==> git pull"
 git pull --ff-only
-echo "==> npm install"
-npm install --no-audit --no-fund
+echo "==> npm install (incl devDeps)"
+npm install --include=dev --no-audit --no-fund
 echo "==> npm run build"
 npm run build
 echo "==> queuing detached restart"
