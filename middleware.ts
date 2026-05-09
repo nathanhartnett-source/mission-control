@@ -24,6 +24,12 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith('/_next/')) return true;
   if (pathname === '/favicon.ico') return true;
   if (pathname.startsWith('/downloads/')) return true;
+  // /api/admin/api/* is the remote-ops surface used by mc-remote. Each route
+  // under it does its own Bearer-token verification (verifyAdminApiToken),
+  // so external operators can reach it without the mc_auth cookie. The
+  // /api/admin/api-token route (admin-session-gated, surfaces the token to
+  // operators) stays behind cookie auth.
+  if (pathname.startsWith('/api/admin/api/')) return true;
   // /api/alerts POST is auth'd via its own Bearer-token check (see app/api/alerts/route.ts)
   // so external scripts (cron wrappers, watchdogs) can reach it without the mc_auth cookie.
   // Settings endpoint + the UI page stay behind cookie auth.
