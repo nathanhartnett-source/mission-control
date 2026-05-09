@@ -20,7 +20,8 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ slug: strin
   if (freq !== "daily" && freq !== "weekly" && freq !== "monthly") {
     return NextResponse.json({ error: "freq must be daily/weekly/monthly" }, { status: 400 });
   }
-  const time = typeof body?.time === "string" && /^\d{1,2}:\d{2}$/.test(body.time) ? body.time : "09:00";
+  // 24h HH:MM, hours 00-23 only, minutes 00-59. Old regex accepted 99:99.
+  const time = typeof body?.time === "string" && /^([01]?\d|2[0-3]):[0-5]\d$/.test(body.time) ? body.time : "09:00";
   const sched: ElementSchedule = {
     freq,
     time,

@@ -11,7 +11,14 @@ export const dynamic = "force-dynamic";
 const STAGING_ROOT = "/tmp/mc-staging";
 const MAX_BYTES = 20 * 1024 * 1024; // 20MB per file
 const MAX_FILES = 5;
-const ALLOWED_MIME_PREFIXES = ["image/", "audio/", "text/"];
+// Explicit allowlist for image/* — SVG is excluded because it can carry
+// inline <script> and would XSS when rendered or served back. The other
+// prefixes (audio/, text/) stay as wildcard since they don't carry the
+// same active-content risk.
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif", "image/avif",
+]);
+const ALLOWED_MIME_PREFIXES = ["audio/", "text/"];
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
   "application/json",
@@ -22,11 +29,15 @@ const ALLOWED_MIME_TYPES = new Set([
 
 function allowedMime(mime: string): boolean {
   if (!mime) return false;
+  if (mime.startsWith("image/")) return ALLOWED_IMAGE_TYPES.has(mime);
   return ALLOWED_MIME_PREFIXES.some((p) => mime.startsWith(p)) || ALLOWED_MIME_TYPES.has(mime);
 }
 
 function safeFilename(name: string): string {
-  return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) || "file";
+  // Strip leading dots so a malicious "..bashrc" can't become a dotfile, then
+  // restrict to a conservative charset and cap length.
+  const cleaned = name.replace(/^\.+/, "").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+  return cleaned || "file";
 }
 
 export async function POST(req: NextRequest) {
