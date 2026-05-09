@@ -6,6 +6,7 @@ import PixelAvatar from "@/app/components/PixelAvatar";
 import BrandingPanel from "@/app/components/BrandingPanel";
 import UserThemePanel from "@/app/components/UserThemePanel";
 import WikiPathPanel from "@/app/components/WikiPathPanel";
+import TimezonePanel from "@/app/components/TimezonePanel";
 import MyAgentPanel from "@/app/components/MyAgentPanel";
 import { rollAvatarSeed, agentAvatarSeed } from "@/lib/avatar";
 
@@ -268,6 +269,7 @@ export default function SettingsPage() {
       <MyAgentPanel />
       {isAdmin && <BrandingPanel />}
       {isAdmin && <WikiPathPanel />}
+      {isAdmin && <TimezonePanel />}
       <UserThemePanel />
 
       {/* Multi-agent grid (Ava/Mia/Ash/Overseer/Switchboard) removed in

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/elements-auth";
 import { getElement, saveElement, computeNextRunAt, type ElementSchedule } from "@/lib/elements";
+import { getTimezone } from "@/lib/install-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ slug: strin
   };
   if (freq === "weekly") sched.dayOfWeek = Math.max(0, Math.min(6, Number(body?.dayOfWeek ?? 1)));
   if (freq === "monthly") sched.dayOfMonth = Math.max(1, Math.min(28, Number(body?.dayOfMonth ?? 1)));
-  sched.nextRunAt = computeNextRunAt(sched);
+  sched.nextRunAt = computeNextRunAt(sched, getTimezone());
   spec.schedule = sched;
   saveElement(auth.username, spec);
   return NextResponse.json({ ok: true, schedule: sched });

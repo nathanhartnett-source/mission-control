@@ -307,26 +307,62 @@ export { runDir as _runDir, runsDir as _runsDir, userDir as _userDir };
 
 /**
  * Compute the next ISO timestamp this schedule should fire, relative to `now`.
- * Always returns a future time. Server-local time zone.
+ * Wall-clock time is interpreted in `tz` (IANA zone, e.g. "Australia/Brisbane").
  */
-export function computeNextRunAt(s: ElementSchedule, now: Date = new Date()): string {
-  const [hh, mm] = (s.time || "09:00").split(":").map(n => parseInt(n, 10));
-  const next = new Date(now);
-  next.setSeconds(0, 0);
-  next.setHours(isFinite(hh) ? hh : 9, isFinite(mm) ? mm : 0, 0, 0);
+function tzOffsetMin(tz: string, atUtcMs: number): number {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+  const parts = dtf.formatToParts(new Date(atUtcMs));
+  const get = (k: string) => Number(parts.find(p => p.type === k)?.value || "0");
+  const wallUtcMs = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second"));
+  return (wallUtcMs - atUtcMs) / 60000;
+}
+function wallToUtc(tz: string, y: number, m: number, d: number, hh: number, mm: number): Date {
+  const guess = Date.UTC(y, m - 1, d, hh, mm);
+  const offset = tzOffsetMin(tz, guess);
+  return new Date(guess - offset * 60000);
+}
+function wallParts(tz: string, instant: Date) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", weekday: "short",
+  });
+  const parts = dtf.formatToParts(instant);
+  const get = (k: string) => parts.find(p => p.type === k)?.value || "";
+  const dowMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return {
+    year: parseInt(get("year"), 10),
+    month: parseInt(get("month"), 10),
+    day: parseInt(get("day"), 10),
+    dow: dowMap[get("weekday")] ?? 0,
+  };
+}
+export function computeNextRunAt(s: ElementSchedule, tz: string = "UTC", now: Date = new Date()): string {
+  const [hhStr, mmStr] = (s.time || "09:00").split(":");
+  const hh = isFinite(+hhStr) ? +hhStr : 9;
+  const mm = isFinite(+mmStr) ? +mmStr : 0;
+  const cur = wallParts(tz, now);
   if (s.freq === "daily") {
-    if (next <= now) next.setDate(next.getDate() + 1);
-  } else if (s.freq === "weekly") {
-    const target = typeof s.dayOfWeek === "number" ? ((s.dayOfWeek % 7) + 7) % 7 : 1;
-    let delta = (target - next.getDay() + 7) % 7;
-    if (delta === 0 && next <= now) delta = 7;
-    next.setDate(next.getDate() + delta);
-  } else if (s.freq === "monthly") {
-    const target = Math.max(1, Math.min(28, s.dayOfMonth || 1));
-    next.setDate(target);
-    if (next <= now) next.setMonth(next.getMonth() + 1, target);
+    let cand = wallToUtc(tz, cur.year, cur.month, cur.day, hh, mm);
+    if (cand <= now) cand = wallToUtc(tz, cur.year, cur.month, cur.day + 1, hh, mm);
+    return cand.toISOString();
   }
-  return next.toISOString();
+  if (s.freq === "weekly") {
+    const target = typeof s.dayOfWeek === "number" ? ((s.dayOfWeek % 7) + 7) % 7 : 1;
+    let delta = (target - cur.dow + 7) % 7;
+    let cand = wallToUtc(tz, cur.year, cur.month, cur.day + delta, hh, mm);
+    if (cand <= now) cand = wallToUtc(tz, cur.year, cur.month, cur.day + delta + 7, hh, mm);
+    return cand.toISOString();
+  }
+  // monthly
+  const targetD = Math.max(1, Math.min(28, s.dayOfMonth || 1));
+  let cand = wallToUtc(tz, cur.year, cur.month, targetD, hh, mm);
+  if (cand <= now) cand = wallToUtc(tz, cur.year, cur.month + 1, targetD, hh, mm);
+  return cand.toISOString();
 }
 
 /** Walks every user dir, returning [username, spec] pairs for specs with a schedule. */

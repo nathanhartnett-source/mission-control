@@ -193,6 +193,8 @@ function SchedulePanel({ spec, onChange }: { spec: Spec; onChange: (s: ScheduleC
   const [inputs, setInputs] = useState<Record<string,string>>(spec.schedule?.inputs || {});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [tz, setTz] = useState("UTC");
+  useEffect(() => { fetch("/api/timezone").then(r => r.json()).then(d => d?.timezone && setTz(d.timezone)).catch(() => {}); }, []);
 
   async function save() {
     setBusy(true); setErr("");
@@ -230,7 +232,10 @@ function SchedulePanel({ spec, onChange }: { spec: Spec; onChange: (s: ScheduleC
     <div className="mt-6 border border-slate-800 rounded-xl p-4 bg-slate-900/40 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-200">⏰ Schedule</h3>
-        {spec.schedule && <span className="text-[10px] text-slate-500">Next run: {spec.schedule.nextRunAt ? new Date(spec.schedule.nextRunAt).toLocaleString() : "—"}</span>}
+        <span className="text-[10px] text-slate-500">
+          {spec.schedule?.nextRunAt ? <>Next run: {new Date(spec.schedule.nextRunAt).toLocaleString(undefined, { timeZone: tz })} · </> : null}
+          Times in <code className="text-slate-400">{tz}</code>
+        </span>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>

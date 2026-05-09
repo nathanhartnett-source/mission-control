@@ -12,7 +12,17 @@ const FILE = path.join(
 
 export type InstallConfig = {
   wikiRoot?: string | null;
+  // IANA timezone (e.g. "Australia/Brisbane", "America/New_York"). All
+  // schedule wall-clock times in the dashboard are interpreted in this zone.
+  // Defaults to "UTC" when unset, but admins set it during setup.
+  timezone?: string | null;
 };
+
+export function getTimezone(): string {
+  const tz = readInstallConfig().timezone;
+  if (tz && typeof tz === "string") return tz;
+  return "UTC";
+}
 
 export function readInstallConfig(): InstallConfig {
   try {

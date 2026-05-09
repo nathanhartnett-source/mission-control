@@ -20,6 +20,7 @@ import {
   _runDir,
   type ElementRun,
 } from "./elements";
+import { getTimezone } from "./install-config";
 
 let started = false;
 let timer: NodeJS.Timeout | null = null;
@@ -78,7 +79,7 @@ function tick(): void {
     try {
       fireRun(username, spec);
       sched.lastRunAt = now.toISOString();
-      sched.nextRunAt = computeNextRunAt(sched, now);
+      sched.nextRunAt = computeNextRunAt(sched, getTimezone(), now);
       saveElement(username, spec);
     } catch (e) {
       console.error("[element-scheduler] failed to fire", spec.slug, e);
