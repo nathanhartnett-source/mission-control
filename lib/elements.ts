@@ -42,6 +42,17 @@ export type ElementSpec = {
   shareWithOrg: boolean;
   createdAt: string;
   createdBy: string;
+  schedule?: ElementSchedule;
+};
+
+export type ElementSchedule = {
+  freq: "daily" | "weekly" | "monthly";
+  time: string;             // "HH:MM" 24h, server-local
+  dayOfWeek?: number;       // 0=Sun..6=Sat, weekly only
+  dayOfMonth?: number;      // 1..28, monthly only
+  inputs: Record<string, string>; // pre-filled inputs to use on each scheduled run
+  lastRunAt?: string;       // ISO timestamp of last fire
+  nextRunAt?: string;       // ISO timestamp of next due fire (computed at save)
 };
 
 export type ElementRun = {
@@ -293,3 +304,45 @@ export function specLetterheadDir(username: string, slug: string): string {
 }
 
 export { runDir as _runDir, runsDir as _runsDir, userDir as _userDir };
+
+/**
+ * Compute the next ISO timestamp this schedule should fire, relative to `now`.
+ * Always returns a future time. Server-local time zone.
+ */
+export function computeNextRunAt(s: ElementSchedule, now: Date = new Date()): string {
+  const [hh, mm] = (s.time || "09:00").split(":").map(n => parseInt(n, 10));
+  const next = new Date(now);
+  next.setSeconds(0, 0);
+  next.setHours(isFinite(hh) ? hh : 9, isFinite(mm) ? mm : 0, 0, 0);
+  if (s.freq === "daily") {
+    if (next <= now) next.setDate(next.getDate() + 1);
+  } else if (s.freq === "weekly") {
+    const target = typeof s.dayOfWeek === "number" ? ((s.dayOfWeek % 7) + 7) % 7 : 1;
+    let delta = (target - next.getDay() + 7) % 7;
+    if (delta === 0 && next <= now) delta = 7;
+    next.setDate(next.getDate() + delta);
+  } else if (s.freq === "monthly") {
+    const target = Math.max(1, Math.min(28, s.dayOfMonth || 1));
+    next.setDate(target);
+    if (next <= now) next.setMonth(next.getMonth() + 1, target);
+  }
+  return next.toISOString();
+}
+
+/** Walks every user dir, returning [username, spec] pairs for specs with a schedule. */
+export function listAllScheduled(): Array<{ username: string; spec: ElementSpec }> {
+  const out: Array<{ username: string; spec: ElementSpec }> = [];
+  if (!fs.existsSync(DATA_ROOT)) return out;
+  for (const userName of fs.readdirSync(DATA_ROOT)) {
+    const dir = path.join(DATA_ROOT, userName);
+    if (!fs.statSync(dir).isDirectory()) continue;
+    for (const f of fs.readdirSync(dir)) {
+      if (f.startsWith(".") || !f.endsWith(".json")) continue;
+      try {
+        const spec: ElementSpec = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+        if (spec?.schedule?.freq) out.push({ username: userName, spec });
+      } catch {}
+    }
+  }
+  return out;
+}

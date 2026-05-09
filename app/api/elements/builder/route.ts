@@ -52,9 +52,10 @@ You are EDITING an existing app rather than creating a new one. The user will pr
 Output the FULL updated spec JSON in the same shape (name, description, icon, inputs[], promptTemplate, outputFormat, timeoutMin) — not a diff. Preserve fields the user didn't ask to change.
 
 What you CAN'T change via this edit flow:
-- Scheduling/automation (managed separately via Settings → Crons; tell the user politely if they ask).
 - Worker capabilities (still read-only: WebSearch, WebFetch, Read, Glob, Grep). Can't add Bash/Write/code execution.
 - Image generation (parked until per-tenant API keys are wired).
+
+If the user asks to **schedule** this app to run automatically (daily, weekly, etc), DON'T put scheduling in the spec. Instead, output {"error":"Need more info: To run this app on a schedule, close this dialog and click the ⏰ Run on a schedule button on the app page."}.
 
 If the user's edit request requires one of those, output {"error":"Need more info: <one specific note explaining what's not possible and what alternative might work>"}.`;
 

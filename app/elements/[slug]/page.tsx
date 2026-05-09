@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
 type Input = { name: string; label: string; type: string; required: boolean; options?: string[]; placeholder?: string; acceptMime?: string; maxMB?: number };
-type Spec = { slug: string; name: string; description: string; icon: string; inputs: Input[]; timeoutMin: number; createdBy: string; shareWithOrg?: boolean };
+type ScheduleCfg = { freq: "daily"|"weekly"|"monthly"; time: string; dayOfWeek?: number; dayOfMonth?: number; inputs: Record<string,string>; nextRunAt?: string; lastRunAt?: string };
+type Spec = { slug: string; name: string; description: string; icon: string; inputs: Input[]; timeoutMin: number; createdBy: string; shareWithOrg?: boolean; schedule?: ScheduleCfg };
 type Run = { id: string; status: string; startedAt: string; endedAt?: string };
 
 export default function ElementPage() {
@@ -160,6 +161,8 @@ export default function ElementPage() {
         </button>
       </div>
 
+      {spec.createdBy === me && <SchedulePanel spec={spec} onChange={s => setSpec(prev => prev ? { ...prev, schedule: s } : prev)} />}
+
       <h2 className="text-sm font-semibold text-slate-300 mt-8 mb-2">Runs</h2>
       {runs.length === 0 ? <div className="text-xs text-slate-500">No runs yet.</div> : (
         <div className="border border-slate-800 rounded-xl overflow-hidden">
@@ -176,5 +179,117 @@ export default function ElementPage() {
         </div>
       )}
     </main>
+  );
+}
+
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function SchedulePanel({ spec, onChange }: { spec: Spec; onChange: (s: ScheduleCfg | undefined) => void }) {
+  const [open, setOpen] = useState(!!spec.schedule);
+  const [freq, setFreq] = useState<ScheduleCfg["freq"]>(spec.schedule?.freq || "daily");
+  const [time, setTime] = useState(spec.schedule?.time || "09:00");
+  const [dayOfWeek, setDayOfWeek] = useState(spec.schedule?.dayOfWeek ?? 1);
+  const [dayOfMonth, setDayOfMonth] = useState(spec.schedule?.dayOfMonth ?? 1);
+  const [inputs, setInputs] = useState<Record<string,string>>(spec.schedule?.inputs || {});
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function save() {
+    setBusy(true); setErr("");
+    try {
+      const body: Record<string, unknown> = { freq, time, inputs };
+      if (freq === "weekly") body.dayOfWeek = dayOfWeek;
+      if (freq === "monthly") body.dayOfMonth = dayOfMonth;
+      const r = await fetch(`/api/elements/${spec.slug}/schedule`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const d = await r.json();
+      if (!r.ok) { setErr(d.error || "save failed"); return; }
+      onChange(d.schedule);
+    } finally { setBusy(false); }
+  }
+  async function clearSchedule() {
+    if (!confirm("Stop running this app on a schedule?")) return;
+    setBusy(true);
+    try {
+      await fetch(`/api/elements/${spec.slug}/schedule`, { method: "DELETE" });
+      onChange(undefined);
+      setOpen(false);
+    } finally { setBusy(false); }
+  }
+
+  if (!open) {
+    return (
+      <div className="mt-6">
+        <button onClick={() => setOpen(true)} className="text-xs px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">
+          ⏰ Run on a schedule
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 border border-slate-800 rounded-xl p-4 bg-slate-900/40 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-200">⏰ Schedule</h3>
+        {spec.schedule && <span className="text-[10px] text-slate-500">Next run: {spec.schedule.nextRunAt ? new Date(spec.schedule.nextRunAt).toLocaleString() : "—"}</span>}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">How often</label>
+          <select value={freq} onChange={e => setFreq(e.target.value as ScheduleCfg["freq"])} className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded text-sm">
+            <option value="daily">Every day</option>
+            <option value="weekly">Every week</option>
+            <option value="monthly">Every month</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">At what time</label>
+          <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded text-sm" />
+        </div>
+        {freq === "weekly" && (
+          <div className="col-span-2">
+            <label className="text-xs text-slate-400 block mb-1">Day of week</label>
+            <select value={dayOfWeek} onChange={e => setDayOfWeek(parseInt(e.target.value, 10))} className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded text-sm">
+              {DOW.map((d, i) => <option key={i} value={i}>{d}</option>)}
+            </select>
+          </div>
+        )}
+        {freq === "monthly" && (
+          <div className="col-span-2">
+            <label className="text-xs text-slate-400 block mb-1">Day of month (1–28)</label>
+            <input type="number" min={1} max={28} value={dayOfMonth} onChange={e => setDayOfMonth(Math.min(28, Math.max(1, parseInt(e.target.value, 10) || 1)))} className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded text-sm" />
+          </div>
+        )}
+      </div>
+      {spec.inputs.length > 0 && (
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">Use these answers each time</label>
+          <div className="space-y-2">
+            {spec.inputs.map(inp => (
+              <div key={inp.name}>
+                <div className="text-[10px] text-slate-500 mb-0.5">{inp.label}</div>
+                {inp.type === "select" ? (
+                  <select value={inputs[inp.name] || ""} onChange={e => setInputs({ ...inputs, [inp.name]: e.target.value })} className="w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded text-xs">
+                    <option value="">— choose —</option>
+                    {(inp.options || []).map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                ) : inp.type === "file" ? (
+                  <div className="text-[10px] text-slate-500 italic">File inputs not supported in scheduled runs yet — leave blank</div>
+                ) : (
+                  <input value={inputs[inp.name] || ""} onChange={e => setInputs({ ...inputs, [inp.name]: e.target.value })} placeholder={inp.placeholder} className="w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded text-xs" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {err && <div className="text-red-400 text-xs">{err}</div>}
+      <div className="flex items-center gap-2">
+        <button onClick={save} disabled={busy} className="text-xs px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-white">
+          {busy ? "Saving…" : (spec.schedule ? "Update schedule" : "Save schedule")}
+        </button>
+        {spec.schedule && <button onClick={clearSchedule} disabled={busy} className="text-xs text-red-400 hover:text-red-300">Stop scheduling</button>}
+        <button onClick={() => setOpen(false)} className="text-xs text-slate-500 hover:text-slate-300 ml-auto">Hide</button>
+      </div>
+    </div>
   );
 }
