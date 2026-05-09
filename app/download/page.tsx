@@ -2,9 +2,23 @@
 
 import { useEffect, useState } from "react";
 
-const RELEASES_URL = "https://github.com/nathanhartnett-source/mc-desktop/releases/latest";
-
 type Platform = "windows" | "mac" | "android" | "iphone";
+
+type ReleaseAsset = { name: string; url: string; size: number };
+type Release = {
+  ok: boolean;
+  tag?: string;
+  publishedAt?: string;
+  htmlUrl?: string;
+  windowsMsi?: ReleaseAsset;
+  windowsExe?: ReleaseAsset;
+  macDmg?: ReleaseAsset;
+  macAppTar?: ReleaseAsset;
+  linuxAppImage?: ReleaseAsset;
+  linuxDeb?: ReleaseAsset;
+  linuxRpm?: ReleaseAsset;
+  error?: string;
+};
 
 const PLATFORMS: { id: Platform; label: string; icon: string }[] = [
   { id: "windows", label: "Windows", icon: "M3 5.5L10.5 4.5V11.5H3V5.5ZM11.5 4.35L21 3V11.5H11.5V4.35ZM3 12.5H10.5V19.5L3 18.5V12.5ZM11.5 12.5H21V21L11.5 19.65V12.5Z" },
@@ -22,14 +36,51 @@ function detectPlatform(): Platform {
   return "windows";
 }
 
+function fmtSize(bytes?: number): string {
+  if (!bytes) return "";
+  if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
+  return `${Math.round(bytes / 1000)} KB`;
+}
+
+function DownloadButton({ asset, label }: { asset?: ReleaseAsset; label: string }) {
+  if (!asset) return null;
+  return (
+    <a
+      href={asset.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition"
+    >
+      ⬇ {label}
+      <span className="text-xs text-indigo-200 font-normal">{fmtSize(asset.size)}</span>
+    </a>
+  );
+}
+
 export default function DownloadPage() {
   const [active, setActive] = useState<Platform>("windows");
+  const [release, setRelease] = useState<Release | null>(null);
+
   useEffect(() => { setActive(detectPlatform()); }, []);
+  useEffect(() => {
+    fetch("/api/releases/latest", { cache: "no-store" })
+      .then(r => r.json())
+      .then((d: Release) => setRelease(d))
+      .catch(() => setRelease({ ok: false, error: "could not load release info" }));
+  }, []);
+
+  const tagLine = release?.ok && release.tag
+    ? `${release.tag}${release.publishedAt ? ` · released ${new Date(release.publishedAt).toLocaleDateString()}` : ""}`
+    : "loading…";
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-10 text-slate-200">
-      <h1 className="text-2xl font-semibold mb-2">Get the Mission Control app</h1>
-      <p className="text-slate-400 mb-8">Mission Control runs in any browser, but installing it as an app gives you a dock/home-screen icon, fullscreen window, and faster startup.</p>
+      <h1 className="text-2xl font-semibold mb-2">Get the Allhart AIOS app</h1>
+      <p className="text-slate-400 mb-2">Allhart AIOS runs in any browser, but installing it as an app gives you a dock/home-screen icon, fullscreen window, and faster startup.</p>
+      <p className="text-xs text-slate-500 mb-8">
+        Latest desktop build: <span className="font-mono text-slate-300">{tagLine}</span>
+        {release?.htmlUrl && <> · <a className="text-indigo-300 underline" target="_blank" rel="noopener noreferrer" href={release.htmlUrl}>release notes</a></>}
+      </p>
 
       <div className="flex flex-wrap gap-2 mb-8">
         {PLATFORMS.map((p) => (
@@ -52,21 +103,27 @@ export default function DownloadPage() {
         {active === "windows" && (
           <>
             <h2 className="text-lg font-semibold">Windows desktop app</h2>
-            <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-300">
-              <li>Open the <a className="text-indigo-300 underline" target="_blank" rel="noopener noreferrer" href={RELEASES_URL}>latest release</a> page.</li>
-              <li>Download <code className="bg-slate-800 px-1 rounded">Mission-Control_x64-setup.exe</code> (NSIS installer) or the <code className="bg-slate-800 px-1 rounded">.msi</code>.</li>
+            <div className="flex flex-wrap gap-3">
+              <DownloadButton asset={release?.windowsMsi} label="Download .msi (recommended)" />
+              <DownloadButton asset={release?.windowsExe} label="Download .exe (NSIS)" />
+            </div>
+            <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-300 pt-2">
+              <li>Click a button above to download the installer.</li>
               <li>The installer is unsigned for now — Windows SmartScreen will warn. Click <em>More info</em> → <em>Run anyway</em>.</li>
-              <li>Launch Mission Control from the Start menu. First run asks for the dashboard URL.</li>
+              <li>Launch <strong>Allhart AIOS</strong> from the Start menu. First run asks for the dashboard URL.</li>
             </ol>
           </>
         )}
         {active === "mac" && (
           <>
             <h2 className="text-lg font-semibold">Mac desktop app</h2>
-            <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-300">
-              <li>Open the <a className="text-indigo-300 underline" target="_blank" rel="noopener noreferrer" href={RELEASES_URL}>latest release</a> page.</li>
-              <li>Download the <code className="bg-slate-800 px-1 rounded">.dmg</code> matching your Mac (universal build covers Intel + Apple Silicon).</li>
-              <li>Open the .dmg and drag Mission Control into Applications.</li>
+            <div className="flex flex-wrap gap-3">
+              <DownloadButton asset={release?.macDmg} label="Download .dmg" />
+              <DownloadButton asset={release?.macAppTar} label=".app.tar.gz" />
+            </div>
+            <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-300 pt-2">
+              <li>Open the <code className="bg-slate-800 px-1 rounded">.dmg</code> (universal — works on Intel + Apple Silicon).</li>
+              <li>Drag <strong>Allhart AIOS</strong> into Applications.</li>
               <li>Unsigned for now: first launch right-click → Open → Open to bypass Gatekeeper.</li>
             </ol>
           </>
@@ -78,7 +135,7 @@ export default function DownloadPage() {
               <li>Open this dashboard in <strong>Chrome</strong>.</li>
               <li>Tap the <strong>⋮</strong> menu (top right).</li>
               <li>Tap <strong>Install app</strong> (or <em>Add to Home screen</em>).</li>
-              <li>Confirm. Mission Control appears on your home screen as a standalone app.</li>
+              <li>Confirm. Allhart AIOS appears on your home screen as a standalone app.</li>
             </ol>
           </>
         )}
@@ -86,12 +143,25 @@ export default function DownloadPage() {
           <>
             <h2 className="text-lg font-semibold">iPhone / iPad (install as PWA)</h2>
             <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-300">
-              <li>Open this dashboard in <strong>Safari</strong> (not Chrome — Apple blocks third-party browsers from installing apps).</li>
+              <li>Open this dashboard in <strong>Safari</strong> (Apple blocks third-party browsers from installing apps).</li>
               <li>Tap the <strong>Share</strong> button (square with up-arrow).</li>
               <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-              <li>Tap <strong>Add</strong>. Mission Control launches fullscreen from your home screen.</li>
+              <li>Tap <strong>Add</strong>. Allhart AIOS launches fullscreen from your home screen.</li>
             </ol>
           </>
+        )}
+        {(release?.linuxDeb || release?.linuxAppImage || release?.linuxRpm) && active !== "android" && active !== "iphone" && (
+          <details className="text-xs text-slate-500 pt-3 border-t border-slate-800">
+            <summary className="cursor-pointer hover:text-slate-300">Linux builds</summary>
+            <div className="flex flex-wrap gap-3 mt-3">
+              <DownloadButton asset={release?.linuxAppImage} label=".AppImage" />
+              <DownloadButton asset={release?.linuxDeb} label=".deb" />
+              <DownloadButton asset={release?.linuxRpm} label=".rpm" />
+            </div>
+          </details>
+        )}
+        {release && !release.ok && (
+          <p className="text-xs text-rose-400">Could not load release info: {release.error}. <a href="https://github.com/nathanhartnett-source/mc-desktop/releases/latest" target="_blank" rel="noopener noreferrer" className="underline">Open releases page</a>.</p>
         )}
       </section>
     </main>
