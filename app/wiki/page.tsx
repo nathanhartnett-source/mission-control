@@ -1,15 +1,48 @@
 import fs from "fs";
 import path from "path";
+import { cookies } from "next/headers";
+import { verify, SESSION_COOKIE } from "@/lib/auth-session";
+import { findById } from "@/lib/users";
 import WikiClient, { WikiEntry } from "./WikiClient";
-import { mcConfig } from "@/lib/mc-config";
 
 export const metadata = { title: "Wiki — Allhart AIOS" };
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// Resolve per-invocation via mcConfig getter so the install.json-picked path
+import { mcConfig } from "@/lib/mc-config";
+
+// Resolve per-invocation via mcConfig getter so install.json-picked path
 // applies without a server restart. Don't cache in a module-level const.
 function wikiRoot() { return mcConfig.wikiRoot; }
+
+/**
+ * Per-user session scoping. Sessions live at sessions/<username>/*.md.
+ * Each user only sees their own session logs; admins see all. Concepts,
+ * decisions, references etc. stay shared at the wiki root.
+ */
+async function getActiveUser(): Promise<{ username: string; isAdmin: boolean } | null> {
+  try {
+    const c = await cookies();
+    const session = verify(c.get(SESSION_COOKIE)?.value);
+    if (!session) return null;
+    const user = findById(session.userId);
+    if (!user || user.status !== "active") return null;
+    return { username: user.username.toLowerCase(), isAdmin: !!user.isAdmin };
+  } catch { return null; }
+}
+
+function isOtherUserSession(entryPath: string, viewer: { username: string; isAdmin: boolean } | null): boolean {
+  if (!entryPath.startsWith("sessions/")) return false;
+  if (viewer?.isAdmin) return false;
+  const parts = entryPath.split("/");
+  // Top-level sessions/*.md is legacy unscoped — hide from non-admins.
+  if (parts.length === 2) return true;
+  if (parts.length >= 3) {
+    const owner = parts[1].toLowerCase();
+    if (!viewer || owner !== viewer.username) return true;
+  }
+  return false;
+}
 
 type EntryJson = {
   path: string;
@@ -34,9 +67,7 @@ function slugFor(entryPath: string) {
   return path.basename(entryPath, path.extname(entryPath));
 }
 
-function readEntries(): WikiEntry[] {
-  // Wiki dir might not exist yet on a fresh install — render empty rather than crash.
-  if (!fs.existsSync(wikiRoot())) return [];
+function readEntries(viewer: { username: string; isAdmin: boolean } | null): WikiEntry[] {
   const catalogPath = path.join(wikiRoot(), ".entries.json");
   let rawEntries: EntryJson[] = [];
 
@@ -57,6 +88,7 @@ function readEntries(): WikiEntry[] {
 
   return rawEntries
     .filter((entry) => entry.path.endsWith(".md"))
+    .filter((entry) => !isOtherUserSession(entry.path, viewer))
     .map((entry) => {
       const abs = path.join(wikiRoot(), entry.path);
       let outbound: string[] = [];
@@ -88,6 +120,7 @@ function readEntries(): WikiEntry[] {
     .sort((a, b) => a.path.localeCompare(b.path));
 }
 
-export default function WikiPage() {
-  return <WikiClient entries={readEntries()} />;
+export default async function WikiPage() {
+  const viewer = await getActiveUser();
+  return <WikiClient entries={readEntries(viewer)} />;
 }
