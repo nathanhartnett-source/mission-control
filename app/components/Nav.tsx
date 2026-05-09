@@ -221,7 +221,7 @@ export default function Nav() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors whitespace-nowrap flex-1 basis-0 min-w-0 ${
+              className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors whitespace-nowrap shrink-0 basis-[20%] min-w-[72px] ${
                 active ? "text-indigo-400" : "text-slate-500 active:text-slate-300"
               }`}
             >
@@ -237,7 +237,7 @@ export default function Nav() {
             <Link
               key={`pinned-${app.slug}`}
               href={href}
-              className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors whitespace-nowrap flex-1 basis-0 min-w-0 ${
+              className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors whitespace-nowrap shrink-0 basis-[20%] min-w-[72px] ${
                 active ? "text-indigo-400" : "text-slate-500 active:text-slate-300"
               }`}
             >
