@@ -18,8 +18,7 @@ type Spec = {
 type NavFolder = { id: string; name: string; slugs: string[] };
 type NavPrefs = { pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[] };
 
-const DND_MIME = "application/x-mc-slug";
-const DND_FROM = "application/x-mc-from"; // "pinned" or "folder:<id>"
+const DND_MIME = "text/plain";
 
 function newFolderId(): string {
   return "f_" + Math.random().toString(36).slice(2, 9);
@@ -114,16 +113,13 @@ export default function MyAppsPage() {
     folders: next.folders.map((f) => ({ ...f, slugs: f.slugs.filter((s) => s !== slug) })),
   });
 
-  const onDragStart = (e: React.DragEvent, slug: string, from: string) => {
+  const onDragStart = (e: React.DragEvent, slug: string, _from: string) => {
     e.dataTransfer.setData(DND_MIME, slug);
-    e.dataTransfer.setData(DND_FROM, from);
     e.dataTransfer.effectAllowed = "move";
   };
   const onDragOver = (e: React.DragEvent) => {
-    if (Array.from(e.dataTransfer.types).includes(DND_MIME)) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-    }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
   };
 
   const dropOnPinnedSlot = (e: React.DragEvent, beforeSlug: string | null) => {
