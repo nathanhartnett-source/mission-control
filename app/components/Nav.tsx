@@ -285,7 +285,7 @@ export default function Nav() {
                   <button
                     data-folder-menu-trigger
                     onClick={(e) => { e.stopPropagation(); setFolderMenuId(folderMenuId === folder.id ? null : folder.id); }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity px-1 text-slate-500 hover:text-slate-200"
+                    className="px-1 text-slate-600 hover:text-slate-200"
                     title="Folder options"
                   >⋯</button>
                 </div>
