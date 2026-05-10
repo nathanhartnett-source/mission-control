@@ -39,6 +39,46 @@ export default function Nav() {
   const [navPrefs, setNavPrefs] = useState<{ pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[] }>({ pinnedOrder: [], hiddenSystem: [], folders: [] });
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
   const [logoPath, setLogoPath] = useState<string | null>(null);
+  const [folderMenuId, setFolderMenuId] = useState<string | null>(null);
+  const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+
+  const persistPrefs = async (next: typeof navPrefs) => {
+    setNavPrefs(next);
+    try {
+      await fetch("/api/nav-prefs", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) });
+      window.dispatchEvent(new Event("mc-nav-prefs-changed"));
+    } catch {}
+  };
+
+  const renameFolder = (id: string, name: string) => {
+    const clean = name.trim();
+    setRenamingFolderId(null);
+    if (!clean) return;
+    persistPrefs({ ...navPrefs, folders: navPrefs.folders.map((f) => f.id === id ? { ...f, name: clean } : f) });
+  };
+
+  const deleteFolderFromNav = (id: string) => {
+    const folder = navPrefs.folders.find((f) => f.id === id);
+    if (!folder) return;
+    if (folder.slugs.length > 0 && !window.confirm(`Delete folder "${folder.name}"? Apps inside will move back to the flat pinned list.`)) return;
+    persistPrefs({
+      ...navPrefs,
+      pinnedOrder: [...navPrefs.pinnedOrder, ...folder.slugs],
+      folders: navPrefs.folders.filter((f) => f.id !== id),
+    });
+  };
+
+  // Close folder menu on outside click
+  useEffect(() => {
+    if (!folderMenuId) return;
+    const onDoc = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (!t.closest("[data-folder-menu]") && !t.closest("[data-folder-menu-trigger]")) setFolderMenuId(null);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [folderMenuId]);
 
   useEffect(() => {
     let alive = true;
@@ -223,15 +263,44 @@ export default function Nav() {
           {folderApps.map(({ folder, apps }) => {
             const open = isFolderOpen(folder.id);
             return (
-              <div key={folder.id} className="mt-1">
-                <button
-                  onClick={() => toggleFolder(folder.id)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold tracking-widest uppercase text-slate-500 hover:text-slate-300 hover:bg-slate-800/40 transition-colors"
-                >
-                  <span className="text-xs">{open ? "▾" : "▸"}</span>
-                  <span className="text-base leading-none">📂</span>
-                  <span className="truncate flex-1 text-left">{folder.name}</span>
-                </button>
+              <div key={folder.id} className="mt-1 relative group">
+                <div className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold tracking-widest uppercase text-slate-500 hover:text-slate-300 hover:bg-slate-800/40 transition-colors">
+                  <button onClick={() => toggleFolder(folder.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                    <span className="text-xs">{open ? "▾" : "▸"}</span>
+                    <span className="text-base leading-none">📂</span>
+                    {renamingFolderId === folder.id ? (
+                      <input
+                        autoFocus
+                        value={renameDraft}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => setRenameDraft(e.target.value)}
+                        onBlur={() => renameFolder(folder.id, renameDraft)}
+                        onKeyDown={(e) => { if (e.key === "Enter") renameFolder(folder.id, renameDraft); if (e.key === "Escape") setRenamingFolderId(null); }}
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded px-1.5 py-0 text-[11px] text-slate-100 normal-case tracking-normal"
+                      />
+                    ) : (
+                      <span className="truncate flex-1">{folder.name}</span>
+                    )}
+                  </button>
+                  <button
+                    data-folder-menu-trigger
+                    onClick={(e) => { e.stopPropagation(); setFolderMenuId(folderMenuId === folder.id ? null : folder.id); }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity px-1 text-slate-500 hover:text-slate-200"
+                    title="Folder options"
+                  >⋯</button>
+                </div>
+                {folderMenuId === folder.id && (
+                  <div data-folder-menu className="absolute right-2 top-9 z-40 bg-slate-900 border border-slate-700 rounded-lg shadow-lg py-1 min-w-[120px]">
+                    <button
+                      onClick={() => { setRenamingFolderId(folder.id); setRenameDraft(folder.name); setFolderMenuId(null); }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+                    >Rename</button>
+                    <button
+                      onClick={() => { setFolderMenuId(null); deleteFolderFromNav(folder.id); }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-rose-400 hover:bg-slate-800"
+                    >Delete folder</button>
+                  </div>
+                )}
                 {open && (
                   <div className="ml-3 pl-2 border-l border-slate-800/60 space-y-0.5">
                     {apps.map((app) => {
