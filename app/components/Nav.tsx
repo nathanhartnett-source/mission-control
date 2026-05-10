@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useMe } from "./MeProvider";
 import { usePathname, useRouter } from "next/navigation";
-import { BUILTIN_APPS, type BuiltinApp } from "@/lib/builtin-apps";
+import { BUILTIN_APPS, findBuiltin, type BuiltinApp } from "@/lib/builtin-apps";
 
 function Icon({ d, size = 20 }: { d: string; size?: number }) {
   return (
@@ -35,7 +35,9 @@ export default function Nav() {
 
   type PinnedElement = { slug: string; name: string; icon: string };
   const [pinnedElements, setPinnedElements] = useState<PinnedElement[]>([]);
-  const [navPrefs, setNavPrefs] = useState<{ pinnedBuiltins: string[]; hiddenSystem: string[] }>({ pinnedBuiltins: [], hiddenSystem: [] });
+  type NavFolder = { id: string; name: string; slugs: string[] };
+  const [navPrefs, setNavPrefs] = useState<{ pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[] }>({ pinnedOrder: [], hiddenSystem: [], folders: [] });
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
   const [logoPath, setLogoPath] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,8 +61,9 @@ export default function Nav() {
       if (!r.ok) return;
       const data = await r.json().catch(() => ({}));
       if (alive && data?.prefs) setNavPrefs({
-        pinnedBuiltins: Array.isArray(data.prefs.pinnedBuiltins) ? data.prefs.pinnedBuiltins : [],
+        pinnedOrder: Array.isArray(data.prefs.pinnedOrder) ? data.prefs.pinnedOrder : (Array.isArray(data.prefs.pinnedBuiltins) ? data.prefs.pinnedBuiltins : []),
         hiddenSystem: Array.isArray(data.prefs.hiddenSystem) ? data.prefs.hiddenSystem : [],
+        folders: Array.isArray(data.prefs.folders) ? data.prefs.folders : [],
       });
     }).catch(() => {});
     loadPinnedElements();
@@ -115,15 +118,55 @@ export default function Nav() {
   if (HIDDEN_PATHS.some((p) => pathname.startsWith(p))) return null;
 
   // Resolve which built-in apps appear in the nav for this user.
-  const pinnedSet = new Set(navPrefs.pinnedBuiltins);
+  const allPinnedSlugs = new Set([
+    ...navPrefs.pinnedOrder,
+    ...navPrefs.folders.flatMap((f) => f.slugs),
+  ]);
   const hiddenSet = new Set(navPrefs.hiddenSystem);
-  const visibleBuiltins: BuiltinApp[] = BUILTIN_APPS.filter((a) => {
+  const visibleLocked: BuiltinApp[] = BUILTIN_APPS.filter((a) => {
     if (a.adminOnly && isAdmin !== true) return false;
     if (a.nonAdminOnly && isAdmin === true) return false;
-    if (a.kind === "locked") return true;
-    if (a.kind === "system") return !hiddenSet.has(a.slug);
-    return pinnedSet.has(a.slug);
+    return a.kind === "locked";
   });
+  const visibleSystem: BuiltinApp[] = BUILTIN_APPS.filter((a) => {
+    if (a.adminOnly && isAdmin !== true) return false;
+    if (a.nonAdminOnly && isAdmin === true) return false;
+    return a.kind === "system" && !hiddenSet.has(a.slug);
+  });
+  const pinnedFlatApps: BuiltinApp[] = navPrefs.pinnedOrder
+    .map((slug) => findBuiltin(slug))
+    .filter((a): a is BuiltinApp => {
+      if (!a) return false;
+      if (a.kind !== "app") return false;
+      if (a.adminOnly && isAdmin !== true) return false;
+      if (a.nonAdminOnly && isAdmin === true) return false;
+      return true;
+    });
+  const folderApps = navPrefs.folders.map((f) => ({
+    folder: f,
+    apps: f.slugs
+      .map((slug) => findBuiltin(slug))
+      .filter((a): a is BuiltinApp => {
+        if (!a) return false;
+        if (a.kind !== "app") return false;
+        if (a.adminOnly && isAdmin !== true) return false;
+        if (a.nonAdminOnly && isAdmin === true) return false;
+        return true;
+      }),
+  })).filter((g) => g.apps.length > 0 || g.folder.slugs.length > 0);
+  // Auto-pin any "app"-kind that's pinned but not in pinnedOrder (e.g. older
+  // prefs). Not strictly needed but keeps things consistent.
+  void allPinnedSlugs;
+
+  const toggleFolder = (id: string) => {
+    setOpenFolders((s) => ({ ...s, [id]: !(s[id] ?? true) }));
+    try { localStorage.setItem("mc-folder-open-" + id, String(!(openFolders[id] ?? true))); } catch {}
+  };
+  const isFolderOpen = (id: string) => {
+    if (id in openFolders) return openFolders[id];
+    try { const v = localStorage.getItem("mc-folder-open-" + id); if (v !== null) return v === "true"; } catch {}
+    return true;
+  };
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -157,7 +200,7 @@ export default function Nav() {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {visibleBuiltins.map((app) => {
+          {[...visibleLocked, ...visibleSystem, ...pinnedFlatApps].map((app) => {
             const active = isActive(app.href);
             return (
               <Link
@@ -175,6 +218,42 @@ export default function Nav() {
                   <span aria-label="unread agent reply" title="Agent has replied" className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(74,222,128,0.8)]" />
                 )}
               </Link>
+            );
+          })}
+          {folderApps.map(({ folder, apps }) => {
+            const open = isFolderOpen(folder.id);
+            return (
+              <div key={folder.id} className="mt-1">
+                <button
+                  onClick={() => toggleFolder(folder.id)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold tracking-widest uppercase text-slate-500 hover:text-slate-300 hover:bg-slate-800/40 transition-colors"
+                >
+                  <span className="text-xs">{open ? "▾" : "▸"}</span>
+                  <span className="text-base leading-none">📂</span>
+                  <span className="truncate flex-1 text-left">{folder.name}</span>
+                </button>
+                {open && (
+                  <div className="ml-3 pl-2 border-l border-slate-800/60 space-y-0.5">
+                    {apps.map((app) => {
+                      const active = isActive(app.href);
+                      return (
+                        <Link
+                          key={app.slug}
+                          href={app.href}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            active
+                              ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30"
+                              : "text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent"
+                          }`}
+                        >
+                          {renderAppIcon(app)}
+                          <span className="truncate">{app.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
 
@@ -266,7 +345,7 @@ export default function Nav() {
           overscrollBehaviorX: "contain",
         }}
       >
-        {visibleBuiltins.map((app) => {
+        {[...visibleLocked, ...visibleSystem, ...pinnedFlatApps, ...folderApps.flatMap((g) => g.apps)].map((app) => {
           const active = isActive(app.href);
           return (
             <Link

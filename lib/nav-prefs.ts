@@ -1,7 +1,9 @@
 // Per-user navigation preferences.
-//   pinnedBuiltins: slugs of "app"-kind built-ins shown in the sidebar
-//   hiddenSystem:   slugs of "system"-kind built-ins the user has hidden from the sidebar
+//   pinnedOrder:  ordered slugs of built-ins shown in the sidebar (flat, no folder)
+//   hiddenSystem: slugs of system built-ins (Projects/Wiki) the user has hidden
+//   folders:      collapsible groups of slugs in the sidebar
 //
+// A slug appears in EITHER pinnedOrder OR exactly one folder.slugs — never both.
 // Stored as data/nav-prefs/<userId>.json. Atomic temp+rename writes.
 
 import fs from "fs";
@@ -9,9 +11,11 @@ import fsp from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 
+export type NavFolder = { id: string; name: string; slugs: string[] };
 export type NavPrefs = {
-  pinnedBuiltins: string[];
+  pinnedOrder: string[];
   hiddenSystem: string[];
+  folders: NavFolder[];
 };
 
 const DATA_DIR = path.join(process.cwd(), "data", "nav-prefs");
@@ -21,17 +25,32 @@ function fileFor(userId: string): string {
   return path.join(DATA_DIR, `${safe}.json`);
 }
 
+function emptyPrefs(): NavPrefs {
+  return { pinnedOrder: [], hiddenSystem: [], folders: [] };
+}
+
 export function getNavPrefs(userId: string): NavPrefs {
   try {
     const raw = fs.readFileSync(fileFor(userId), "utf8");
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw) as Partial<NavPrefs> & { pinnedBuiltins?: string[] };
+    // Migrate legacy pinnedBuiltins → pinnedOrder
+    const pinnedOrder = Array.isArray(parsed.pinnedOrder)
+      ? parsed.pinnedOrder
+      : Array.isArray(parsed.pinnedBuiltins) ? parsed.pinnedBuiltins : [];
     return {
-      pinnedBuiltins: Array.isArray(parsed.pinnedBuiltins) ? parsed.pinnedBuiltins : [],
-      hiddenSystem: Array.isArray(parsed.hiddenSystem) ? parsed.hiddenSystem : [],
+      pinnedOrder: pinnedOrder.filter((s): s is string => typeof s === "string"),
+      hiddenSystem: Array.isArray(parsed.hiddenSystem) ? parsed.hiddenSystem.filter((s): s is string => typeof s === "string") : [],
+      folders: Array.isArray(parsed.folders) ? parsed.folders.filter(isValidFolder) : [],
     };
   } catch {
-    return { pinnedBuiltins: [], hiddenSystem: [] };
+    return emptyPrefs();
   }
+}
+
+function isValidFolder(f: unknown): f is NavFolder {
+  if (!f || typeof f !== "object") return false;
+  const x = f as Record<string, unknown>;
+  return typeof x.id === "string" && typeof x.name === "string" && Array.isArray(x.slugs);
 }
 
 export async function setNavPrefs(userId: string, prefs: NavPrefs): Promise<void> {

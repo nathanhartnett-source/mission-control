@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/elements-auth";
-import { getNavPrefs, setNavPrefs, type NavPrefs } from "@/lib/nav-prefs";
+import { getNavPrefs, setNavPrefs, type NavPrefs, type NavFolder } from "@/lib/nav-prefs";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 
 export const runtime = "nodejs";
@@ -15,18 +15,38 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const auth = requireUser(req);
   if (auth instanceof NextResponse) return auth;
-  let body: Partial<NavPrefs> = {};
+  let body: Partial<NavPrefs> & { pinnedBuiltins?: string[] } = {};
   try { body = await req.json(); } catch {}
 
   const validSlugs = new Set(BUILTIN_APPS.map((a) => a.slug));
-  const pinnedBuiltins = Array.isArray(body.pinnedBuiltins)
-    ? body.pinnedBuiltins.filter((s): s is string => typeof s === "string" && validSlugs.has(s))
-    : [];
+  const pinIn = Array.isArray(body.pinnedOrder)
+    ? body.pinnedOrder
+    : Array.isArray(body.pinnedBuiltins) ? body.pinnedBuiltins : [];
+  const pinnedOrder = pinIn.filter((s): s is string => typeof s === "string" && validSlugs.has(s));
+
   const hiddenSystem = Array.isArray(body.hiddenSystem)
     ? body.hiddenSystem.filter((s): s is string => typeof s === "string" && validSlugs.has(s))
     : [];
 
-  const prefs: NavPrefs = { pinnedBuiltins, hiddenSystem };
+  const folders: NavFolder[] = Array.isArray(body.folders)
+    ? body.folders
+      .map((f) => {
+        if (!f || typeof f !== "object") return null;
+        const x = f as { id?: unknown; name?: unknown; slugs?: unknown };
+        if (typeof x.id !== "string" || typeof x.name !== "string" || !Array.isArray(x.slugs)) return null;
+        const slugs = x.slugs.filter((s: unknown): s is string => typeof s === "string" && validSlugs.has(s));
+        return { id: x.id.slice(0, 40), name: x.name.slice(0, 60) || "Folder", slugs };
+      })
+      .filter((f): f is NavFolder => f !== null)
+    : [];
+
+  // Dedupe: a slug in any folder is removed from pinnedOrder; a slug in two
+  // folders ends up only in the first.
+  const seen = new Set<string>();
+  for (const f of folders) f.slugs = f.slugs.filter((s) => (seen.has(s) ? false : (seen.add(s), true)));
+  const pinnedDedup = pinnedOrder.filter((s) => (seen.has(s) ? false : (seen.add(s), true)));
+
+  const prefs: NavPrefs = { pinnedOrder: pinnedDedup, hiddenSystem, folders };
   await setNavPrefs(auth.username, prefs);
   return NextResponse.json({ prefs });
 }
