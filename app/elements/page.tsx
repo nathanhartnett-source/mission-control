@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { SkeletonCard } from "../components/Skeleton";
@@ -17,8 +17,6 @@ type Spec = {
 
 type NavFolder = { id: string; name: string; slugs: string[] };
 type NavPrefs = { pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[] };
-
-const DND_MIME = "text/plain";
 
 function newFolderId(): string {
   return "f_" + Math.random().toString(36).slice(2, 9);
@@ -106,39 +104,73 @@ export default function MyAppsPage() {
     savePrefs({ ...prefs, folders: prefs.folders.map((f) => f.id === id ? { ...f, name } : f) });
   };
 
-  // ── Drag & drop helpers ────────────────────────────────────────────────
+  // ── Pointer-event-based drag (works in Tauri webview, mobile, everywhere) ───
   const removeSlugFrom = (next: NavPrefs, slug: string): NavPrefs => ({
     ...next,
     pinnedOrder: next.pinnedOrder.filter((s) => s !== slug),
     folders: next.folders.map((f) => ({ ...f, slugs: f.slugs.filter((s) => s !== slug) })),
   });
 
-  const onDragStart = (e: React.DragEvent, slug: string, _from: string) => {
-    e.dataTransfer.setData(DND_MIME, slug);
-    e.dataTransfer.effectAllowed = "move";
-  };
-  const onDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
+  const dragRef = useRef<{ slug: string; startX: number; startY: number; active: boolean } | null>(null);
+  const [dragSlug, setDragSlug] = useState<string | null>(null);
+  const [dragXY, setDragXY] = useState<{ x: number; y: number } | null>(null);
+  const [hoverDrop, setHoverDrop] = useState<string | null>(null); // "before:<slug>" | "folder:<id>" | "pinned-end"
+
+  const dropTargetAt = (x: number, y: number): string | null => {
+    // Hide ghost from elementFromPoint by temporarily setting pointer-events: none
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    const t = (el as HTMLElement).closest("[data-drop]");
+    return t ? (t.getAttribute("data-drop") || null) : null;
   };
 
-  const dropOnPinnedSlot = (e: React.DragEvent, beforeSlug: string | null) => {
-    e.preventDefault();
-    const slug = e.dataTransfer.getData(DND_MIME);
-    if (!slug) return;
-    let next = removeSlugFrom(prefs, slug);
-    const insertAt = beforeSlug ? next.pinnedOrder.indexOf(beforeSlug) : next.pinnedOrder.length;
-    const safeAt = insertAt < 0 ? next.pinnedOrder.length : insertAt;
-    next = { ...next, pinnedOrder: [...next.pinnedOrder.slice(0, safeAt), slug, ...next.pinnedOrder.slice(safeAt)] };
-    savePrefs(next);
+  const onItemPointerDown = (e: React.PointerEvent, slug: string) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    dragRef.current = { slug, startX: e.clientX, startY: e.clientY, active: false };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
-  const dropOnFolder = (e: React.DragEvent, folderId: string) => {
-    e.preventDefault();
-    const slug = e.dataTransfer.getData(DND_MIME);
-    if (!slug) return;
+  const onItemPointerMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (!d.active && Math.hypot(dx, dy) < 5) return;
+    if (!d.active) {
+      d.active = true;
+      setDragSlug(d.slug);
+      document.body.style.userSelect = "none";
+    }
+    setDragXY({ x: e.clientX, y: e.clientY });
+    setHoverDrop(dropTargetAt(e.clientX, e.clientY));
+  };
+
+  const justDraggedRef = useRef(false);
+  const onItemPointerUp = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    document.body.style.userSelect = "";
+    setDragSlug(null);
+    setDragXY(null);
+    const target = hoverDrop;
+    setHoverDrop(null);
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    if (!d || !d.active || !target) return;
+    justDraggedRef.current = true;
+    setTimeout(() => { justDraggedRef.current = false; }, 50);
+    const slug = d.slug;
     let next = removeSlugFrom(prefs, slug);
-    next = { ...next, folders: next.folders.map((f) => f.id === folderId ? { ...f, slugs: [...f.slugs, slug] } : f) };
+    if (target === "pinned-end") {
+      next = { ...next, pinnedOrder: [...next.pinnedOrder, slug] };
+    } else if (target.startsWith("before:")) {
+      const beforeSlug = target.slice("before:".length);
+      const idx = next.pinnedOrder.indexOf(beforeSlug);
+      const at = idx < 0 ? next.pinnedOrder.length : idx;
+      next = { ...next, pinnedOrder: [...next.pinnedOrder.slice(0, at), slug, ...next.pinnedOrder.slice(at)] };
+    } else if (target.startsWith("folder:")) {
+      const fid = target.slice("folder:".length);
+      next = { ...next, folders: next.folders.map((f) => f.id === fid ? { ...f, slugs: [...f.slugs, slug] } : f) };
+    }
     savePrefs(next);
   };
 
@@ -165,8 +197,22 @@ export default function MyAppsPage() {
     .map((s) => findBuiltin(s))
     .filter((a): a is BuiltinApp => !!a);
 
+  const draggingApp = dragSlug ? findBuiltin(dragSlug) : null;
+
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10 text-slate-200">
+    <main
+      className="max-w-6xl mx-auto px-6 py-10 text-slate-200"
+      onClickCapture={(e) => { if (justDraggedRef.current) { e.preventDefault(); e.stopPropagation(); } }}
+    >
+      {draggingApp && dragXY && (
+        <div
+          className="fixed z-50 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-md bg-indigo-600 border border-indigo-400 text-white text-sm shadow-lg"
+          style={{ left: dragXY.x + 12, top: dragXY.y + 12 }}
+        >
+          <span>{draggingApp.icon}</span>
+          <span>{draggingApp.name}</span>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold">My Apps</h1>
@@ -186,9 +232,8 @@ export default function MyAppsPage() {
           <section>
             <h2 className="text-[11px] font-semibold tracking-widest uppercase text-slate-500 mb-3">Pinned in sidebar — drag to reorder</h2>
             <div
-              className="border border-slate-800 rounded-xl p-3 bg-slate-900/40 min-h-[80px]"
-              onDragOver={onDragOver}
-              onDrop={(e) => dropOnPinnedSlot(e, null)}
+              data-drop="pinned-end"
+              className={`border rounded-xl p-3 bg-slate-900/40 min-h-[80px] transition-colors ${hoverDrop === "pinned-end" ? "border-indigo-500" : "border-slate-800"}`}
             >
               {pinnedFlatApps.length === 0 ? (
                 <div className="text-xs text-slate-500 p-4 text-center">No pinned apps. Drag one in from below, or click ☆ Pin on an app.</div>
@@ -197,16 +242,18 @@ export default function MyAppsPage() {
                   {pinnedFlatApps.map((a) => (
                     <div
                       key={a.slug}
-                      draggable
-                      onDragStart={(e) => onDragStart(e, a.slug, "pinned")}
-                      onDragOver={onDragOver}
-                      onDrop={(e) => { e.stopPropagation(); dropOnPinnedSlot(e, a.slug); }}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 cursor-move hover:bg-slate-700 transition-colors"
+                      data-drop={"before:" + a.slug}
+                      onPointerDown={(e) => onItemPointerDown(e, a.slug)}
+                      onPointerMove={onItemPointerMove}
+                      onPointerUp={onItemPointerUp}
+                      onPointerCancel={onItemPointerUp}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-grab active:cursor-grabbing transition-colors select-none touch-none ${dragSlug === a.slug ? "opacity-30 bg-slate-800 border-slate-700" : hoverDrop === ("before:" + a.slug) ? "bg-slate-700 border-indigo-500" : "bg-slate-800 border-slate-700 hover:bg-slate-700"}`}
+                      style={{ touchAction: "none" }}
                     >
                       <span className="text-slate-600 text-xs">⠿</span>
                       <span className="text-base">{a.icon}</span>
                       <span className="text-sm text-slate-200">{a.name}</span>
-                      <button onClick={() => togglePin(a.slug)} title="Unpin" className="text-slate-500 hover:text-rose-400 text-xs ml-1">×</button>
+                      <button onPointerDown={(e) => e.stopPropagation()} onClick={() => togglePin(a.slug)} title="Unpin" className="text-slate-500 hover:text-rose-400 text-xs ml-1">×</button>
                     </div>
                   ))}
                 </div>
@@ -227,9 +274,8 @@ export default function MyAppsPage() {
                 {prefs.folders.map((f) => (
                   <div
                     key={f.id}
-                    className="border border-slate-800 rounded-xl p-4 bg-slate-900/40"
-                    onDragOver={onDragOver}
-                    onDrop={(e) => dropOnFolder(e, f.id)}
+                    data-drop={"folder:" + f.id}
+                    className={`border rounded-xl p-4 bg-slate-900/40 transition-colors ${hoverDrop === ("folder:" + f.id) ? "border-indigo-500" : "border-slate-800"}`}
                   >
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-lg">📂</span>
@@ -257,9 +303,12 @@ export default function MyAppsPage() {
                           return (
                             <div
                               key={slug}
-                              draggable
-                              onDragStart={(e) => onDragStart(e, slug, "folder:" + f.id)}
-                              className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800 border border-slate-700 cursor-move hover:bg-slate-700 transition-colors text-xs"
+                              onPointerDown={(e) => onItemPointerDown(e, slug)}
+                              onPointerMove={onItemPointerMove}
+                              onPointerUp={onItemPointerUp}
+                              onPointerCancel={onItemPointerUp}
+                              className={`flex items-center gap-1.5 px-2 py-1 rounded-md border cursor-grab active:cursor-grabbing transition-colors text-xs select-none touch-none ${dragSlug === slug ? "opacity-30 bg-slate-800 border-slate-700" : "bg-slate-800 border-slate-700 hover:bg-slate-700"}`}
+                              style={{ touchAction: "none" }}
                             >
                               <span>{a.icon}</span>
                               <span className="text-slate-200">{a.name}</span>
@@ -291,9 +340,12 @@ export default function MyAppsPage() {
                         return (
                           <div
                             key={a.slug}
-                            draggable={a.kind === "app"}
-                            onDragStart={(e) => a.kind === "app" ? onDragStart(e, a.slug, "all") : e.preventDefault()}
-                            className="border border-slate-800 rounded-xl p-4 bg-slate-900/40 hover:bg-slate-900 transition-colors"
+                            onPointerDown={a.kind === "app" ? (e) => onItemPointerDown(e, a.slug) : undefined}
+                            onPointerMove={a.kind === "app" ? onItemPointerMove : undefined}
+                            onPointerUp={a.kind === "app" ? onItemPointerUp : undefined}
+                            onPointerCancel={a.kind === "app" ? onItemPointerUp : undefined}
+                            className={`border border-slate-800 rounded-xl p-4 bg-slate-900/40 hover:bg-slate-900 transition-colors ${a.kind === "app" ? "cursor-grab active:cursor-grabbing" : ""} ${dragSlug === a.slug ? "opacity-30" : ""}`}
+                            style={a.kind === "app" ? { touchAction: "none" } : undefined}
                           >
                             <div className="flex items-start gap-3 mb-3">
                               <div className="text-2xl">{a.icon}</div>
