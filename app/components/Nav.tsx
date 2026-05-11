@@ -195,7 +195,7 @@ export default function Nav() {
   const folderApps = navPrefs.folders.map((f) => ({
     folder: f,
     apps: f.slugs.map((slug) => resolveApp(slug)).filter((a): a is AppEntry => !!a),
-  })).filter((g) => g.apps.length > 0 || g.folder.slugs.length > 0);
+  }));
 
   const toggleFolder = (id: string) => {
     setOpenFolders((s) => ({ ...s, [id]: !(s[id] ?? true) }));
