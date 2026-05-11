@@ -270,12 +270,13 @@ export default function Nav() {
                     {renamingFolderId === folder.id ? (
                       <input
                         autoFocus
+                        size={1}
                         value={renameDraft}
                         onClick={(e) => e.stopPropagation()}
                         onChange={(e) => setRenameDraft(e.target.value)}
                         onBlur={() => renameFolder(folder.id, renameDraft)}
                         onKeyDown={(e) => { if (e.key === "Enter") renameFolder(folder.id, renameDraft); if (e.key === "Escape") setRenamingFolderId(null); }}
-                        className="flex-1 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-sm text-slate-100"
+                        className="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-sm text-slate-100"
                       />
                     ) : (
                       <span className="truncate flex-1">{folder.name}</span>
