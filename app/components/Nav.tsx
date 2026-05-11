@@ -264,9 +264,9 @@ export default function Nav() {
             const open = isFolderOpen(folder.id);
             return (
               <div key={folder.id} className="mt-1 relative group">
-                <div className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold tracking-widest uppercase text-slate-500 hover:text-slate-300 hover:bg-slate-800/40 transition-colors">
-                  <button onClick={() => toggleFolder(folder.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
-                    <span className="text-xs">{open ? "▾" : "▸"}</span>
+                <div className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors">
+                  <button onClick={() => toggleFolder(folder.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                    <span className="text-[10px] text-slate-500 w-3">{open ? "▾" : "▸"}</span>
                     <span className="text-base leading-none">📂</span>
                     {renamingFolderId === folder.id ? (
                       <input
@@ -276,7 +276,7 @@ export default function Nav() {
                         onChange={(e) => setRenameDraft(e.target.value)}
                         onBlur={() => renameFolder(folder.id, renameDraft)}
                         onKeyDown={(e) => { if (e.key === "Enter") renameFolder(folder.id, renameDraft); if (e.key === "Escape") setRenamingFolderId(null); }}
-                        className="flex-1 bg-slate-800 border border-slate-700 rounded px-1.5 py-0 text-[11px] text-slate-100 normal-case tracking-normal"
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-sm text-slate-100"
                       />
                     ) : (
                       <span className="truncate flex-1">{folder.name}</span>
