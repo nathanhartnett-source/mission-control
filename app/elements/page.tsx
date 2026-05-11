@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { SkeletonCard } from "../components/Skeleton";
+import IconPicker from "../components/IconPicker";
 import { BUILTIN_APPS, CATEGORY_LABELS, findBuiltin, type BuiltinApp, type BuiltinAppCategory } from "@/lib/builtin-apps";
 
 type Spec = {
@@ -15,8 +16,9 @@ type Spec = {
   shareWithOrg: boolean;
 };
 
-type NavFolder = { id: string; name: string; slugs: string[] };
-type NavPrefs = { pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[]; purgedBuiltins?: string[] };
+type NavFolder = { id: string; name: string; slugs: string[]; icon?: string };
+type NavPrefs = { pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[]; purgedBuiltins?: string[]; appIcons?: Record<string, string> };
+type NavFolderEx = NavFolder & { icon?: string };
 
 function PinIcon({ pinned, size = 16 }: { pinned: boolean; size?: number }) {
   return (
@@ -100,6 +102,15 @@ export default function MyAppsPage() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [confirmModal, setConfirmModal] = useState<{ title: string; body: string; onConfirm: () => void } | null>(null);
+  const [iconPicker, setIconPicker] = useState<{ kind: "app" | "folder"; key: string; current: string } | null>(null);
+
+  const setAppIcon = (slug: string, icon: string) => {
+    const next = { ...prefs, appIcons: { ...(prefs.appIcons || {}), [slug]: icon } };
+    savePrefs(next);
+  };
+  const setFolderIcon = (id: string, icon: string) => {
+    savePrefs({ ...prefs, folders: prefs.folders.map((f) => f.id === id ? { ...f, icon } : f) });
+  };
 
   useEffect(() => {
     fetch("/api/auth/me").then(r => r.json()).then(d => {
@@ -274,10 +285,11 @@ export default function MyAppsPage() {
 
   type AppEntry = { slug: string; name: string; icon: string; href: string; kind: "builtin" | "custom" };
   const resolveApp = (slug: string): AppEntry | null => {
+    const override = prefs.appIcons?.[slug];
     const b = findBuiltin(slug);
-    if (b) return { slug: b.slug, name: b.name, icon: b.icon, href: b.href, kind: "builtin" };
+    if (b) return { slug: b.slug, name: b.name, icon: override || b.icon, href: b.href, kind: "builtin" };
     const c = items.find((i) => i.slug === slug);
-    if (c) return { slug: c.slug, name: c.name, icon: c.icon || "✨", href: `/elements/${c.slug}`, kind: "custom" };
+    if (c) return { slug: c.slug, name: c.name, icon: override || c.icon || "✨", href: `/elements/${c.slug}`, kind: "custom" };
     return null;
   };
 
@@ -374,7 +386,7 @@ export default function MyAppsPage() {
                     className={`border rounded-xl p-4 bg-slate-900/40 transition-colors ${hoverDrop === ("folder:" + f.id) ? "border-indigo-500" : "border-slate-800"}`}
                   >
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-lg">📂</span>
+                      <button onClick={() => setIconPicker({ kind: "folder", key: f.id, current: f.icon || "📂" })} title="Change folder icon" className="text-lg hover:bg-slate-800 rounded px-1">{f.icon || "📂"}</button>
                       {renamingId === f.id ? (
                         <input
                           autoFocus
@@ -448,7 +460,7 @@ export default function MyAppsPage() {
                             style={a.kind === "app" ? { touchAction: "none" } : undefined}
                           >
                             <div className="flex items-start gap-3 mb-3">
-                              <div className="text-2xl">{a.icon}</div>
+                              <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.preventDefault(); setIconPicker({ kind: "app", key: a.slug, current: prefs.appIcons?.[a.slug] || a.icon }); }} title="Change icon" className="text-2xl hover:bg-slate-800 rounded px-1">{prefs.appIcons?.[a.slug] || a.icon}</button>
                               <div className="flex-1 min-w-0">
                                 <Link href={a.href} className="font-semibold text-slate-100 hover:text-indigo-300 truncate block">{a.name}</Link>
                                 <div className="text-xs text-slate-400 mt-0.5 line-clamp-2">{a.description}</div>
@@ -511,8 +523,8 @@ export default function MyAppsPage() {
                   className={`block border rounded-xl p-5 bg-slate-900/40 hover:bg-slate-900 transition-colors cursor-grab active:cursor-grabbing select-none ${dragSlug === a.slug ? "opacity-30 border-slate-800" : "border-slate-800 hover:border-indigo-600/50"}`}
                   style={{ touchAction: "none" }}
                 >
+                  <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIconPicker({ kind: "app", key: a.slug, current: prefs.appIcons?.[a.slug] || a.icon }); }} title="Change icon" className="text-3xl mb-2 hover:bg-slate-800 rounded px-1">{prefs.appIcons?.[a.slug] || a.icon}</button>
                   <Link href={a.href} className="block">
-                    <div className="text-3xl mb-2">{a.icon}</div>
                     <div className="font-semibold text-slate-100">{a.name}</div>
                     <div className="text-xs text-slate-400 mt-1 line-clamp-2">{a.description}</div>
                   </Link>
@@ -548,8 +560,8 @@ export default function MyAppsPage() {
                   className={`block border rounded-xl p-5 bg-slate-900/40 hover:bg-slate-900 transition-colors cursor-grab active:cursor-grabbing select-none ${dragSlug === s.slug ? "opacity-30 border-slate-800" : "border-slate-800 hover:border-indigo-600/50"}`}
                   style={{ touchAction: "none" }}
                 >
+                  <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIconPicker({ kind: "app", key: s.slug, current: prefs.appIcons?.[s.slug] || s.icon || "✨" }); }} title="Change icon" className="text-3xl mb-2 hover:bg-slate-800 rounded px-1">{prefs.appIcons?.[s.slug] || s.icon || "✨"}</button>
                   <Link href={`/elements/${s.slug}`} className="block">
-                    <div className="text-3xl mb-2">{s.icon || "✨"}</div>
                     <div className="font-semibold text-slate-100">{s.name}</div>
                     <div className="text-xs text-slate-400 mt-1 line-clamp-2">{s.description}</div>
                   </Link>
@@ -644,6 +656,18 @@ export default function MyAppsPage() {
           </div>
         )
       )}
+
+      <IconPicker
+        open={!!iconPicker}
+        current={iconPicker?.current}
+        title={iconPicker?.kind === "folder" ? "Folder icon" : "App icon"}
+        onPick={(icon) => {
+          if (!iconPicker) return;
+          if (iconPicker.kind === "app") setAppIcon(iconPicker.key, icon);
+          else setFolderIcon(iconPicker.key, icon);
+        }}
+        onClose={() => setIconPicker(null)}
+      />
 
       {confirmModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60" onClick={() => setConfirmModal(null)}>

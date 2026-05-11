@@ -36,8 +36,8 @@ export default function Nav() {
   type UserElement = { slug: string; name: string; icon: string };
   const [pinnedElements, setPinnedElements] = useState<UserElement[]>([]);
   const [userElements, setUserElements] = useState<UserElement[]>([]);
-  type NavFolder = { id: string; name: string; slugs: string[] };
-  const [navPrefs, setNavPrefs] = useState<{ pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[] }>({ pinnedOrder: [], hiddenSystem: [], folders: [] });
+  type NavFolder = { id: string; name: string; slugs: string[]; icon?: string };
+  const [navPrefs, setNavPrefs] = useState<{ pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[]; appIcons?: Record<string, string> }>({ pinnedOrder: [], hiddenSystem: [], folders: [], appIcons: {} });
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
   const [logoPath, setLogoPath] = useState<string | null>(null);
   const [folderMenuId, setFolderMenuId] = useState<string | null>(null);
@@ -111,6 +111,7 @@ export default function Nav() {
         pinnedOrder: Array.isArray(data.prefs.pinnedOrder) ? data.prefs.pinnedOrder : (Array.isArray(data.prefs.pinnedBuiltins) ? data.prefs.pinnedBuiltins : []),
         hiddenSystem: Array.isArray(data.prefs.hiddenSystem) ? data.prefs.hiddenSystem : [],
         folders: Array.isArray(data.prefs.folders) ? data.prefs.folders : [],
+        appIcons: data.prefs.appIcons && typeof data.prefs.appIcons === "object" ? data.prefs.appIcons : {},
       });
     }).catch(() => {});
     loadPinnedElements();
@@ -166,15 +167,16 @@ export default function Nav() {
 
   type AppEntry = { slug: string; name: string; icon: string; href: string; kind: "builtin" | "custom" };
   const resolveApp = (slug: string): AppEntry | null => {
+    const override = navPrefs.appIcons?.[slug];
     const b = findBuiltin(slug);
     if (b) {
       if (b.adminOnly && isAdmin !== true) return null;
       if (b.nonAdminOnly && isAdmin === true) return null;
       if (b.kind !== "app") return null;
-      return { slug: b.slug, name: b.name, icon: b.icon, href: b.href, kind: "builtin" };
+      return { slug: b.slug, name: b.name, icon: override || b.icon, href: b.href, kind: "builtin" };
     }
     const c = userElements.find((e) => e.slug === slug);
-    if (c) return { slug: c.slug, name: c.name, icon: c.icon || "✨", href: `/elements/${c.slug}`, kind: "custom" };
+    if (c) return { slug: c.slug, name: c.name, icon: override || c.icon || "✨", href: `/elements/${c.slug}`, kind: "custom" };
     return null;
   };
 
@@ -265,7 +267,7 @@ export default function Nav() {
             return (
               <div key={folder.id} className="mt-1 relative">
                 <div className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${active ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent"}`}>
-                  <span className="text-base leading-none w-[18px] text-center">📂</span>
+                  <span className="text-base leading-none w-[18px] text-center">{folder.icon || "📂"}</span>
                   {renamingFolderId === folder.id ? (
                     <input
                       autoFocus
@@ -402,7 +404,7 @@ export default function Nav() {
           ...visibleLocked,
           ...visibleSystem,
           ...pinnedFlatApps,
-          ...folderApps.map(({ folder }) => ({ slug: `folder-${folder.id}`, name: folder.name, icon: "📂", href: `/folder/${folder.id}`, kind: "custom" as const })),
+          ...folderApps.map(({ folder }) => ({ slug: `folder-${folder.id}`, name: folder.name, icon: folder.icon || "📂", href: `/folder/${folder.id}`, kind: "custom" as const })),
         ].map((app) => {
           const active = isActive(app.href);
           return (

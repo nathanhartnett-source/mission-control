@@ -11,12 +11,13 @@ import fsp from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 
-export type NavFolder = { id: string; name: string; slugs: string[] };
+export type NavFolder = { id: string; name: string; slugs: string[]; icon?: string };
 export type NavPrefs = {
   pinnedOrder: string[];
   hiddenSystem: string[];
   folders: NavFolder[];
-  purgedBuiltins: string[]; // built-in slugs the user has explicitly "deleted forever"
+  purgedBuiltins: string[];
+  appIcons?: Record<string, string>; // per-app icon overrides (slug → emoji/string)
 };
 
 const DATA_DIR = path.join(process.cwd(), "data", "nav-prefs");
@@ -27,7 +28,7 @@ function fileFor(userId: string): string {
 }
 
 function emptyPrefs(): NavPrefs {
-  return { pinnedOrder: [], hiddenSystem: [], folders: [], purgedBuiltins: [] };
+  return { pinnedOrder: [], hiddenSystem: [], folders: [], purgedBuiltins: [], appIcons: {} };
 }
 
 export function getNavPrefs(userId: string): NavPrefs {
@@ -43,6 +44,7 @@ export function getNavPrefs(userId: string): NavPrefs {
       hiddenSystem: Array.isArray(parsed.hiddenSystem) ? parsed.hiddenSystem.filter((s): s is string => typeof s === "string") : [],
       folders: Array.isArray(parsed.folders) ? parsed.folders.filter(isValidFolder) : [],
       purgedBuiltins: Array.isArray(parsed.purgedBuiltins) ? parsed.purgedBuiltins.filter((s): s is string => typeof s === "string") : [],
+      appIcons: parsed.appIcons && typeof parsed.appIcons === "object" ? parsed.appIcons : {},
     };
   } catch {
     return emptyPrefs();

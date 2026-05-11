@@ -5,8 +5,8 @@ import Link from "next/link";
 import { findBuiltin } from "@/lib/builtin-apps";
 
 type UserElement = { slug: string; name: string; icon: string; description?: string };
-type NavFolder = { id: string; name: string; slugs: string[] };
-type NavPrefs = { pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[]; purgedBuiltins?: string[] };
+type NavFolder = { id: string; name: string; slugs: string[]; icon?: string };
+type NavPrefs = { pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[]; purgedBuiltins?: string[]; appIcons?: Record<string, string> };
 type AppEntry = { slug: string; name: string; icon: string; href: string; description: string };
 
 export default function FolderPage({ params }: { params: Promise<{ id: string }> }) {
@@ -36,14 +36,15 @@ export default function FolderPage({ params }: { params: Promise<{ id: string }>
   }
 
   const resolve = (slug: string): AppEntry | null => {
+    const override = prefs.appIcons?.[slug];
     const b = findBuiltin(slug);
     if (b) {
       if (b.adminOnly && isAdmin !== true) return null;
       if (b.nonAdminOnly && isAdmin === true) return null;
-      return { slug: b.slug, name: b.name, icon: b.icon, href: b.href, description: b.description };
+      return { slug: b.slug, name: b.name, icon: override || b.icon, href: b.href, description: b.description };
     }
     const c = userElements.find((e) => e.slug === slug);
-    if (c) return { slug: c.slug, name: c.name, icon: c.icon || "✨", href: `/elements/${c.slug}`, description: c.description || "" };
+    if (c) return { slug: c.slug, name: c.name, icon: override || c.icon || "✨", href: `/elements/${c.slug}`, description: c.description || "" };
     return null;
   };
 
@@ -53,7 +54,7 @@ export default function FolderPage({ params }: { params: Promise<{ id: string }>
     <main className="max-w-5xl mx-auto px-6 py-10 text-slate-200">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">📂</span>
+          <span className="text-3xl">{folder.icon || "📂"}</span>
           <div>
             <h1 className="text-2xl font-semibold">{folder.name}</h1>
             <p className="text-sm text-slate-400 mt-0.5">{apps.length} {apps.length === 1 ? "app" : "apps"}</p>

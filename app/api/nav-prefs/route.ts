@@ -41,7 +41,8 @@ export async function PUT(req: NextRequest) {
         const x = f as { id?: unknown; name?: unknown; slugs?: unknown };
         if (typeof x.id !== "string" || typeof x.name !== "string" || !Array.isArray(x.slugs)) return null;
         const slugs = x.slugs.filter(isSafeSlug);
-        return { id: x.id.slice(0, 40), name: x.name.slice(0, 60) || "Folder", slugs };
+        const icon = typeof (x as { icon?: unknown }).icon === "string" ? ((x as { icon?: string }).icon || "").slice(0, 8) : undefined;
+        return { id: x.id.slice(0, 40), name: x.name.slice(0, 60) || "Folder", slugs, ...(icon ? { icon } : {}) };
       })
       .filter((f): f is NavFolder => f !== null)
     : [];
@@ -56,7 +57,17 @@ export async function PUT(req: NextRequest) {
     ? body.purgedBuiltins.filter((s): s is string => typeof s === "string" && builtinSlugs.has(s))
     : [];
 
-  const prefs: NavPrefs = { pinnedOrder: pinnedDedup, hiddenSystem, folders, purgedBuiltins };
+  const appIconsRaw = (body as { appIcons?: unknown }).appIcons;
+  const appIcons: Record<string, string> = {};
+  if (appIconsRaw && typeof appIconsRaw === "object") {
+    for (const [k, v] of Object.entries(appIconsRaw as Record<string, unknown>)) {
+      if (typeof k === "string" && SAFE.test(k) && typeof v === "string" && v) {
+        appIcons[k] = v.slice(0, 8);
+      }
+    }
+  }
+
+  const prefs: NavPrefs = { pinnedOrder: pinnedDedup, hiddenSystem, folders, purgedBuiltins, appIcons };
   await setNavPrefs(auth.username, prefs);
   return NextResponse.json({ prefs });
 }
