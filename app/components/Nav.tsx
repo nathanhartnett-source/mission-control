@@ -259,28 +259,26 @@ export default function Nav() {
               </Link>
             );
           })}
-          {folderApps.map(({ folder, apps }) => {
-            const open = isFolderOpen(folder.id);
+          {folderApps.map(({ folder }) => {
+            const href = `/folder/${folder.id}`;
+            const active = isActive(href);
             return (
-              <div key={folder.id} className="mt-1 relative group">
-                <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors">
-                  <button onClick={() => toggleFolder(folder.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                    <span className="text-base leading-none w-[18px] text-center">{open ? "📂" : "📁"}</span>
-                    {renamingFolderId === folder.id ? (
-                      <input
-                        autoFocus
-                        size={1}
-                        value={renameDraft}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => setRenameDraft(e.target.value)}
-                        onBlur={() => renameFolder(folder.id, renameDraft)}
-                        onKeyDown={(e) => { if (e.key === "Enter") renameFolder(folder.id, renameDraft); if (e.key === "Escape") setRenamingFolderId(null); }}
-                        className="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-sm text-slate-100"
-                      />
-                    ) : (
-                      <span className="truncate flex-1">{folder.name}</span>
-                    )}
-                  </button>
+              <div key={folder.id} className="mt-1 relative">
+                <div className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${active ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent"}`}>
+                  <span className="text-base leading-none w-[18px] text-center">📂</span>
+                  {renamingFolderId === folder.id ? (
+                    <input
+                      autoFocus
+                      size={1}
+                      value={renameDraft}
+                      onChange={(e) => setRenameDraft(e.target.value)}
+                      onBlur={() => renameFolder(folder.id, renameDraft)}
+                      onKeyDown={(e) => { if (e.key === "Enter") renameFolder(folder.id, renameDraft); if (e.key === "Escape") setRenamingFolderId(null); }}
+                      className="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-sm text-slate-100"
+                    />
+                  ) : (
+                    <Link href={href} className="truncate flex-1">{folder.name}</Link>
+                  )}
                   <button
                     data-folder-menu-trigger
                     onClick={(e) => { e.stopPropagation(); setFolderMenuId(folderMenuId === folder.id ? null : folder.id); }}
@@ -298,27 +296,6 @@ export default function Nav() {
                       onClick={() => { setFolderMenuId(null); deleteFolderFromNav(folder.id); }}
                       className="w-full text-left px-3 py-1.5 text-xs text-rose-400 hover:bg-slate-800"
                     >Delete folder</button>
-                  </div>
-                )}
-                {open && (
-                  <div className="space-y-0.5">
-                    {apps.map((app) => {
-                      const active = isActive(app.href);
-                      return (
-                        <Link
-                          key={app.slug}
-                          href={app.href}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                            active
-                              ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30"
-                              : "text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent"
-                          }`}
-                        >
-                          {renderAppIcon(app)}
-                          <span className="truncate">{app.name}</span>
-                        </Link>
-                      );
-                    })}
                   </div>
                 )}
               </div>
@@ -421,7 +398,12 @@ export default function Nav() {
           overscrollBehaviorX: "contain",
         }}
       >
-        {[...visibleLocked, ...visibleSystem, ...pinnedFlatApps, ...folderApps.flatMap((g) => g.apps)].map((app) => {
+        {[
+          ...visibleLocked,
+          ...visibleSystem,
+          ...pinnedFlatApps,
+          ...folderApps.map(({ folder }) => ({ slug: `folder-${folder.id}`, name: folder.name, icon: "📂", href: `/folder/${folder.id}`, kind: "custom" as const })),
+        ].map((app) => {
           const active = isActive(app.href);
           return (
             <Link
