@@ -47,11 +47,15 @@ export async function PUT(req: NextRequest) {
       .filter((f): f is NavFolder => f !== null)
     : [];
 
-  // Dedupe: a slug in any folder is removed from pinnedOrder; a slug in two
-  // folders ends up only in the first.
-  const seen = new Set<string>();
-  for (const f of folders) f.slugs = f.slugs.filter((s) => (seen.has(s) ? false : (seen.add(s), true)));
-  const pinnedDedup = pinnedOrder.filter((s) => (seen.has(s) ? false : (seen.add(s), true)));
+  // Dedupe WITHIN each folder + within pinnedOrder, but allow the same slug to
+  // live in pinnedOrder AND a folder simultaneously. Pin = sidebar membership;
+  // folder = grouping. They're independent concepts.
+  for (const f of folders) {
+    const seen = new Set<string>();
+    f.slugs = f.slugs.filter((s) => (seen.has(s) ? false : (seen.add(s), true)));
+  }
+  const seenPinned = new Set<string>();
+  const pinnedDedup = pinnedOrder.filter((s) => (seenPinned.has(s) ? false : (seenPinned.add(s), true)));
 
   const purgedBuiltins = Array.isArray(body.purgedBuiltins)
     ? body.purgedBuiltins.filter((s): s is string => typeof s === "string" && builtinSlugs.has(s))

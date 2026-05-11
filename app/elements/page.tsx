@@ -145,12 +145,8 @@ export default function MyAppsPage() {
   };
 
   const togglePin = (slug: string) => {
-    const inPinned = prefs.pinnedOrder.includes(slug);
-    const inAnyFolder = prefs.folders.some((f) => f.slugs.includes(slug));
-    if (inPinned) {
+    if (prefs.pinnedOrder.includes(slug)) {
       savePrefs({ ...prefs, pinnedOrder: prefs.pinnedOrder.filter((s) => s !== slug) });
-    } else if (inAnyFolder) {
-      savePrefs({ ...prefs, folders: prefs.folders.map((f) => ({ ...f, slugs: f.slugs.filter((s) => s !== slug) })) });
     } else {
       savePrefs({ ...prefs, pinnedOrder: [...prefs.pinnedOrder, slug] });
     }
@@ -187,6 +183,17 @@ export default function MyAppsPage() {
   };
 
   // ── Pointer-event-based drag (works in Tauri webview, mobile, everywhere) ───
+  // Pin (sidebar membership) and folder grouping are independent. Removing from
+  // a folder doesn't unpin; pinning doesn't remove from folders.
+  const removeFromPinned = (next: NavPrefs, slug: string): NavPrefs => ({
+    ...next,
+    pinnedOrder: next.pinnedOrder.filter((s) => s !== slug),
+  });
+  const removeFromFolder = (next: NavPrefs, slug: string, folderId: string): NavPrefs => ({
+    ...next,
+    folders: next.folders.map((f) => f.id === folderId ? { ...f, slugs: f.slugs.filter((s) => s !== slug) } : f),
+  });
+  // Legacy alias used by softDelete (which DOES want to remove everywhere).
   const removeSlugFrom = (next: NavPrefs, slug: string): NavPrefs => ({
     ...next,
     pinnedOrder: next.pinnedOrder.filter((s) => s !== slug),
@@ -241,19 +248,27 @@ export default function MyAppsPage() {
     justDraggedRef.current = true;
     setTimeout(() => { justDraggedRef.current = false; }, 50);
     const slug = d.slug;
-    let next = removeSlugFrom(prefs, slug);
-    if (target === "pinned-end") {
-      next = { ...next, pinnedOrder: [...next.pinnedOrder, slug] };
-    } else if (target.startsWith("before:")) {
-      const beforeSlug = target.slice("before:".length);
-      const idx = next.pinnedOrder.indexOf(beforeSlug);
-      const at = idx < 0 ? next.pinnedOrder.length : idx;
-      next = { ...next, pinnedOrder: [...next.pinnedOrder.slice(0, at), slug, ...next.pinnedOrder.slice(at)] };
+    if (target === "pinned-end" || target.startsWith("before:")) {
+      // Drop into Pinned zone — reorder if already pinned, else insert.
+      let next = removeFromPinned(prefs, slug);
+      const insertAt = target === "pinned-end"
+        ? next.pinnedOrder.length
+        : (() => {
+            const beforeSlug = target.slice("before:".length);
+            const i = next.pinnedOrder.indexOf(beforeSlug);
+            return i < 0 ? next.pinnedOrder.length : i;
+          })();
+      next = { ...next, pinnedOrder: [...next.pinnedOrder.slice(0, insertAt), slug, ...next.pinnedOrder.slice(insertAt)] };
+      savePrefs(next);
     } else if (target.startsWith("folder:")) {
+      // Drop into a folder — add to that folder only (no-op if already there).
+      // Don't touch pinnedOrder or other folders.
       const fid = target.slice("folder:".length);
-      next = { ...next, folders: next.folders.map((f) => f.id === fid ? { ...f, slugs: [...f.slugs, slug] } : f) };
+      const folder = prefs.folders.find((f) => f.id === fid);
+      if (!folder) return;
+      if (folder.slugs.includes(slug)) return; // already in this folder
+      savePrefs({ ...prefs, folders: prefs.folders.map((f) => f.id === fid ? { ...f, slugs: [...f.slugs, slug] } : f) });
     }
-    savePrefs(next);
   };
 
   const visibleForUser = useMemo(() => {
@@ -278,10 +293,8 @@ export default function MyAppsPage() {
     [prefs.hiddenSystem, visibleForUser, purgedSet]
   );
 
-  const pinnedSet = useMemo(() => new Set([
-    ...prefs.pinnedOrder,
-    ...prefs.folders.flatMap((f) => f.slugs),
-  ]), [prefs]);
+  // "Pinned" means sidebar membership only (independent from folder grouping).
+  const pinnedSet = useMemo(() => new Set(prefs.pinnedOrder), [prefs.pinnedOrder]);
 
   type AppEntry = { slug: string; name: string; icon: string; href: string; kind: "builtin" | "custom" };
   const resolveApp = (slug: string): AppEntry | null => {
@@ -420,6 +433,7 @@ export default function MyAppsPage() {
                             >
                               <span>{a.icon}</span>
                               <span className="text-slate-200">{a.name}</span>
+                              <button onPointerDown={(e) => e.stopPropagation()} onClick={() => savePrefs(removeFromFolder(prefs, slug, f.id))} title="Remove from folder" className="text-slate-500 hover:text-rose-400 ml-1">×</button>
                             </div>
                           );
                         })}
