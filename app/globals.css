@@ -160,3 +160,24 @@ body {
   50% { transform: rotate(18deg); }
 }
 .mc-avatar-tool { animation: mc-tool-wiggle 0.9s ease-in-out infinite; display: inline-block; transform-origin: 50% 70%; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
+
+/* ── Shared bento surface utilities ─────────────────────────────────────
+   All bento cards / panels should use these instead of inline bg hex
+   colors. Backed by the same --mc-bg-surface / --mc-border / --mc-text-*
+   vars that ThemeApplier sets, so they auto-recolor when the operator
+   picks a different theme. Fall back to dark-theme defaults if no var.
+*/
+.mc-surface {
+  background-color: var(--mc-bg-surface, #131313);
+  border: 1px solid var(--mc-border, #262626);
+  border-radius: 12px;
+  color: var(--mc-text-surface, #e5e7eb);
+}
+.mc-surface-soft {
+  background-color: var(--mc-bg-surface, rgba(15, 23, 42, 0.4));
+  border: 1px solid var(--mc-border-subtle, rgba(255, 255, 255, 0.06));
+  border-radius: 12px;
+  color: var(--mc-text-surface, #e5e7eb);
+}
+.mc-text-muted { color: var(--mc-text-muted, #94a3b8); }
+.mc-border-soft { border-color: var(--mc-border-subtle, rgba(255, 255, 255, 0.06)); }

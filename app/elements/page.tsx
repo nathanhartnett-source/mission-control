@@ -174,18 +174,29 @@ export default function MyAppsPage() {
     savePrefs(next);
   };
 
-  const visibleBuiltins = useMemo(() => {
+  const visibleForUser = useMemo(() => {
     return BUILTIN_APPS.filter((a) => {
       if (a.adminOnly && isAdmin !== true) return false;
       if (a.nonAdminOnly && isAdmin === true) return false;
       return true;
     });
   }, [isAdmin]);
+  const visibleBuiltins = useMemo(() => visibleForUser.filter((a) => a.surface !== "custom"), [visibleForUser]);
+  const customSurfaceApps = useMemo(() => visibleForUser.filter((a) => a.surface === "custom"), [visibleForUser]);
 
   const pinnedSet = useMemo(() => new Set([
     ...prefs.pinnedOrder,
     ...prefs.folders.flatMap((f) => f.slugs),
   ]), [prefs]);
+
+  type AppEntry = { slug: string; name: string; icon: string; href: string; kind: "builtin" | "custom" };
+  const resolveApp = (slug: string): AppEntry | null => {
+    const b = findBuiltin(slug);
+    if (b) return { slug: b.slug, name: b.name, icon: b.icon, href: b.href, kind: "builtin" };
+    const c = items.find((i) => i.slug === slug);
+    if (c) return { slug: c.slug, name: c.name, icon: c.icon || "✨", href: `/elements/${c.slug}`, kind: "custom" };
+    return null;
+  };
 
   const grouped = useMemo(() => {
     const out: Record<BuiltinAppCategory, BuiltinApp[]> = { core: [], work: [], comms: [], reports: [], admin: [] };
@@ -193,11 +204,11 @@ export default function MyAppsPage() {
     return out;
   }, [visibleBuiltins]);
 
-  const pinnedFlatApps = prefs.pinnedOrder
-    .map((s) => findBuiltin(s))
-    .filter((a): a is BuiltinApp => !!a);
+  const pinnedFlatApps: AppEntry[] = prefs.pinnedOrder
+    .map((s) => resolveApp(s))
+    .filter((a): a is AppEntry => !!a);
 
-  const draggingApp = dragSlug ? findBuiltin(dragSlug) : null;
+  const draggingApp = dragSlug ? resolveApp(dragSlug) : null;
 
   return (
     <main
@@ -298,7 +309,7 @@ export default function MyAppsPage() {
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {f.slugs.map((slug) => {
-                          const a = findBuiltin(slug);
+                          const a = resolveApp(slug);
                           if (!a) return null;
                           return (
                             <div
@@ -390,7 +401,7 @@ export default function MyAppsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
-        ) : items.length === 0 ? (
+        ) : items.length === 0 && customSurfaceApps.length === 0 ? (
           <Link href="/elements/new" className="block border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-12 text-center text-slate-500 hover:text-indigo-400 transition-colors">
             <div className="text-5xl mb-3">+</div>
             <div className="text-base font-medium">Build your first app</div>
@@ -398,17 +409,65 @@ export default function MyAppsPage() {
           </Link>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map(s => (
-              <Link key={s.slug} href={`/elements/${s.slug}`} className="block border border-slate-800 hover:border-indigo-600/50 rounded-xl p-5 bg-slate-900/40 hover:bg-slate-900 transition-colors">
-                <div className="text-3xl mb-2">{s.icon || "✨"}</div>
-                <div className="font-semibold text-slate-100">{s.name}</div>
-                <div className="text-xs text-slate-400 mt-1 line-clamp-2">{s.description}</div>
-                <div className="text-[10px] text-slate-600 mt-3 flex gap-2">
-                  {s.createdBy !== me && <span className="px-1.5 py-0.5 bg-amber-900/40 text-amber-300 rounded">shared by {s.createdBy}</span>}
-                  {s.shareWithOrg && s.createdBy === me && <span className="px-1.5 py-0.5 bg-emerald-900/40 text-emerald-300 rounded">shared</span>}
+            {customSurfaceApps.map(a => {
+              const pinned = pinnedSet.has(a.slug);
+              return (
+                <div
+                  key={a.slug}
+                  onPointerDown={(e) => onItemPointerDown(e, a.slug)}
+                  onPointerMove={onItemPointerMove}
+                  onPointerUp={onItemPointerUp}
+                  onPointerCancel={onItemPointerUp}
+                  className={`block border rounded-xl p-5 bg-slate-900/40 hover:bg-slate-900 transition-colors cursor-grab active:cursor-grabbing select-none ${dragSlug === a.slug ? "opacity-30 border-slate-800" : "border-slate-800 hover:border-indigo-600/50"}`}
+                  style={{ touchAction: "none" }}
+                >
+                  <Link href={a.href} onPointerDown={(e) => e.stopPropagation()} className="block">
+                    <div className="text-3xl mb-2">{a.icon}</div>
+                    <div className="font-semibold text-slate-100">{a.name}</div>
+                    <div className="text-xs text-slate-400 mt-1 line-clamp-2">{a.description}</div>
+                  </Link>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">built-in</span>
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => togglePin(a.slug)}
+                      className={`text-xs px-2 py-1 rounded-md font-medium transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                    >{pinned ? "★ Pinned" : "☆ Pin"}</button>
+                  </div>
                 </div>
-              </Link>
-            ))}
+              );
+            })}
+            {items.map(s => {
+              const pinned = pinnedSet.has(s.slug);
+              return (
+                <div
+                  key={s.slug}
+                  onPointerDown={(e) => onItemPointerDown(e, s.slug)}
+                  onPointerMove={onItemPointerMove}
+                  onPointerUp={onItemPointerUp}
+                  onPointerCancel={onItemPointerUp}
+                  className={`block border rounded-xl p-5 bg-slate-900/40 hover:bg-slate-900 transition-colors cursor-grab active:cursor-grabbing select-none ${dragSlug === s.slug ? "opacity-30 border-slate-800" : "border-slate-800 hover:border-indigo-600/50"}`}
+                  style={{ touchAction: "none" }}
+                >
+                  <Link href={`/elements/${s.slug}`} onPointerDown={(e) => e.stopPropagation()} className="block">
+                    <div className="text-3xl mb-2">{s.icon || "✨"}</div>
+                    <div className="font-semibold text-slate-100">{s.name}</div>
+                    <div className="text-xs text-slate-400 mt-1 line-clamp-2">{s.description}</div>
+                  </Link>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <div className="flex gap-1 flex-wrap min-w-0">
+                      {s.createdBy !== me && <span className="text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-300 rounded truncate">shared by {s.createdBy}</span>}
+                      {s.shareWithOrg && s.createdBy === me && <span className="text-[10px] px-1.5 py-0.5 bg-emerald-900/40 text-emerald-300 rounded">shared</span>}
+                    </div>
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => togglePin(s.slug)}
+                      className={`text-xs px-2 py-1 rounded-md font-medium transition-colors shrink-0 ${pinned ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                    >{pinned ? "★ Pinned" : "☆ Pin"}</button>
+                  </div>
+                </div>
+              );
+            })}
             <Link href="/elements/new" className="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-5 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-400 transition-colors min-h-[140px]">
               <div className="text-3xl">+</div>
               <div className="text-xs mt-2">Build new</div>

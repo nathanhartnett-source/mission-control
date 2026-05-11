@@ -18,14 +18,20 @@ export async function PUT(req: NextRequest) {
   let body: Partial<NavPrefs> & { pinnedBuiltins?: string[] } = {};
   try { body = await req.json(); } catch {}
 
-  const validSlugs = new Set(BUILTIN_APPS.map((a) => a.slug));
+  const builtinSlugs = new Set(BUILTIN_APPS.map((a) => a.slug));
+  // Slugs in pinnedOrder/folders may be either built-in app slugs or custom
+  // Element slugs. Allow any safe identifier; Nav.tsx resolves at render time.
+  const SAFE = /^[a-z0-9_-]{1,60}$/i;
+  const isSafeSlug = (s: unknown): s is string => typeof s === "string" && SAFE.test(s);
+
   const pinIn = Array.isArray(body.pinnedOrder)
     ? body.pinnedOrder
     : Array.isArray(body.pinnedBuiltins) ? body.pinnedBuiltins : [];
-  const pinnedOrder = pinIn.filter((s): s is string => typeof s === "string" && validSlugs.has(s));
+  const pinnedOrder = pinIn.filter(isSafeSlug);
 
+  // hiddenSystem only applies to built-in "system"-kind apps.
   const hiddenSystem = Array.isArray(body.hiddenSystem)
-    ? body.hiddenSystem.filter((s): s is string => typeof s === "string" && validSlugs.has(s))
+    ? body.hiddenSystem.filter((s): s is string => typeof s === "string" && builtinSlugs.has(s))
     : [];
 
   const folders: NavFolder[] = Array.isArray(body.folders)
@@ -34,7 +40,7 @@ export async function PUT(req: NextRequest) {
         if (!f || typeof f !== "object") return null;
         const x = f as { id?: unknown; name?: unknown; slugs?: unknown };
         if (typeof x.id !== "string" || typeof x.name !== "string" || !Array.isArray(x.slugs)) return null;
-        const slugs = x.slugs.filter((s: unknown): s is string => typeof s === "string" && validSlugs.has(s));
+        const slugs = x.slugs.filter(isSafeSlug);
         return { id: x.id.slice(0, 40), name: x.name.slice(0, 60) || "Folder", slugs };
       })
       .filter((f): f is NavFolder => f !== null)

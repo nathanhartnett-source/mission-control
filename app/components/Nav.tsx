@@ -33,8 +33,9 @@ export default function Nav() {
   const { me } = useMe();
   const isAdmin: boolean | null = me ? !!me.isAdmin : null;
 
-  type PinnedElement = { slug: string; name: string; icon: string };
-  const [pinnedElements, setPinnedElements] = useState<PinnedElement[]>([]);
+  type UserElement = { slug: string; name: string; icon: string };
+  const [pinnedElements, setPinnedElements] = useState<UserElement[]>([]);
+  const [userElements, setUserElements] = useState<UserElement[]>([]);
   type NavFolder = { id: string; name: string; slugs: string[] };
   const [navPrefs, setNavPrefs] = useState<{ pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[] }>({ pinnedOrder: [], hiddenSystem: [], folders: [] });
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
@@ -97,6 +98,12 @@ export default function Nav() {
       const data = await r.json().catch(() => ({}));
       if (alive) setPinnedElements(Array.isArray(data?.pinned) ? data.pinned : []);
     }).catch(() => {});
+    const loadUserElements = () => fetch("/api/elements").then(async (r) => {
+      if (!r.ok) return;
+      const data = await r.json().catch(() => ({}));
+      if (alive) setUserElements(Array.isArray(data?.elements) ? data.elements.map((e: { slug: string; name: string; icon?: string }) => ({ slug: e.slug, name: e.name, icon: e.icon || "✨" })) : []);
+    }).catch(() => {});
+    loadUserElements();
     const loadNavPrefs = () => fetch("/api/nav-prefs").then(async (r) => {
       if (!r.ok) return;
       const data = await r.json().catch(() => ({}));
@@ -157,11 +164,20 @@ export default function Nav() {
 
   if (HIDDEN_PATHS.some((p) => pathname.startsWith(p))) return null;
 
-  // Resolve which built-in apps appear in the nav for this user.
-  const allPinnedSlugs = new Set([
-    ...navPrefs.pinnedOrder,
-    ...navPrefs.folders.flatMap((f) => f.slugs),
-  ]);
+  type AppEntry = { slug: string; name: string; icon: string; href: string; kind: "builtin" | "custom" };
+  const resolveApp = (slug: string): AppEntry | null => {
+    const b = findBuiltin(slug);
+    if (b) {
+      if (b.adminOnly && isAdmin !== true) return null;
+      if (b.nonAdminOnly && isAdmin === true) return null;
+      if (b.kind !== "app") return null;
+      return { slug: b.slug, name: b.name, icon: b.icon, href: b.href, kind: "builtin" };
+    }
+    const c = userElements.find((e) => e.slug === slug);
+    if (c) return { slug: c.slug, name: c.name, icon: c.icon || "✨", href: `/elements/${c.slug}`, kind: "custom" };
+    return null;
+  };
+
   const hiddenSet = new Set(navPrefs.hiddenSystem);
   const visibleLocked: BuiltinApp[] = BUILTIN_APPS.filter((a) => {
     if (a.adminOnly && isAdmin !== true) return false;
@@ -173,30 +189,13 @@ export default function Nav() {
     if (a.nonAdminOnly && isAdmin === true) return false;
     return a.kind === "system" && !hiddenSet.has(a.slug);
   });
-  const pinnedFlatApps: BuiltinApp[] = navPrefs.pinnedOrder
-    .map((slug) => findBuiltin(slug))
-    .filter((a): a is BuiltinApp => {
-      if (!a) return false;
-      if (a.kind !== "app") return false;
-      if (a.adminOnly && isAdmin !== true) return false;
-      if (a.nonAdminOnly && isAdmin === true) return false;
-      return true;
-    });
+  const pinnedFlatApps: AppEntry[] = navPrefs.pinnedOrder
+    .map((slug) => resolveApp(slug))
+    .filter((a): a is AppEntry => !!a);
   const folderApps = navPrefs.folders.map((f) => ({
     folder: f,
-    apps: f.slugs
-      .map((slug) => findBuiltin(slug))
-      .filter((a): a is BuiltinApp => {
-        if (!a) return false;
-        if (a.kind !== "app") return false;
-        if (a.adminOnly && isAdmin !== true) return false;
-        if (a.nonAdminOnly && isAdmin === true) return false;
-        return true;
-      }),
+    apps: f.slugs.map((slug) => resolveApp(slug)).filter((a): a is AppEntry => !!a),
   })).filter((g) => g.apps.length > 0 || g.folder.slugs.length > 0);
-  // Auto-pin any "app"-kind that's pinned but not in pinnedOrder (e.g. older
-  // prefs). Not strictly needed but keeps things consistent.
-  void allPinnedSlugs;
 
   const toggleFolder = (id: string) => {
     setOpenFolders((s) => ({ ...s, [id]: !(s[id] ?? true) }));
@@ -216,7 +215,7 @@ export default function Nav() {
     router.push("/login");
   };
 
-  const renderAppIcon = (app: BuiltinApp, size = 18) => {
+  const renderAppIcon = (app: { slug: string; icon: string }, size = 18) => {
     const svgKey =
       app.slug === "home" ? "home" :
       app.slug === "agents" ? "agents" :
@@ -339,10 +338,17 @@ export default function Nav() {
             <span className="flex-1">My Apps</span>
           </Link>
 
-          {pinnedElements.length > 0 && (
+          {(() => {
+            const inNavPrefs = new Set<string>([
+              ...navPrefs.pinnedOrder,
+              ...navPrefs.folders.flatMap((f) => f.slugs),
+            ]);
+            const legacy = pinnedElements.filter((p) => !inNavPrefs.has(p.slug));
+            if (legacy.length === 0) return null;
+            return (
             <div className="pt-3 mt-2 border-t border-slate-800/60 space-y-0.5">
               <div className="px-3 pb-1 text-[10px] font-semibold tracking-widest uppercase text-slate-600">Custom apps</div>
-              {pinnedElements.map((app) => {
+              {legacy.map((app) => {
                 const href = `/elements/${app.slug}`;
                 const active = isActive(href);
                 return (
@@ -361,7 +367,8 @@ export default function Nav() {
                 );
               })}
             </div>
-          )}
+            );
+          })()}
         </nav>
 
         <div className="px-3 py-4 border-t border-slate-800/60 space-y-0.5">
