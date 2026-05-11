@@ -416,9 +416,10 @@ export default function MyAppsPage() {
                             {a.kind === "app" && (
                               <button
                                 onClick={() => togglePin(a.slug)}
-                                className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                                title={pinned ? "Unpin from sidebar" : "Pin to sidebar"}
+                                className={`text-sm px-2 py-1 rounded-md transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
                               >
-                                {pinned ? "★ Pinned" : "☆ Pin to nav"}
+                                {pinned ? "★" : "☆"}
                               </button>
                             )}
                           </div>
@@ -468,8 +469,9 @@ export default function MyAppsPage() {
                     <button
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => togglePin(a.slug)}
-                      className={`text-xs px-2 py-1 rounded-md font-medium transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
-                    >{pinned ? "★ Pinned" : "☆ Pin"}</button>
+                      title={pinned ? "Unpin from sidebar" : "Pin to sidebar"}
+                      className={`text-sm px-2 py-1 rounded-md transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                    >{pinned ? "★" : "☆"}</button>
                   </div>
                 </div>
               );
@@ -508,8 +510,9 @@ export default function MyAppsPage() {
                       <button
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={() => togglePin(s.slug)}
-                        className={`text-xs px-2 py-1 rounded-md font-medium transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
-                      >{pinned ? "★ Pinned" : "☆ Pin"}</button>
+                        title={pinned ? "Unpin from sidebar" : "Pin to sidebar"}
+                        className={`text-sm px-2 py-1 rounded-md transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                      >{pinned ? "★" : "☆"}</button>
                     </div>
                   </div>
                 </div>
