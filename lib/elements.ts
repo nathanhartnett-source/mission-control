@@ -37,7 +37,7 @@ export type ElementSpec = {
   icon: string;
   inputs: ElementInput[];
   promptTemplate: string;
-  outputFormat: "markdown" | "pdf" | "xlsx" | "pptx";
+  outputFormat: "markdown" | "pdf";
   letterhead?: ElementLetterhead;
   timeoutMin: number;
   shareWithOrg: boolean;
@@ -48,12 +48,12 @@ export type ElementSpec = {
 
 export type ElementSchedule = {
   freq: "daily" | "weekly" | "monthly";
-  time: string;             // "HH:MM" 24h, server-local
-  dayOfWeek?: number;       // 0=Sun..6=Sat, weekly only
-  dayOfMonth?: number;      // 1..28, monthly only
-  inputs: Record<string, string>; // pre-filled inputs to use on each scheduled run
-  lastRunAt?: string;       // ISO timestamp of last fire
-  nextRunAt?: string;       // ISO timestamp of next due fire (computed at save)
+  time: string;
+  dayOfWeek?: number;
+  dayOfMonth?: number;
+  inputs: Record<string, string>;
+  lastRunAt?: string;
+  nextRunAt?: string;
 };
 
 export type ElementRun = {
@@ -67,8 +67,7 @@ export type ElementRun = {
   pid?: number;
   output?: string;
   error?: string;
-  pdfPath?: string;      // path to rendered binary output (pdf/xlsx/pptx); name kept for back-compat
-  outputExt?: "pdf" | "xlsx" | "pptx";  // matches the rendered file extension
+  pdfPath?: string;      // set when outputFormat=pdf and render succeeded
 };
 
 function userDir(username: string): string {
@@ -87,13 +86,9 @@ export function newRunId(): string {
   return Date.now().toString(36) + "-" + crypto.randomBytes(4).toString("hex");
 }
 
-// Per-user spec list cache. Invalidated by user-dir mtime — saveElement /
-// deleteElement implicitly bump the dir mtime when they write/unlink, so a
-// stale cache only persists until the next mutation. This kills the
-// O(users × specs) sync IO storm that the prior implementation did on
-// every list/get call.
+// Per-user spec cache, invalidated by user-dir mtime. Kills the
+// O(users × specs) sync IO storm previously done on every list call.
 const listCache: Map<string, { mtime: number; specs: ElementSpec[] }> = new Map();
-
 function readUserSpecs(dir: string): ElementSpec[] {
   const out: ElementSpec[] = [];
   for (const f of fs.readdirSync(dir)) {
@@ -107,7 +102,6 @@ function readUserSpecs(dir: string): ElementSpec[] {
   }
   return out;
 }
-
 function readUserSpecsCached(dir: string, cacheKey: string): ElementSpec[] {
   if (!fs.existsSync(dir)) return [];
   let mtime = 0;
@@ -118,13 +112,11 @@ function readUserSpecsCached(dir: string, cacheKey: string): ElementSpec[] {
   listCache.set(cacheKey, { mtime, specs });
   return specs;
 }
-
 export function listElements(username: string): ElementSpec[] {
   const dir = userDir(username);
   const out: ElementSpec[] = [...readUserSpecsCached(dir, username.toLowerCase())];
-  // Also include shared specs from other users (marked shareWithOrg). Each
-  // peer's spec list is cached the same way as our own — readUserSpecsCached
-  // is reused so the whole walk becomes a hashmap lookup once warm.
+  // Shared specs from other users (shareWithOrg). Each peer's list is cached
+  // identically — warm-cache walk becomes a hashmap lookup.
   if (fs.existsSync(DATA_ROOT)) {
     for (const otherUser of fs.readdirSync(DATA_ROOT)) {
       if (otherUser === username.toLowerCase()) continue;
@@ -167,12 +159,49 @@ export function saveElement(username: string, spec: ElementSpec): void {
   fs.writeFileSync(path.join(dir, `${spec.slug}.json`), JSON.stringify(spec, null, 2), "utf8");
 }
 
+// Soft-delete: move the spec file into `<userDir>/.bin/<slug>.json` so it can
+// be restored. Use `purgeElement` for hard-delete.
+function binDir(username: string): string {
+  return path.join(userDir(username), ".bin");
+}
+
 export function deleteElement(username: string, slug: string): boolean {
   const f = path.join(userDir(username), `${slug}.json`);
   if (!fs.existsSync(f)) return false;
-  fs.unlinkSync(f);
-  // Also drop the slug from pinned list (no-op if not pinned).
+  const bin = binDir(username);
+  fs.mkdirSync(bin, { recursive: true });
+  const dest = path.join(bin, `${slug}.json`);
+  // If a same-slug entry already exists in the bin, overwrite it (latest soft-delete wins).
+  fs.renameSync(f, dest);
+  // Drop the slug from legacy pinned list (no-op if not pinned).
   setPinned(username, slug, false);
+  return true;
+}
+
+export function listBin(username: string): ElementSpec[] {
+  const dir = binDir(username);
+  if (!fs.existsSync(dir)) return [];
+  const out: ElementSpec[] = [];
+  for (const f of fs.readdirSync(dir)) {
+    if (!f.endsWith(".json")) continue;
+    try { out.push(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"))); } catch {}
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function restoreElement(username: string, slug: string): { ok: boolean; reason?: string } {
+  const src = path.join(binDir(username), `${slug}.json`);
+  if (!fs.existsSync(src)) return { ok: false, reason: "not in bin" };
+  const dest = path.join(userDir(username), `${slug}.json`);
+  if (fs.existsSync(dest)) return { ok: false, reason: "an app with this slug already exists" };
+  fs.renameSync(src, dest);
+  return { ok: true };
+}
+
+export function purgeElement(username: string, slug: string): boolean {
+  const f = path.join(binDir(username), `${slug}.json`);
+  if (!fs.existsSync(f)) return false;
+  fs.unlinkSync(f);
   return true;
 }
 
@@ -253,20 +282,19 @@ function refreshRun(username: string, run: ElementRun): ElementRun {
   const doneMarker = path.join(dir, "done");
   const errMarker = path.join(dir, "error");
   const outFile = path.join(dir, "output.md");
-  const renderedExt = (["pdf", "xlsx", "pptx"] as const).find(e => fs.existsSync(path.join(dir, `output.${e}`)));
-  const renderedFile = renderedExt ? path.join(dir, `output.${renderedExt}`) : null;
+  const pdfFile = path.join(dir, "output.pdf");
   if (fs.existsSync(doneMarker)) {
     run.status = "done";
     run.endedAt = new Date().toISOString();
     if (fs.existsSync(outFile)) run.output = fs.readFileSync(outFile, "utf8").slice(0, 2_000_000);
-    if (renderedFile) { run.pdfPath = renderedFile; run.outputExt = renderedExt; }
+    if (fs.existsSync(pdfFile)) run.pdfPath = pdfFile;
     persistRun(username, run);
   } else if (fs.existsSync(errMarker)) {
     run.status = "failed";
     run.endedAt = new Date().toISOString();
     run.error = fs.readFileSync(errMarker, "utf8").slice(0, 4000);
     if (fs.existsSync(outFile)) run.output = fs.readFileSync(outFile, "utf8").slice(0, 2_000_000);
-    if (renderedFile) { run.pdfPath = renderedFile; run.outputExt = renderedExt; }
+    if (fs.existsSync(pdfFile)) run.pdfPath = pdfFile;
     persistRun(username, run);
   } else if (run.pid && !pidAlive(run.pid)) {
     // Process gone but no marker — treat as failed
@@ -279,13 +307,8 @@ function refreshRun(username: string, run: ElementRun): ElementRun {
   return run;
 }
 
-/**
- * Check whether a worker is still running. Workers are spawned as systemd
- * transient units (mc-element-<runId>.service), so the right check is
- * `systemctl is-active`, not the pid (which can be reused across restarts).
- *
- * Falls back to a pid probe for old runs whose unit name we didn't record.
- */
+// Worker is a transient systemd unit — pid alone isn't safe (pid reuse).
+// Probe via systemctl, fall back to pid for legacy runs.
 function workerAlive(runId: string, pid?: number): boolean {
   const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
   const sdArgs = isRoot ? ["is-active"] : ["--user", "is-active"];
@@ -295,17 +318,12 @@ function workerAlive(runId: string, pid?: number): boolean {
     const out = (r.stdout || "").trim();
     if (out === "active" || out === "activating") return true;
     if (out === "inactive" || out === "failed") return false;
-    // Unknown / not loaded — fall through to pid probe.
   } catch {}
   if (typeof pid === "number") {
     try { process.kill(pid, 0); return true; } catch { return false; }
   }
   return false;
 }
-
-// Back-compat shim — still referenced by refreshRun. Now backed by
-// systemctl-aware probe via workerAlive (uses the runId encoded in the
-// unit name, with pid as a fallback).
 function pidAlive(pid: number, runId?: string): boolean {
   return workerAlive(runId || "", pid);
 }
@@ -319,9 +337,8 @@ export function persistRun(username: string, run: ElementRun): void {
 export function killRun(username: string, runId: string): boolean {
   const run = getRun(username, runId);
   if (!run || run.status !== "running") return false;
-  // Worker runs in its own systemd transient unit, NOT as a child of MC, so
-  // process.kill(-pid) doesn't reach it. Use systemctl to stop the unit;
-  // pid kill is a fallback for runs predating the transient-unit setup.
+  // Worker is a transient systemd unit, NOT a child of MC, so process.kill
+  // doesn't reach it. Stop the unit; pid kill is fallback for legacy runs.
   const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
   const stopArgs = isRoot ? ["stop"] : ["--user", "stop"];
   stopArgs.push(`mc-element-${runId}.service`);
@@ -344,10 +361,6 @@ export function renderPrompt(spec: ElementSpec, inputs: Record<string, string>):
   }
   if (spec.outputFormat === "pdf") {
     out += `\n\n---\nIMPORTANT: This output will be rendered to PDF. Produce well-structured Markdown with clear headings (#, ##), bullet lists, and tables (|---|). For charts, embed a fenced block with language \`chart\` containing valid Chart.js JSON config, e.g.:\n\n\`\`\`chart\n{"type":"bar","data":{"labels":["A","B","C"],"datasets":[{"label":"Sales","data":[10,20,15]}]},"options":{"plugins":{"title":{"display":true,"text":"Weekly sales"}}}}\n\`\`\`\n\nOnly produce charts when the data genuinely benefits from visualisation. Don't fabricate data; if a chart would need numbers you don't have, leave it out.`;
-  } else if (spec.outputFormat === "xlsx") {
-    out += `\n\n---\nIMPORTANT: This output will be rendered to an Excel (.xlsx) workbook. Output ONE OR MORE fenced blocks with language \`sheet:<TabName>\` containing CSV-formatted data (header row first). Example:\n\n\`\`\`sheet:Summary\nMetric,Value\nTotal sales,12345\nOrders,87\n\`\`\`\n\n\`\`\`sheet:Orders\nOrder ID,Customer,Total\n1001,Acme,250.00\n1002,Globex,1100.00\n\`\`\`\n\nOne fenced block per worksheet tab. CSV values may be wrapped in double-quotes if they contain commas. You may also include a brief markdown summary OUTSIDE the fenced blocks — that text is ignored by the renderer. Don't fabricate data; if you can't fill a tab honestly, omit it.`;
-  } else if (spec.outputFormat === "pptx") {
-    out += `\n\n---\nIMPORTANT: This output will be rendered to a PowerPoint (.pptx) deck. Output ONE OR MORE fenced blocks with language \`slide\` containing a JSON object per slide. Example:\n\n\`\`\`slide\n{"title":"Q3 Recap","bullets":["Revenue up 12%","Two new clients","Team expanded to 14"]}\n\`\`\`\n\n\`\`\`slide\n{"title":"What's next","bullets":["Launch portal","Hire ops lead","Close partnership"],"notes":"Speaker notes here"}\n\`\`\`\n\nSchema per slide: {title: string, bullets?: string[], body?: string, notes?: string}. Use \`bullets\` for bulleted lists, \`body\` for a paragraph, both can co-exist. One fenced block per slide, in order. Keep it concise — slides aren't documents.`;
   }
   return out;
 }
@@ -358,10 +371,6 @@ export function specLetterheadDir(username: string, slug: string): string {
 
 export { runDir as _runDir, runsDir as _runsDir, userDir as _userDir };
 
-/**
- * Compute the next ISO timestamp this schedule should fire, relative to `now`.
- * Wall-clock time is interpreted in `tz` (IANA zone, e.g. "Australia/Brisbane").
- */
 function tzOffsetMin(tz: string, atUtcMs: number): number {
   const dtf = new Intl.DateTimeFormat("en-US", {
     timeZone: tz, hour12: false,
@@ -411,14 +420,12 @@ export function computeNextRunAt(s: ElementSchedule, tz: string = "UTC", now: Da
     if (cand <= now) cand = wallToUtc(tz, cur.year, cur.month, cur.day + delta + 7, hh, mm);
     return cand.toISOString();
   }
-  // monthly
   const targetD = Math.max(1, Math.min(28, s.dayOfMonth || 1));
   let cand = wallToUtc(tz, cur.year, cur.month, targetD, hh, mm);
   if (cand <= now) cand = wallToUtc(tz, cur.year, cur.month + 1, targetD, hh, mm);
   return cand.toISOString();
 }
 
-/** Walks every user dir, returning [username, spec] pairs for specs with a schedule. */
 export function listAllScheduled(): Array<{ username: string; spec: ElementSpec }> {
   const out: Array<{ username: string; spec: ElementSpec }> = [];
   if (!fs.existsSync(DATA_ROOT)) return out;

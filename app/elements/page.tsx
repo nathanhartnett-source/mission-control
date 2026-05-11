@@ -28,7 +28,37 @@ export default function MyAppsPage() {
   const [me, setMe] = useState<string>("");
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [prefs, setPrefs] = useState<NavPrefs>({ pinnedOrder: [], hiddenSystem: [], folders: [] });
-  const [tab, setTab] = useState<"builtin" | "custom">("builtin");
+  const [tab, setTab] = useState<"builtin" | "custom" | "bin">("builtin");
+  const [binItems, setBinItems] = useState<Spec[]>([]);
+
+  const loadBin = () => fetch("/api/elements/bin").then(r => r.json()).then(d => setBinItems(d.elements || [])).catch(() => {});
+
+  const softDelete = async (slug: string, name: string) => {
+    const r = await fetch(`/api/elements/${slug}`, { method: "DELETE" });
+    if (!r.ok) { toast.error("Delete failed"); return; }
+    setItems((curr) => curr.filter((s) => s.slug !== slug));
+    // Drop from nav-prefs too so it disappears from sidebar
+    const next = removeSlugFrom(prefs, slug);
+    if (JSON.stringify(next) !== JSON.stringify(prefs)) savePrefs(next);
+    toast.success(`"${name}" moved to bin`);
+    loadBin();
+  };
+
+  const restore = async (slug: string, name: string) => {
+    const r = await fetch(`/api/elements/${slug}/restore`, { method: "POST" });
+    if (!r.ok) { const d = await r.json().catch(() => ({})); toast.error(d.error || "Restore failed"); return; }
+    toast.success(`"${name}" restored`);
+    setBinItems((curr) => curr.filter((s) => s.slug !== slug));
+    fetch("/api/elements").then(r => r.json()).then(d => setItems(d.elements || [])).catch(() => {});
+  };
+
+  const purge = async (slug: string, name: string) => {
+    if (!window.confirm(`Permanently delete "${name}"? This cannot be undone.`)) return;
+    const r = await fetch(`/api/elements/${slug}?permanent=1`, { method: "DELETE" });
+    if (!r.ok) { toast.error("Permanent delete failed"); return; }
+    setBinItems((curr) => curr.filter((s) => s.slug !== slug));
+    toast.success(`"${name}" deleted forever`);
+  };
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
 
@@ -38,6 +68,7 @@ export default function MyAppsPage() {
       setIsAdmin(!!d?.user?.isAdmin);
     }).catch(() => {});
     fetch("/api/elements").then(r => r.json()).then(d => { setItems(d.elements || []); setLoading(false); }).catch(() => setLoading(false));
+    loadBin();
     fetch("/api/nav-prefs").then(r => r.json()).then(d => {
       const p = d.prefs || {};
       setPrefs({
@@ -235,9 +266,11 @@ export default function MyAppsPage() {
       <div className="flex gap-2 mb-6 border-b border-slate-800">
         <button onClick={() => setTab("builtin")} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "builtin" ? "border-indigo-500 text-white" : "border-transparent text-slate-400 hover:text-slate-200"}`}>Built-in apps</button>
         <button onClick={() => setTab("custom")} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "custom" ? "border-indigo-500 text-white" : "border-transparent text-slate-400 hover:text-slate-200"}`}>Custom apps</button>
+        <button onClick={() => { setTab("bin"); loadBin(); }} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "bin" ? "border-indigo-500 text-white" : "border-transparent text-slate-400 hover:text-slate-200"}`}>🗑 Bin{binItems.length > 0 ? ` (${binItems.length})` : ""}</button>
       </div>
 
-      {/* Pinned + Folders are shared across both tabs so any app type can be dragged in */}
+      {/* Pinned + Folders are shared across Built-in + Custom tabs so any app type can be dragged in */}
+      {tab !== "bin" && (
       <div className="space-y-10 mb-10">
           {/* Pinned zone (drag-to-reorder) */}
           <section>
@@ -334,6 +367,7 @@ export default function MyAppsPage() {
             )}
           </section>
       </div>
+      )}
 
       {tab === "builtin" && (
         <div className="space-y-10">
@@ -462,11 +496,21 @@ export default function MyAppsPage() {
                       {s.createdBy !== me && <span className="text-[10px] px-1.5 py-0.5 bg-amber-900/40 text-amber-300 rounded truncate">shared by {s.createdBy}</span>}
                       {s.shareWithOrg && s.createdBy === me && <span className="text-[10px] px-1.5 py-0.5 bg-emerald-900/40 text-emerald-300 rounded">shared</span>}
                     </div>
-                    <button
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={() => togglePin(s.slug)}
-                      className={`text-xs px-2 py-1 rounded-md font-medium transition-colors shrink-0 ${pinned ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
-                    >{pinned ? "★ Pinned" : "☆ Pin"}</button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {s.createdBy === me && (
+                        <button
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={() => softDelete(s.slug, s.name)}
+                          title="Move to bin"
+                          className="text-xs px-2 py-1 rounded-md font-medium text-slate-400 hover:text-rose-400 hover:bg-slate-800"
+                        >🗑</button>
+                      )}
+                      <button
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => togglePin(s.slug)}
+                        className={`text-xs px-2 py-1 rounded-md font-medium transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                      >{pinned ? "★ Pinned" : "☆ Pin"}</button>
+                    </div>
                   </div>
                 </div>
               );
@@ -475,6 +519,36 @@ export default function MyAppsPage() {
               <div className="text-3xl">+</div>
               <div className="text-xs mt-2">Build new</div>
             </Link>
+          </div>
+        )
+      )}
+
+      {tab === "bin" && (
+        binItems.length === 0 ? (
+          <div className="border border-dashed border-slate-800 rounded-xl p-12 text-center text-slate-500">
+            <div className="text-4xl mb-3">🗑</div>
+            <div className="text-sm font-medium">Bin is empty</div>
+            <div className="text-xs mt-1">Deleted apps land here. Restore them, or delete forever.</div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {binItems.map(s => (
+              <div key={s.slug} className="block border border-slate-800 rounded-xl p-5 bg-slate-900/40 opacity-80">
+                <div className="text-3xl mb-2">{s.icon || "✨"}</div>
+                <div className="font-semibold text-slate-100">{s.name}</div>
+                <div className="text-xs text-slate-400 mt-1 line-clamp-2">{s.description}</div>
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    onClick={() => restore(s.slug, s.name)}
+                    className="text-xs px-3 py-1.5 rounded-md font-medium bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-700/30"
+                  >Restore</button>
+                  <button
+                    onClick={() => purge(s.slug, s.name)}
+                    className="text-xs px-3 py-1.5 rounded-md font-medium bg-rose-900/40 text-rose-300 hover:bg-rose-900/60 border border-rose-800/40"
+                  >Delete forever</button>
+                </div>
+              </div>
+            ))}
           </div>
         )
       )}
