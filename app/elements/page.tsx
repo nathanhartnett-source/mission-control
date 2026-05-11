@@ -233,8 +233,14 @@ export default function MyAppsPage() {
     () => visibleForUser.filter((a) => a.surface === "custom" && !prefs.hiddenSystem.includes(a.slug)),
     [visibleForUser, prefs.hiddenSystem]
   );
+  // Bin only shows hidden custom-surface apps. "system"-kind built-ins
+  // (Projects, Wiki) live in hiddenSystem too but they're just hidden from
+  // nav — toggle them back via the Built-in apps tab, not the bin.
   const hiddenBuiltinSlugs = useMemo(
-    () => prefs.hiddenSystem.filter((s) => visibleForUser.some((a) => a.slug === s)),
+    () => prefs.hiddenSystem.filter((s) => {
+      const a = visibleForUser.find((b) => b.slug === s);
+      return !!a && a.surface === "custom";
+    }),
     [prefs.hiddenSystem, visibleForUser]
   );
 
