@@ -511,7 +511,7 @@ export default function MyAppsPage() {
                   className={`block border rounded-xl p-5 bg-slate-900/40 hover:bg-slate-900 transition-colors cursor-grab active:cursor-grabbing select-none ${dragSlug === a.slug ? "opacity-30 border-slate-800" : "border-slate-800 hover:border-indigo-600/50"}`}
                   style={{ touchAction: "none" }}
                 >
-                  <Link href={a.href} onPointerDown={(e) => e.stopPropagation()} className="block">
+                  <Link href={a.href} className="block">
                     <div className="text-3xl mb-2">{a.icon}</div>
                     <div className="font-semibold text-slate-100">{a.name}</div>
                     <div className="text-xs text-slate-400 mt-1 line-clamp-2">{a.description}</div>
@@ -548,7 +548,7 @@ export default function MyAppsPage() {
                   className={`block border rounded-xl p-5 bg-slate-900/40 hover:bg-slate-900 transition-colors cursor-grab active:cursor-grabbing select-none ${dragSlug === s.slug ? "opacity-30 border-slate-800" : "border-slate-800 hover:border-indigo-600/50"}`}
                   style={{ touchAction: "none" }}
                 >
-                  <Link href={`/elements/${s.slug}`} onPointerDown={(e) => e.stopPropagation()} className="block">
+                  <Link href={`/elements/${s.slug}`} className="block">
                     <div className="text-3xl mb-2">{s.icon || "✨"}</div>
                     <div className="font-semibold text-slate-100">{s.name}</div>
                     <div className="text-xs text-slate-400 mt-1 line-clamp-2">{s.description}</div>
