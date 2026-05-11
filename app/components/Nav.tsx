@@ -264,10 +264,9 @@ export default function Nav() {
             const open = isFolderOpen(folder.id);
             return (
               <div key={folder.id} className="mt-1 relative group">
-                <div className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors">
+                <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors">
                   <button onClick={() => toggleFolder(folder.id)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                    <span className="text-[10px] text-slate-500 w-3">{open ? "▾" : "▸"}</span>
-                    <span className="text-base leading-none">📂</span>
+                    <span className="text-base leading-none w-[18px] text-center">{open ? "📂" : "📁"}</span>
                     {renamingFolderId === folder.id ? (
                       <input
                         autoFocus
@@ -302,7 +301,7 @@ export default function Nav() {
                   </div>
                 )}
                 {open && (
-                  <div className="ml-3 pl-2 border-l border-slate-800/60 space-y-0.5">
+                  <div className="space-y-0.5">
                     {apps.map((app) => {
                       const active = isActive(app.href);
                       return (
