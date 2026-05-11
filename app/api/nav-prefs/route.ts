@@ -52,7 +52,11 @@ export async function PUT(req: NextRequest) {
   for (const f of folders) f.slugs = f.slugs.filter((s) => (seen.has(s) ? false : (seen.add(s), true)));
   const pinnedDedup = pinnedOrder.filter((s) => (seen.has(s) ? false : (seen.add(s), true)));
 
-  const prefs: NavPrefs = { pinnedOrder: pinnedDedup, hiddenSystem, folders };
+  const purgedBuiltins = Array.isArray(body.purgedBuiltins)
+    ? body.purgedBuiltins.filter((s): s is string => typeof s === "string" && builtinSlugs.has(s))
+    : [];
+
+  const prefs: NavPrefs = { pinnedOrder: pinnedDedup, hiddenSystem, folders, purgedBuiltins };
   await setNavPrefs(auth.username, prefs);
   return NextResponse.json({ prefs });
 }

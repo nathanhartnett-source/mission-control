@@ -16,6 +16,7 @@ export type NavPrefs = {
   pinnedOrder: string[];
   hiddenSystem: string[];
   folders: NavFolder[];
+  purgedBuiltins: string[]; // built-in slugs the user has explicitly "deleted forever"
 };
 
 const DATA_DIR = path.join(process.cwd(), "data", "nav-prefs");
@@ -26,7 +27,7 @@ function fileFor(userId: string): string {
 }
 
 function emptyPrefs(): NavPrefs {
-  return { pinnedOrder: [], hiddenSystem: [], folders: [] };
+  return { pinnedOrder: [], hiddenSystem: [], folders: [], purgedBuiltins: [] };
 }
 
 export function getNavPrefs(userId: string): NavPrefs {
@@ -41,6 +42,7 @@ export function getNavPrefs(userId: string): NavPrefs {
       pinnedOrder: pinnedOrder.filter((s): s is string => typeof s === "string"),
       hiddenSystem: Array.isArray(parsed.hiddenSystem) ? parsed.hiddenSystem.filter((s): s is string => typeof s === "string") : [],
       folders: Array.isArray(parsed.folders) ? parsed.folders.filter(isValidFolder) : [],
+      purgedBuiltins: Array.isArray(parsed.purgedBuiltins) ? parsed.purgedBuiltins.filter((s): s is string => typeof s === "string") : [],
     };
   } catch {
     return emptyPrefs();

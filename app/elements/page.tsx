@@ -16,7 +16,7 @@ type Spec = {
 };
 
 type NavFolder = { id: string; name: string; slugs: string[] };
-type NavPrefs = { pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[] };
+type NavPrefs = { pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[]; purgedBuiltins?: string[] };
 
 function PinIcon({ pinned, size = 16 }: { pinned: boolean; size?: number }) {
   return (
@@ -43,7 +43,7 @@ export default function MyAppsPage() {
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<string>("");
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [prefs, setPrefs] = useState<NavPrefs>({ pinnedOrder: [], hiddenSystem: [], folders: [] });
+  const [prefs, setPrefs] = useState<NavPrefs>({ pinnedOrder: [], hiddenSystem: [], folders: [], purgedBuiltins: [] });
   const [tab, setTab] = useState<"builtin" | "custom" | "bin">("builtin");
   const [binItems, setBinItems] = useState<Spec[]>([]);
 
@@ -68,15 +68,38 @@ export default function MyAppsPage() {
     fetch("/api/elements").then(r => r.json()).then(d => setItems(d.elements || [])).catch(() => {});
   };
 
-  const purge = async (slug: string, name: string) => {
-    if (!window.confirm(`Permanently delete "${name}"? This cannot be undone.`)) return;
-    const r = await fetch(`/api/elements/${slug}?permanent=1`, { method: "DELETE" });
-    if (!r.ok) { toast.error("Permanent delete failed"); return; }
-    setBinItems((curr) => curr.filter((s) => s.slug !== slug));
-    toast.success(`"${name}" deleted forever`);
+  const purge = (slug: string, name: string) => {
+    setConfirmModal({
+      title: "Delete forever?",
+      body: `"${name}" will be permanently deleted. This cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmModal(null);
+        const r = await fetch(`/api/elements/${slug}?permanent=1`, { method: "DELETE" });
+        if (!r.ok) { toast.error("Permanent delete failed"); return; }
+        setBinItems((curr) => curr.filter((s) => s.slug !== slug));
+        toast.success(`"${name}" deleted forever`);
+      },
+    });
+  };
+
+  // Permanently remove a built-in custom-surface app: persists in purgedBuiltins
+  // so it's filtered out everywhere (My Apps + Bin) until manually restored.
+  const purgeBuiltin = (slug: string, name: string) => {
+    setConfirmModal({
+      title: "Delete forever?",
+      body: `"${name}" will be permanently hidden from your apps. To get it back you'll need to clear it from the underlying preferences file.`,
+      onConfirm: () => {
+        setConfirmModal(null);
+        const purged = Array.from(new Set([...(prefs.purgedBuiltins || []), slug]));
+        const hidden = prefs.hiddenSystem.filter((s) => s !== slug);
+        savePrefs({ ...prefs, hiddenSystem: hidden, purgedBuiltins: purged });
+        toast.success(`"${name}" deleted forever`);
+      },
+    });
   };
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [confirmModal, setConfirmModal] = useState<{ title: string; body: string; onConfirm: () => void } | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me").then(r => r.json()).then(d => {
@@ -91,6 +114,7 @@ export default function MyAppsPage() {
         pinnedOrder: Array.isArray(p.pinnedOrder) ? p.pinnedOrder : (Array.isArray(p.pinnedBuiltins) ? p.pinnedBuiltins : []),
         hiddenSystem: Array.isArray(p.hiddenSystem) ? p.hiddenSystem : [],
         folders: Array.isArray(p.folders) ? p.folders : [],
+        purgedBuiltins: Array.isArray(p.purgedBuiltins) ? p.purgedBuiltins : [],
       });
     }).catch(() => {});
   }, []);
@@ -228,20 +252,19 @@ export default function MyAppsPage() {
       return true;
     });
   }, [isAdmin]);
+  const purgedSet = useMemo(() => new Set(prefs.purgedBuiltins || []), [prefs.purgedBuiltins]);
   const visibleBuiltins = useMemo(() => visibleForUser.filter((a) => a.surface !== "custom"), [visibleForUser]);
   const customSurfaceApps = useMemo(
-    () => visibleForUser.filter((a) => a.surface === "custom" && !prefs.hiddenSystem.includes(a.slug)),
-    [visibleForUser, prefs.hiddenSystem]
+    () => visibleForUser.filter((a) => a.surface === "custom" && !prefs.hiddenSystem.includes(a.slug) && !purgedSet.has(a.slug)),
+    [visibleForUser, prefs.hiddenSystem, purgedSet]
   );
-  // Bin only shows hidden custom-surface apps. "system"-kind built-ins
-  // (Projects, Wiki) live in hiddenSystem too but they're just hidden from
-  // nav — toggle them back via the Built-in apps tab, not the bin.
+  // Bin only shows hidden custom-surface apps that haven't been purged.
   const hiddenBuiltinSlugs = useMemo(
     () => prefs.hiddenSystem.filter((s) => {
       const a = visibleForUser.find((b) => b.slug === s);
-      return !!a && a.surface === "custom";
+      return !!a && a.surface === "custom" && !purgedSet.has(s);
     }),
-    [prefs.hiddenSystem, visibleForUser]
+    [prefs.hiddenSystem, visibleForUser, purgedSet]
   );
 
   const pinnedSet = useMemo(() => new Set([
@@ -584,8 +607,9 @@ export default function MyAppsPage() {
                         <div className="text-3xl mb-2">{a.icon}</div>
                         <div className="font-semibold text-slate-100">{a.name}</div>
                         <div className="text-xs text-slate-400 mt-1 line-clamp-2">{a.description}</div>
-                        <div className="mt-3">
+                        <div className="mt-3 flex items-center gap-2">
                           <button onClick={() => toggleHidden(a.slug)} className="text-xs px-3 py-1.5 rounded-md font-medium bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-700/30">Restore</button>
+                          <button onClick={() => purgeBuiltin(a.slug, a.name)} className="text-xs px-3 py-1.5 rounded-md font-medium bg-rose-600 text-white hover:bg-rose-500">Delete forever</button>
                         </div>
                       </div>
                     );
@@ -609,7 +633,7 @@ export default function MyAppsPage() {
                   >Restore</button>
                   <button
                     onClick={() => purge(s.slug, s.name)}
-                    className="text-xs px-3 py-1.5 rounded-md font-medium bg-rose-900/40 text-rose-300 hover:bg-rose-900/60 border border-rose-800/40"
+                    className="text-xs px-3 py-1.5 rounded-md font-medium bg-rose-600 text-white hover:bg-rose-500"
                   >Delete forever</button>
                 </div>
               </div>
@@ -619,6 +643,19 @@ export default function MyAppsPage() {
             )}
           </div>
         )
+      )}
+
+      {confirmModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60" onClick={() => setConfirmModal(null)}>
+          <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="text-lg font-semibold text-slate-100 mb-2">{confirmModal.title}</div>
+            <div className="text-sm text-slate-400 mb-5">{confirmModal.body}</div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmModal(null)} className="text-sm px-4 py-2 rounded-md font-medium bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
+              <button onClick={confirmModal.onConfirm} className="text-sm px-4 py-2 rounded-md font-medium bg-rose-600 text-white hover:bg-rose-500">Delete forever</button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );
