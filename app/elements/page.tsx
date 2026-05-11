@@ -237,8 +237,8 @@ export default function MyAppsPage() {
         <button onClick={() => setTab("custom")} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "custom" ? "border-indigo-500 text-white" : "border-transparent text-slate-400 hover:text-slate-200"}`}>Custom apps</button>
       </div>
 
-      {tab === "builtin" && (
-        <div className="space-y-10">
+      {/* Pinned + Folders are shared across both tabs so any app type can be dragged in */}
+      <div className="space-y-10 mb-10">
           {/* Pinned zone (drag-to-reorder) */}
           <section>
             <h2 className="text-[11px] font-semibold tracking-widest uppercase text-slate-500 mb-3">Pinned in sidebar — drag to reorder</h2>
@@ -333,7 +333,10 @@ export default function MyAppsPage() {
               </div>
             )}
           </section>
+      </div>
 
+      {tab === "builtin" && (
+        <div className="space-y-10">
           {/* All built-in apps, grouped by category */}
           <section>
             <h2 className="text-[11px] font-semibold tracking-widest uppercase text-slate-500 mb-3">All built-in apps</h2>
