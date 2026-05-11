@@ -18,6 +18,22 @@ type Spec = {
 type NavFolder = { id: string; name: string; slugs: string[] };
 type NavPrefs = { pinnedOrder: string[]; hiddenSystem: string[]; folders: NavFolder[] };
 
+function PinIcon({ pinned, size = 16 }: { pinned: boolean; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={pinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 17v5" />
+      <path d="M9 9V4h6v5l3 4H6l3-4z" />
+    </svg>
+  );
+}
+function TrashIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
 function newFolderId(): string {
   return "f_" + Math.random().toString(36).slice(2, 9);
 }
@@ -213,7 +229,14 @@ export default function MyAppsPage() {
     });
   }, [isAdmin]);
   const visibleBuiltins = useMemo(() => visibleForUser.filter((a) => a.surface !== "custom"), [visibleForUser]);
-  const customSurfaceApps = useMemo(() => visibleForUser.filter((a) => a.surface === "custom"), [visibleForUser]);
+  const customSurfaceApps = useMemo(
+    () => visibleForUser.filter((a) => a.surface === "custom" && !prefs.hiddenSystem.includes(a.slug)),
+    [visibleForUser, prefs.hiddenSystem]
+  );
+  const hiddenBuiltinSlugs = useMemo(
+    () => prefs.hiddenSystem.filter((s) => visibleForUser.some((a) => a.slug === s)),
+    [prefs.hiddenSystem, visibleForUser]
+  );
 
   const pinnedSet = useMemo(() => new Set([
     ...prefs.pinnedOrder,
@@ -419,7 +442,7 @@ export default function MyAppsPage() {
                                 title={pinned ? "Unpin from sidebar" : "Pin to sidebar"}
                                 className={`text-sm px-2 py-1 rounded-md transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
                               >
-                                {pinned ? "★" : "☆"}
+                                <PinIcon pinned={pinned} />
                               </button>
                             )}
                           </div>
@@ -466,12 +489,20 @@ export default function MyAppsPage() {
                   </Link>
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">built-in</span>
-                    <button
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={() => togglePin(a.slug)}
-                      title={pinned ? "Unpin from sidebar" : "Pin to sidebar"}
-                      className={`text-sm px-2 py-1 rounded-md transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
-                    >{pinned ? "★" : "☆"}</button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => toggleHidden(a.slug)}
+                        title="Hide from My Apps"
+                        className="px-2 py-1 rounded-md text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                      ><TrashIcon /></button>
+                      <button
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => togglePin(a.slug)}
+                        title={pinned ? "Unpin from sidebar" : "Pin to sidebar"}
+                        className={`px-2 py-1 rounded-md transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
+                      ><PinIcon pinned={pinned} /></button>
+                    </div>
                   </div>
                 </div>
               );
@@ -505,14 +536,14 @@ export default function MyAppsPage() {
                           onClick={() => softDelete(s.slug, s.name)}
                           title="Move to bin"
                           className="text-xs px-2 py-1 rounded-md font-medium text-slate-400 hover:text-rose-400 hover:bg-slate-800"
-                        >🗑</button>
+                        ><TrashIcon /></button>
                       )}
                       <button
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={() => togglePin(s.slug)}
                         title={pinned ? "Unpin from sidebar" : "Pin to sidebar"}
                         className={`text-sm px-2 py-1 rounded-md transition-colors ${pinned ? "bg-indigo-600/20 text-indigo-300 border border-indigo-700/30" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}
-                      >{pinned ? "★" : "☆"}</button>
+                      ><PinIcon pinned={pinned} /></button>
                     </div>
                   </div>
                 </div>
@@ -527,14 +558,39 @@ export default function MyAppsPage() {
       )}
 
       {tab === "bin" && (
-        binItems.length === 0 ? (
+        binItems.length === 0 && hiddenBuiltinSlugs.length === 0 ? (
           <div className="border border-dashed border-slate-800 rounded-xl p-12 text-center text-slate-500">
             <div className="text-4xl mb-3">🗑</div>
             <div className="text-sm font-medium">Bin is empty</div>
             <div className="text-xs mt-1">Deleted apps land here. Restore them, or delete forever.</div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-8">
+            {hiddenBuiltinSlugs.length > 0 && (
+              <div>
+                <h2 className="text-[11px] font-semibold tracking-widest uppercase text-slate-500 mb-3">Hidden built-in apps</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {hiddenBuiltinSlugs.map((slug) => {
+                    const a = visibleForUser.find((b) => b.slug === slug);
+                    if (!a) return null;
+                    return (
+                      <div key={slug} className="block border border-slate-800 rounded-xl p-5 bg-slate-900/40 opacity-80">
+                        <div className="text-3xl mb-2">{a.icon}</div>
+                        <div className="font-semibold text-slate-100">{a.name}</div>
+                        <div className="text-xs text-slate-400 mt-1 line-clamp-2">{a.description}</div>
+                        <div className="mt-3">
+                          <button onClick={() => toggleHidden(a.slug)} className="text-xs px-3 py-1.5 rounded-md font-medium bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-700/30">Restore</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {binItems.length > 0 && (
+              <div>
+                <h2 className="text-[11px] font-semibold tracking-widest uppercase text-slate-500 mb-3">Deleted custom apps</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {binItems.map(s => (
               <div key={s.slug} className="block border border-slate-800 rounded-xl p-5 bg-slate-900/40 opacity-80">
                 <div className="text-3xl mb-2">{s.icon || "✨"}</div>
@@ -552,6 +608,9 @@ export default function MyAppsPage() {
                 </div>
               </div>
             ))}
+                </div>
+              </div>
+            )}
           </div>
         )
       )}
