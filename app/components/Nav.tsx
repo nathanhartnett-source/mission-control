@@ -218,13 +218,10 @@ export default function Nav() {
   };
 
   const renderAppIcon = (app: { slug: string; icon: string }, size = 18) => {
-    const svgKey =
-      app.slug === "home" ? "home" :
-      app.slug === "agents" ? "agents" :
-      app.slug === "projects" ? "projects" :
-      app.slug === "wiki" ? "wiki" : null;
-    if (svgKey) return <Icon d={ICONS[svgKey]} size={size} />;
-    return <span className="text-base leading-none w-[18px] text-center" style={{ fontSize: size === 18 ? 16 : 20 }}>{app.icon}</span>;
+    // Single source of truth: emoji from registry/override. SVGs for core
+    // built-ins (home/agents/projects/wiki) used to special-case here, but
+    // that made the sidebar icons disagree with the My Apps page.
+    return <span className="leading-none w-[18px] text-center" style={{ fontSize: size === 18 ? 16 : 20 }}>{app.icon}</span>;
   };
 
   return (
@@ -253,7 +250,7 @@ export default function Nav() {
                     : "text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent"
                 }`}
               >
-                {renderAppIcon(app)}
+                {renderAppIcon({ slug: app.slug, icon: navPrefs.appIcons?.[app.slug] || app.icon })}
                 <span className="flex-1">{app.name}</span>
                 {app.slug === "agents" && hasUnreadAgent && (
                   <span aria-label="unread agent reply" title="Agent has replied" className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(74,222,128,0.8)]" />
@@ -416,7 +413,7 @@ export default function Nav() {
               }`}
             >
               <div className="relative">
-                {renderAppIcon(app, 20)}
+                {renderAppIcon({ slug: app.slug, icon: navPrefs.appIcons?.[app.slug] || app.icon }, 20)}
                 {app.slug === "agents" && hasUnreadAgent && (
                   <span aria-hidden className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(74,222,128,0.8)]" />
                 )}
