@@ -52,6 +52,7 @@ data/auth-audit.jsonl
 # Tier 3 userspace — per-install state, never tracked
 /data/**
 !/data/.gitkeep
+!/data/*.example.json
 /config/site.json
 /config/users.json
 /overrides/css/
