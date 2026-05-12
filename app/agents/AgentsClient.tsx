@@ -2805,20 +2805,26 @@ function UserAgentChat({ agentName, userSeed, agentSeedOverrides, initialRows = 
                     </div>
                     {r.agent_text ? (
                       <RichAgentText text={r.agent_text} />
-                    ) : (
-                      <div className="text-slate-500 italic text-xs">
-                        {r.agent_state === "queued" ? "Waiting in agent inbox…"
-                          : r.agent_state === "running" ? (
-                              toolDisclosure[r.corr_id] && r.current_tool_summary
-                                ? `${r.current_tool_summary}${r.current_tool_summary_ts && !r.current_tool ? ` · ${Math.max(0, Math.floor((now - new Date(r.current_tool_summary_ts).getTime()) / 1000))}s ago` : ""}`
-                                : r.activity_kind === "doing"
-                                  ? `${agentName} is working…`
-                                  : HUMOR_LINES[Math.floor((r.elapsed_ms || now) / 5000) % HUMOR_LINES.length]
-                            )
-                          : r.agent_state === "error" ? `Error: ${r.error || "unknown"}`
-                        : "—"}
-                      </div>
-                    )}
+                    ) : (() => {
+                      // Running rows only show their inner detail when the user has
+                      // expanded the +/- disclosure. Default (collapsed) = just the
+                      // pill above. Other terminal states still render their line.
+                      if (r.agent_state === "running" && !toolDisclosure[r.corr_id]) return null;
+                      return (
+                        <div className="text-slate-500 italic text-xs">
+                          {r.agent_state === "queued" ? "Waiting in agent inbox…"
+                            : r.agent_state === "running" ? (
+                                r.current_tool_summary
+                                  ? `${r.current_tool_summary}${r.current_tool_summary_ts && !r.current_tool ? ` · ${Math.max(0, Math.floor((now - new Date(r.current_tool_summary_ts).getTime()) / 1000))}s ago` : ""}`
+                                  : r.activity_kind === "doing"
+                                    ? `${agentName} is working…`
+                                    : HUMOR_LINES[Math.floor((r.elapsed_ms || now) / 5000) % HUMOR_LINES.length]
+                              )
+                            : r.agent_state === "error" ? `Error: ${r.error || "unknown"}`
+                          : "—"}
+                        </div>
+                      );
+                    })()}
                     {(r.memory_saved && r.memory_saved.length > 0) || (r.wiki_saved && r.wiki_saved.length > 0) || (r.skills_saved && r.skills_saved.length > 0) || (r.delegations && r.delegations.length > 0) ? (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {(r.delegations || []).map((d) => (
