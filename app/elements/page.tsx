@@ -126,6 +126,7 @@ export default function MyAppsPage() {
         hiddenSystem: Array.isArray(p.hiddenSystem) ? p.hiddenSystem : [],
         folders: Array.isArray(p.folders) ? p.folders : [],
         purgedBuiltins: Array.isArray(p.purgedBuiltins) ? p.purgedBuiltins : [],
+        appIcons: p.appIcons && typeof p.appIcons === "object" ? p.appIcons : {},
       });
     }).catch(() => {});
   }, []);
