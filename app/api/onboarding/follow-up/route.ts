@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { spawn } from "child_process";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
+import { runUserClaude } from "@/lib/user-claude";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -54,49 +54,27 @@ Rules:
 - Concrete, friendly, not generic.
 - No meta-questions ("what else should I know?"). Ask about specifics that would change the agent's behavior.`;
 
-  try {
-    const questions = await runHaiku(prompt);
-    return NextResponse.json({ ok: true, questions });
-  } catch (e) {
-    console.error("[onboarding/follow-up]", e);
-    // Fail open — onboarding shouldn't block on LLM failure.
+  const result = runUserClaude({
+    prompt,
+    username: user.username || user.id,
+    model: "opus",
+    timeoutMs: 45000,
+  });
+  if (result.exitCode !== 0) {
+    console.error("[onboarding/follow-up]", result.stderr.slice(0, 500));
     return NextResponse.json({ ok: true, questions: [] });
   }
-}
-
-function runHaiku(prompt: string): Promise<string[]> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn("claude", ["-p", "--model", "claude-opus-4-7", prompt], {
-      stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env },
-    });
-    let stdout = "";
-    let stderr = "";
-    const timer = setTimeout(() => {
-      proc.kill("SIGKILL");
-      reject(new Error("haiku timeout"));
-    }, 45_000);
-    proc.stdout.on("data", d => { stdout += d.toString(); });
-    proc.stderr.on("data", d => { stderr += d.toString(); });
-    proc.on("error", err => { clearTimeout(timer); reject(err); });
-    proc.on("close", code => {
-      clearTimeout(timer);
-      if (code !== 0) {
-        return reject(new Error(`claude exited ${code}: ${stderr.slice(0, 500)}`));
-      }
-      const m = stdout.match(/\{[\s\S]*\}/);
-      if (!m) return resolve([]);
-      try {
-        const parsed = JSON.parse(m[0]);
-        const qs = Array.isArray(parsed?.questions) ? parsed.questions : [];
-        const cleaned = qs
-          .map((q: unknown) => String(q || "").trim())
-          .filter((q: string) => q.length > 0)
-          .slice(0, 2);
-        resolve(cleaned);
-      } catch {
-        resolve([]);
-      }
-    });
-  });
+  const m = result.stdout.match(/\{[\s\S]*\}/);
+  if (!m) return NextResponse.json({ ok: true, questions: [] });
+  try {
+    const parsed = JSON.parse(m[0]);
+    const qs = Array.isArray(parsed?.questions) ? parsed.questions : [];
+    const cleaned = qs
+      .map((q: unknown) => String(q || "").trim())
+      .filter((q: string) => q.length > 0)
+      .slice(0, 2);
+    return NextResponse.json({ ok: true, questions: cleaned });
+  } catch {
+    return NextResponse.json({ ok: true, questions: [] });
+  }
 }
