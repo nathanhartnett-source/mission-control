@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useMe } from "./MeProvider";
+import { marked } from "marked";
 
 type Row = {
   corr_id: string;
@@ -119,7 +120,8 @@ export default function FloatingChat() {
     setErr(null);
     try {
       const ctx = `[User is on the ${pageLabel(pathname)} page]`;
-      const targetAgent = me?.isAdmin ? "ava" : "me";
+      // Single-agent model: always use the per-user "me" agent, regardless of admin status.
+      const targetAgent = "me";
       const r = await fetch(`/api/agents/${targetAgent}/enqueue`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -196,8 +198,19 @@ export default function FloatingChat() {
               if (agentText || isRunning) {
                 items.push(
                   <div key={`${r.corr_id}-a`} className="flex justify-start">
-                    <div className="max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap bg-slate-800 text-slate-100">
-                      {agentText || <span className="text-amber-300 tabular-nums">thinking…</span>}
+                    <div className="max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed break-words bg-slate-800 text-slate-100
+                      [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+                      [&_p]:my-1
+                      [&_strong]:font-semibold [&_strong]:text-white
+                      [&_em]:italic
+                      [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-1
+                      [&_li]:my-0
+                      [&_code]:text-amber-300 [&_code]:bg-slate-900/60 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
+                      [&_pre]:bg-slate-900 [&_pre]:border [&_pre]:border-slate-700 [&_pre]:rounded [&_pre]:p-2 [&_pre]:overflow-x-auto [&_pre]:my-1.5 [&_pre>code]:bg-transparent [&_pre>code]:px-0
+                      [&_a]:text-indigo-300 hover:[&_a]:underline">
+                      {agentText
+                        ? <span dangerouslySetInnerHTML={{ __html: marked.parse(agentText, { breaks: true, gfm: true }) as string }} />
+                        : <span className="text-amber-300 tabular-nums">thinking…</span>}
                     </div>
                   </div>
                 );

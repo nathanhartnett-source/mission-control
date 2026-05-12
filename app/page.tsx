@@ -62,15 +62,6 @@ function StatCard({ label, value, hint }: { label: string; value: string | numbe
   );
 }
 
-function QuickLink({ href, title, subtitle }: { href: string; title: string; subtitle: string }) {
-  return (
-    <Link href={href} style={{ ...cardStyle, textDecoration: "none", cursor: "pointer", transition: "transform 0.15s" }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: T.textPrimary }}>{title}</div>
-      <div style={{ fontSize: 12, color: T.textSecondary }}>{subtitle}</div>
-    </Link>
-  );
-}
-
 export default function HomePage() {
   const [me, setMe] = useState<MeUser | null>(null);
   const [modules, setModules] = useState<ProjectModule[] | null>(null);
@@ -155,13 +146,6 @@ export default function HomePage() {
         </section>
 
         <TrophyShelf />
-
-        <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-          <QuickLink href="/agents"  title="Chat with your agent →" subtitle={`Open ${agentName}`} />
-          <QuickLink href="/projects" title="Projects board →"        subtitle={`${taskStats.projects} project module${taskStats.projects === 1 ? "" : "s"}`} />
-          <QuickLink href="/todo"     title="To-do list →"             subtitle="Personal tasks" />
-          <QuickLink href="/wiki"     title="Wiki →"                   subtitle="Shared knowledge base" />
-        </section>
 
       </div>
     </div>
