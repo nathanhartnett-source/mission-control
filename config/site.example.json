@@ -1,0 +1,10 @@
+{
+  "$schema": "Site-level branding + identity. Copy to config/site.json on each install. Gitignored.",
+  "name": "Mission Control",
+  "shortName": "MC",
+  "defaultAgentName": "Your Agent",
+  "accentColor": "#fafafa",
+  "logo": null,
+  "favicon": null,
+  "loginTagline": "AI OS for your business."
+}

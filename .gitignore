@@ -48,3 +48,16 @@ data/auth-audit.jsonl
 .backups/
 *.bak
 *.bak-*
+
+# Tier 3 userspace — per-install state, never tracked
+/data/**
+!/data/.gitkeep
+/config/site.json
+/config/users.json
+/overrides/css/
+/overrides/logo.*
+/overrides/favicon.*
+/secrets/
+
+# user-built apps
+/apps/custom/

@@ -7,11 +7,13 @@
  */
 import fs from "fs";
 import path from "path";
-import os from "os";
 import crypto from "crypto";
 import { spawnSync } from "child_process";
 
-const DATA_ROOT = path.join(os.homedir(), ".openclaw", "workspace", "mission-control", "data", "user-elements");
+const DATA_ROOT = path.resolve(
+  process.env.MC_DATA_ROOT || path.join(process.cwd(), "data"),
+  "user-elements",
+);
 
 export type ElementInput = {
   name: string;
