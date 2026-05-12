@@ -147,6 +147,35 @@ export default function MyAlertsPage() {
     refresh();
   };
 
+  // ─── Suggestions ───────────────────────────────────────────────────────
+  const [suggestions, setSuggestions] = useState<{ title: string; prompt: string; kind: string; why: string }[]>([]);
+  const [suggesting, setSuggesting] = useState(false);
+  const suggest = async () => {
+    if (suggesting) return;
+    setSuggesting(true);
+    try {
+      const r = await fetch("/api/data-alerts/suggest", { method: "POST" });
+      const d = await r.json();
+      if (!r.ok) {
+        toast.error(d.error || "Suggestion failed");
+      } else {
+        setSuggestions(d.suggestions || []);
+      }
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setSuggesting(false);
+    }
+  };
+  const useSuggestion = (s: { prompt: string }) => {
+    setEditingId(null);
+    setPendingAlert(null);
+    setMessages([]);
+    setInput(s.prompt);
+    setChatOpen(true);
+    setSuggestions([]);
+  };
+
   const sendTest = async (a: Alert) => {
     toast.message("Generating sample…");
     const r = await fetch(`/api/data-alerts/${a.id}/test`, { method: "POST" });
@@ -201,9 +230,45 @@ export default function MyAlertsPage() {
           <p className="text-sm text-slate-400 mt-1">Describe alerts in plain English. Chat with the AI to set them up or change them.</p>
         </div>
         {!chatOpen && (
-          <button onClick={openNewChat} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium">+ New alert</button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={suggest}
+              disabled={suggesting}
+              className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium border border-slate-700 disabled:opacity-40"
+              title="Have the AI suggest alerts based on your apps + context"
+            >
+              {suggesting ? "Thinking…" : "✨ Suggest alerts"}
+            </button>
+            <button onClick={openNewChat} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium">+ New alert</button>
+          </div>
         )}
       </div>
+
+      {!chatOpen && suggestions.length > 0 && (
+        <div className="mb-8 border border-slate-800 rounded-xl bg-slate-900/40 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-semibold text-slate-200">Suggested alerts</div>
+            <button onClick={() => setSuggestions([])} className="text-xs text-slate-500 hover:text-slate-300">Dismiss</button>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {suggestions.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => useSuggestion(s)}
+                className="text-left border border-slate-800 hover:border-indigo-700/50 bg-slate-950/60 hover:bg-slate-900/60 rounded-lg p-3 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${s.kind === "research" ? "bg-sky-900/40 text-sky-200" : "bg-emerald-900/40 text-emerald-200"}`}>{s.kind}</span>
+                  <div className="text-sm font-medium text-slate-100 truncate">{s.title}</div>
+                </div>
+                <div className="text-xs text-slate-300 line-clamp-2 mb-1">{s.prompt}</div>
+                {s.why && <div className="text-[11px] text-slate-500 italic">{s.why}</div>}
+              </button>
+            ))}
+          </div>
+          <div className="text-[11px] text-slate-500 mt-3">Click a card to drop the prompt into the alert composer.</div>
+        </div>
+      )}
 
       {chatOpen && (
         <div className="border border-slate-800 rounded-xl bg-slate-900/40 mb-8 overflow-hidden">
