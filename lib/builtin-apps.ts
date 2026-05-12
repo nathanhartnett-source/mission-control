@@ -24,8 +24,8 @@ export const BUILTIN_APPS: BuiltinApp[] = [
   { slug: "projects",     name: "Projects",     description: "Projects + per-project to-dos.",   href: "/projects",     icon: "📁", kind: "system", category: "core" },
   { slug: "wiki",         name: "Wiki",         description: "Shared knowledge + session logs.", href: "/wiki",         icon: "📚", kind: "system", category: "core" },
   { slug: "inbox", name: "Inbox", description: "Alerts + messages from your agent.", href: "/inbox", icon: "📬", kind: "system", category: "core" },
-  { slug: "alerts", name: "My Alerts", description: "Watch metrics + the web; AI judges when to ping you.", href: "/alerts", icon: "🔔", kind: "app", category: "core" },
-  { slug: "elements-hub", name: "Build an App", description: "Build a custom app with AI.",      href: "/elements/new", icon: "🛠️", kind: "app",    category: "work" },
+  { slug: "alerts", name: "My Alerts", description: "Watch metrics + the web; AI judges when to ping you.", href: "/alerts", icon: "🔔", kind: "system", category: "core" },
+  { slug: "elements-hub", name: "Build an App", description: "Build a custom app with AI.",      href: "/elements/new", icon: "🛠️", kind: "system",    category: "work" },
 ];
 
 export function findBuiltin(slug: string): BuiltinApp | undefined {
