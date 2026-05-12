@@ -105,7 +105,7 @@ function runClaude(prompt: string, timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const claudeBin = findClaudeBin();
     const isRoot = process.getuid?.() === 0;
-    const args = ["-p", "--model", "claude-sonnet-4-6", "--output-format", "text"];
+    const args = ["-p", "--model", "claude-opus-4-7", "--output-format", "text"];
     if (!isRoot) args.push("--permission-mode", "bypassPermissions");
     const child = spawn(claudeBin, args, {
       stdio: ["pipe", "pipe", "pipe"],

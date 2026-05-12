@@ -66,7 +66,7 @@ Rules:
 
 function runHaiku(prompt: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    const proc = spawn("claude", ["-p", "--model", "claude-haiku-4-5", prompt], {
+    const proc = spawn("claude", ["-p", "--model", "claude-opus-4-7", prompt], {
       stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env },
     });
