@@ -23,6 +23,7 @@ export const BUILTIN_APPS: BuiltinApp[] = [
   { slug: "agents",       name: "Agents",       description: "Chat with your AI agent.",         href: "/agents",       icon: "🤖", kind: "locked", category: "core" },
   { slug: "projects",     name: "Projects",     description: "Projects + per-project to-dos.",   href: "/projects",     icon: "📁", kind: "system", category: "core" },
   { slug: "wiki",         name: "Wiki",         description: "Shared knowledge + session logs.", href: "/wiki",         icon: "📚", kind: "system", category: "core" },
+  { slug: "inbox", name: "Inbox", description: "Alerts + messages from your agent.", href: "/inbox", icon: "📬", kind: "system", category: "core" },
   { slug: "elements-hub", name: "Build an App", description: "Build a custom app with AI.",      href: "/elements/new", icon: "🛠️", kind: "app",    category: "work" },
 ];
 

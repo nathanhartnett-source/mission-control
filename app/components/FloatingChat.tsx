@@ -30,6 +30,52 @@ export default function FloatingChat() {
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  // Refs so the recorder's onstop sees latest send + text
+  const sendRef = useRef<(override?: string) => Promise<void>>(async () => {});
+  const textRef = useRef<string>("");
+
+  const startRec = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      recorderRef.current = mr;
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
+        if (blob.size === 0) return;
+        setTranscribing(true);
+        try {
+          const fd = new FormData();
+          fd.append("audio", blob, "voice.webm");
+          const res = await fetch("/api/agents/transcribe", { method: "POST", body: fd });
+          if (!res.ok) { setErr("Transcription failed"); return; }
+          const d = await res.json() as { text?: string };
+          const t = (d.text || "").trim();
+          if (t) {
+            const existing = (textRef.current || "").trim();
+            const combined = existing ? existing + " " + t : t;
+            setText("");
+            await sendRef.current(combined);
+          }
+        } catch { setErr("Transcription error"); }
+        finally { setTranscribing(false); }
+      };
+      mr.start();
+      setRecording(true);
+    } catch { setErr("Mic access denied"); }
+  }, []);
+
+  const stopRec = useCallback(() => {
+    const mr = recorderRef.current;
+    if (mr && mr.state !== "inactive") mr.stop();
+    setRecording(false);
+  }, []);
 
   const hidden = HIDE_ON.has(pathname) || !me;
   const agentName = (me?.agentNames?.["me"] as string) || "Your agent";
@@ -64,8 +110,10 @@ export default function FloatingChat() {
     }
   }, [open, rows.length]);
 
-  const send = useCallback(async () => {
-    const t = text.trim();
+  useEffect(() => { textRef.current = text; }, [text]);
+
+  const send = useCallback(async (override?: string) => {
+    const t = (override ?? text).trim();
     if (!t || sending) return;
     setSending(true);
     setErr(null);
@@ -90,6 +138,8 @@ export default function FloatingChat() {
       setSending(false);
     }
   }, [text, sending, pathname, refresh, me?.isAdmin]);
+
+  useEffect(() => { sendRef.current = send; }, [send]);
 
   if (hidden) return null;
 
@@ -171,7 +221,15 @@ export default function FloatingChat() {
               className="flex-1 resize-none bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 max-h-32"
             />
             <button
-              onClick={send}
+              onClick={recording ? stopRec : startRec}
+              disabled={sending || transcribing}
+              title={recording ? "Stop recording" : "Voice message"}
+              className={`rounded-lg px-3 py-2 text-sm font-medium flex items-center justify-center ${recording ? "bg-rose-600 text-white hover:bg-rose-500 animate-pulse" : "bg-slate-800 text-slate-300 hover:bg-slate-700"} disabled:opacity-40`}
+            >
+              {transcribing ? "…" : recording ? "■" : "🎤"}
+            </button>
+            <button
+              onClick={() => send()}
               disabled={!text.trim() || sending}
               className="rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-2 text-sm text-white font-medium"
             >

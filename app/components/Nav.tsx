@@ -156,6 +156,28 @@ export default function Nav() {
     }
   }, [pathname]);
 
+  // Unread inbox messages (alerts from the agent)
+  const [unreadInbox, setUnreadInbox] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => {
+      try {
+        const r = await fetch("/api/inbox?unread=1&limit=1", { cache: "no-store" });
+        if (!r.ok || !alive) return;
+        const d = await r.json();
+        if (alive) setUnreadInbox(typeof d?.unread === "number" ? d.unread : 0);
+      } catch {}
+    };
+    tick();
+    const id = setInterval(tick, 20000);
+    const onChange = () => tick();
+    window.addEventListener("mc-inbox-changed", onChange);
+    return () => { alive = false; clearInterval(id); window.removeEventListener("mc-inbox-changed", onChange); };
+  }, [pathname]);
+  useEffect(() => {
+    if (pathname.startsWith("/inbox")) setUnreadInbox(0);
+  }, [pathname]);
+
   useEffect(() => {
     const targets = ["/agents", "/projects", "/wiki", "/settings", "/elements"];
     const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
@@ -254,6 +276,9 @@ export default function Nav() {
                 <span className="flex-1">{app.name}</span>
                 {app.slug === "agents" && hasUnreadAgent && (
                   <span aria-label="unread agent reply" title="Agent has replied" className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(74,222,128,0.8)]" />
+                )}
+                {app.slug === "inbox" && unreadInbox > 0 && (
+                  <span aria-label={`${unreadInbox} unread`} className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-rose-500 text-white min-w-[18px] text-center">{unreadInbox > 99 ? "99+" : unreadInbox}</span>
                 )}
               </Link>
             );
@@ -417,6 +442,9 @@ export default function Nav() {
                 {app.slug === "agents" && hasUnreadAgent && (
                   <span aria-hidden className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(74,222,128,0.8)]" />
                 )}
+                {app.slug === "inbox" && unreadInbox > 0 && (
+                  <span aria-label={`${unreadInbox} unread`} className="absolute -top-1 -right-2 text-[9px] font-semibold px-1 rounded-full bg-rose-500 text-white min-w-[14px] h-[14px] flex items-center justify-center leading-none">{unreadInbox > 9 ? "9+" : unreadInbox}</span>
+                )}
               </div>
               {app.name}
             </Link>
@@ -447,6 +475,15 @@ export default function Nav() {
             </Link>
           );
         })}
+        <Link
+          href="/settings"
+          className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors whitespace-nowrap shrink-0 basis-[20%] min-w-[72px] ${
+            isActive("/settings") ? "text-indigo-400" : "text-slate-500 active:text-slate-300"
+          }`}
+        >
+          <Icon d={ICONS.gear} size={20} />
+          Settings
+        </Link>
       </nav>
     </>
   );
