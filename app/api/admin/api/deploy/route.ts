@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
 import { verifyAdminApiToken } from "@/lib/admin-api-token";
+import { verify, SESSION_COOKIE } from "@/lib/auth-session";
+import { findById } from "@/lib/users";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +14,13 @@ function bearer(req: NextRequest): string | null {
   return m ? m[1].trim() : null;
 }
 
+function isAdminSession(req: NextRequest): boolean {
+  const session = verify(req.cookies.get(SESSION_COOKIE)?.value);
+  if (!session) return false;
+  const user = findById(session.userId);
+  return !!(user && user.status === "active" && user.isAdmin);
+}
+
 /**
  * Pulls latest from origin/main, builds, and restarts the systemd unit.
  * Token-auth only (no session cookie). Used by `mc-remote <host> deploy`.
@@ -21,7 +30,7 @@ function bearer(req: NextRequest): string | null {
  * has time to flush before systemd kills this process.
  */
 export async function POST(req: NextRequest) {
-  if (!verifyAdminApiToken(bearer(req))) {
+  if (!verifyAdminApiToken(bearer(req)) && !isAdminSession(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
