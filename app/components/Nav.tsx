@@ -231,8 +231,19 @@ export default function Nav() {
     return true;
   };
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  // Longest-prefix wins: when pathname is /elements/new, both /elements (My
+  // Apps) and /elements/new (Build an App) would prefix-match. Only the
+  // longest registered href should highlight.
+  const allHrefs = BUILTIN_APPS.map((a) => a.href).filter((h) => h && h !== "/");
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    if (pathname !== href && !pathname.startsWith(href + "/")) return false;
+    return !allHrefs.some((other) =>
+      other !== href &&
+      other.length > href.length &&
+      (pathname === other || pathname.startsWith(other + "/")),
+    );
+  };
 
   const signOut = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
