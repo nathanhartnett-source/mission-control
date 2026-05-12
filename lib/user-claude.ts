@@ -63,10 +63,15 @@ export function runUserClaude(opts: UserClaudeOptions): UserClaudeResult {
 
   let result: SpawnSyncReturns<string>;
   try {
+    // NOTE: NOT using --bare. --bare forces ANTHROPIC_API_KEY-only auth,
+    // which breaks for users on OAuth/subscription (Nathan, most installs).
+    // We still sandbox aggressively: --strict-mcp-config + no --mcp-config
+    // disables all MCP servers; --tools restricts the built-in toolset to
+    // the whitelist. Hooks may still run but with no tool access beyond
+    // the whitelist they have nothing to act on.
     result = spawnSync(CLAUDE_BIN, [
       "-p",
       "--model", model,
-      "--bare",
       "--strict-mcp-config",
       "--tools", tools,
     ], {
