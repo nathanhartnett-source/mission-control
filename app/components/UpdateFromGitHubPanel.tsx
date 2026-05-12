@@ -63,7 +63,7 @@ export default function UpdateFromGitHubPanel() {
   const behindCount = status?.behindCount ?? 0;
 
   return (
-    <section className="border border-slate-800 rounded-xl p-5 bg-slate-900/40 mt-12 mb-6">
+    <section className="border border-slate-800 rounded-xl p-5 bg-slate-900/40 mt-8 mb-6">
       <h2 className="text-sm font-semibold text-slate-200">Update from GitHub</h2>
       <p className="text-xs text-slate-400 mt-1">
         Pulls the latest <code className="text-slate-300">main</code> branch from the Mission Control repo, runs <code className="text-slate-300">npm install &amp; npm run build</code>, then restarts the service.
