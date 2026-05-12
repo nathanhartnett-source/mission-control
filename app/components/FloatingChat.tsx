@@ -79,7 +79,8 @@ export default function FloatingChat() {
   }, []);
 
   const hidden = HIDE_ON.has(pathname) || !me;
-  const agentName = (me?.agentNames?.["me"] as string) || "Your agent";
+  // Prefer per-user agentName (single-agent model); fall back to admin's agentNames.me; finally "Your agent".
+  const agentName = (me?.agentName as string) || (me?.agentNames?.["me"] as string) || "Your agent";
 
   const refresh = useCallback(async () => {
     try {
@@ -105,11 +106,14 @@ export default function FloatingChat() {
     };
   }, [open, hidden, refresh]);
 
+  // Autoscroll on row count OR text growth (agent reply lands in an existing
+  // row by corr_id; rows.length doesn't change but text does).
+  const contentFingerprint = rows.map((r) => `${r.corr_id}:${r.agent_state || ""}:${(r.agent_text || "").length}:${(r.user_text || "").length}`).join("|");
   useEffect(() => {
     if (open && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [open, rows.length]);
+  }, [open, contentFingerprint]);
 
   useEffect(() => { textRef.current = text; }, [text]);
 
@@ -175,7 +179,7 @@ export default function FloatingChat() {
               </svg>
             </button>
           </div>
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 space-y-2 scroll-pretty">
             {rows.length === 0 && (
               <div className="text-xs text-slate-500 text-center py-8">
                 Ask {agentName} about this page.
@@ -187,7 +191,7 @@ export default function FloatingChat() {
               if (userText) {
                 items.push(
                   <div key={`${r.corr_id}-u`} className="flex justify-end">
-                    <div className="max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap bg-indigo-600 text-white">
+                    <div className="max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words bg-indigo-600 text-white">
                       {userText}
                     </div>
                   </div>
