@@ -223,23 +223,21 @@ export default function MyAlertsPage() {
   };
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-10 text-slate-200">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">My Alerts</h1>
-          <p className="text-sm text-slate-400 mt-1">Describe alerts in plain English. Chat with the AI to set them up or change them.</p>
-        </div>
+    <main className="max-w-3xl mx-auto px-3 sm:px-6 py-6 sm:py-10 text-slate-200">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-semibold">My Alerts</h1>
+        <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Describe alerts in plain English. Chat with the AI to set them up or change them.</p>
         {!chatOpen && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            <button onClick={openNewChat} className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium whitespace-nowrap">+ New alert</button>
             <button
               onClick={suggest}
               disabled={suggesting}
-              className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium border border-slate-700 disabled:opacity-40"
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium border border-slate-700 disabled:opacity-40 whitespace-nowrap"
               title="Have the AI suggest alerts based on your apps + context"
             >
-              {suggesting ? "Thinking…" : "✨ Suggest alerts"}
+              {suggesting ? "Thinking…" : "✨ Suggest"}
             </button>
-            <button onClick={openNewChat} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium">+ New alert</button>
           </div>
         )}
       </div>
@@ -346,22 +344,24 @@ export default function MyAlertsPage() {
       ) : (
         <div className="space-y-2">
           {alerts.map(a => (
-            <div key={a.id} className={`border rounded-xl p-4 flex items-start gap-3 ${a.active ? "border-slate-800 bg-slate-900/40" : "border-slate-800/40 bg-slate-900/20 opacity-60"}`}>
-              <div className="flex-1 min-w-0">
+            <div key={a.id} className={`border rounded-xl p-3 sm:p-4 ${a.active ? "border-slate-800 bg-slate-900/40" : "border-slate-800/40 bg-slate-900/20 opacity-60"}`}>
+              <div className="min-w-0">
                 {a.label && <div className="text-sm font-semibold text-slate-100">{a.label}</div>}
-                <div className="text-sm text-slate-300 mt-0.5">{a.summary || a.intent || a.prompt || "(no description)"}</div>
+                <div className="text-sm text-slate-300 mt-0.5 line-clamp-3">{a.summary || a.intent || a.prompt || "(no description)"}</div>
                 <div className="text-[11px] text-slate-500 mt-2">
                   Checked {a.kind === "research" ? `every ${a.frequencyHours || 24}h` : "every 30 min"}
                   {a.lastFiredAt && <> · Last fired {new Date(a.lastFiredAt).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</>}
                   {a.lastEvaluatedAt && !a.lastFiredAt && <> · Last checked {new Date(a.lastEvaluatedAt).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</>}
                 </div>
               </div>
-              <button onClick={() => sendTest(a)} className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-amber-400 hover:bg-slate-800/60" title="Send a sample triggered alert to your Inbox">Test</button>
-              <button onClick={() => openEditChat(a)} className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-indigo-400 hover:bg-slate-800/60">Edit</button>
-              <button onClick={() => toggleActive(a)} className={`text-xs px-2 py-1 rounded-md ${a.active ? "bg-emerald-900/40 text-emerald-300 border border-emerald-800/50" : "bg-slate-800 text-slate-400"}`}>
-                {a.active ? "Active" : "Off"}
-              </button>
-              <button onClick={() => del(a)} className="text-xs text-slate-500 hover:text-rose-400">Delete</button>
+              <div className="flex items-center gap-1.5 mt-3 flex-wrap">
+                <button onClick={() => openEditChat(a)} className="text-xs px-2 py-1 rounded-md bg-slate-800 text-slate-300 hover:text-indigo-300 hover:bg-slate-700">Edit</button>
+                <button onClick={() => sendTest(a)} className="text-xs px-2 py-1 rounded-md bg-slate-800 text-slate-300 hover:text-amber-300 hover:bg-slate-700" title="Send a sample triggered alert to your Inbox">Test</button>
+                <button onClick={() => toggleActive(a)} className={`text-xs px-2 py-1 rounded-md ${a.active ? "bg-emerald-900/40 text-emerald-300 border border-emerald-800/50" : "bg-slate-800 text-slate-400"}`}>
+                  {a.active ? "Active" : "Off"}
+                </button>
+                <button onClick={() => del(a)} className="text-xs px-2 py-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-slate-800/60 ml-auto">Delete</button>
+              </div>
             </div>
           ))}
         </div>
