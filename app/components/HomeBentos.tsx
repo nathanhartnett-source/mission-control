@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { marked } from "marked";
 import { toast } from "sonner";
 
@@ -182,6 +182,42 @@ export default function HomeBentos() {
   );
 }
 
+// ─── Flip card shell (same CSS as project bentos in globals.css) ────────────
+
+function FlipCard({
+  front, back, flipped, style,
+}: {
+  front: React.ReactNode;
+  back: React.ReactNode;
+  flipped: boolean;
+  style?: CSSProperties;
+}) {
+  const frontRef = useRef<HTMLDivElement | null>(null);
+  const backRef  = useRef<HTMLDivElement | null>(null);
+  const [height, setHeight] = useState<number | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    const active = flipped ? backRef.current : frontRef.current;
+    if (!active) return;
+    const update = () => setHeight(active.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(active);
+    return () => ro.disconnect();
+  }, [flipped]);
+
+  return (
+    <div
+      className="flip-card"
+      data-flipped={flipped ? "true" : "false"}
+      style={{ ...style, height }}
+    >
+      <div ref={frontRef} className="flip-face flip-front">{front}</div>
+      <div ref={backRef}  className="flip-face flip-back">{back}</div>
+    </div>
+  );
+}
+
 // ─── Card ───────────────────────────────────────────────────────────────────
 
 function BentoCard({
@@ -207,63 +243,23 @@ function BentoCard({
 
   const labelTitle = bento.title || (bento.prompt.length > 32 ? bento.prompt.slice(0, 32) + "…" : bento.prompt);
 
-  return (
-    <div className="relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/40 p-4 min-h-[160px] flex flex-col">
+  const cardShell = "relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/40 p-4 min-h-[160px] flex flex-col h-full";
+
+  const front = (
+    <div className={cardShell}>
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="text-[10px] font-semibold tracking-widest uppercase text-slate-500 truncate">{labelTitle}</div>
         <div className="flex items-center gap-1 shrink-0">
           {bento.refreshing && (
             <span className="text-[10px] text-amber-500 animate-pulse">refreshing…</span>
           )}
-          {!bento.refreshing && !isEditing && (
+          {!bento.refreshing && (
             <button onClick={onRefresh} title="Refresh now" className="text-slate-400 hover:text-indigo-500 text-xs px-1">↻</button>
           )}
-          <button onClick={onFlip} title={isEditing ? "Done" : "Edit"} className="text-slate-400 hover:text-indigo-500 text-xs px-1">⚙</button>
+          <button onClick={onFlip} title="Edit" className="text-slate-400 hover:text-indigo-500 text-xs px-1">⚙</button>
         </div>
       </div>
-
-      {isEditing ? (
-        <div className="flex-1 flex flex-col gap-2">
-          <input
-            value={draftTitle}
-            onChange={e => setDraftTitle(e.target.value)}
-            placeholder="Title (optional)"
-            className="w-full bg-slate-950/80 border border-slate-800 rounded px-2 py-1 text-xs text-slate-100"
-          />
-          <textarea
-            value={draftPrompt}
-            onChange={e => setDraftPrompt(e.target.value)}
-            rows={4}
-            className="flex-1 w-full bg-slate-950/80 border border-slate-800 rounded px-2 py-1 text-xs text-slate-100 resize-none"
-          />
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <span>Refresh every</span>
-            <select
-              value={draftFreq}
-              onChange={e => setDraftFreq(Number(e.target.value))}
-              className="bg-slate-950/80 border border-slate-800 rounded px-2 py-1 text-xs text-slate-100"
-            >
-              <option value={1}>1 hour</option>
-              <option value={6}>6 hours</option>
-              <option value={12}>12 hours</option>
-              <option value={24}>1 day</option>
-              <option value={72}>3 days</option>
-              <option value={168}>1 week</option>
-            </select>
-          </div>
-          <div className="flex justify-between items-center mt-1">
-            <button onClick={onDelete} className="text-xs text-rose-500 hover:text-rose-400">Delete</button>
-            <div className="flex gap-2">
-              <button onClick={onFlip} className="text-xs px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
-              <button
-                onClick={() => onSave(draftPrompt, draftTitle, draftFreq)}
-                disabled={!draftPrompt.trim()}
-                className="text-xs px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40"
-              >Save & refresh</button>
-            </div>
-          </div>
-        </div>
-      ) : bento.lastError ? (
+      {bento.lastError ? (
         <div className="flex-1 flex items-center justify-center text-xs text-rose-400 text-center">
           Couldn&rsquo;t refresh: {bento.lastError}
         </div>
@@ -288,10 +284,60 @@ function BentoCard({
           dangerouslySetInnerHTML={{ __html: marked.parse(bento.result, { breaks: true, gfm: true }) as string }}
         />
       )}
-
-      {!isEditing && bento.lastUpdated && (
+      {bento.lastUpdated && (
         <div className="text-[10px] text-slate-400 mt-2 shrink-0">Updated {fmtAgo(bento.lastUpdated)}</div>
       )}
     </div>
   );
+
+  const back = (
+    <div className={cardShell}>
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div className="text-[10px] font-semibold tracking-widest uppercase text-slate-500 truncate">Edit bento</div>
+        <button onClick={onFlip} title="Done" className="text-slate-400 hover:text-indigo-500 text-xs px-1">⚙</button>
+      </div>
+      <div className="flex-1 flex flex-col gap-2">
+        <input
+          value={draftTitle}
+          onChange={e => setDraftTitle(e.target.value)}
+          placeholder="Title (optional)"
+          className="w-full bg-slate-950/80 border border-slate-800 rounded px-2 py-1 text-xs text-slate-100"
+        />
+        <textarea
+          value={draftPrompt}
+          onChange={e => setDraftPrompt(e.target.value)}
+          rows={4}
+          className="flex-1 w-full bg-slate-950/80 border border-slate-800 rounded px-2 py-1 text-xs text-slate-100 resize-none"
+        />
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <span>Refresh every</span>
+          <select
+            value={draftFreq}
+            onChange={e => setDraftFreq(Number(e.target.value))}
+            className="bg-slate-950/80 border border-slate-800 rounded px-2 py-1 text-xs text-slate-100"
+          >
+            <option value={1}>1 hour</option>
+            <option value={6}>6 hours</option>
+            <option value={12}>12 hours</option>
+            <option value={24}>1 day</option>
+            <option value={72}>3 days</option>
+            <option value={168}>1 week</option>
+          </select>
+        </div>
+        <div className="flex justify-between items-center mt-1">
+          <button onClick={onDelete} className="text-xs text-rose-500 hover:text-rose-400">Delete</button>
+          <div className="flex gap-2">
+            <button onClick={onFlip} className="text-xs px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
+            <button
+              onClick={() => onSave(draftPrompt, draftTitle, draftFreq)}
+              disabled={!draftPrompt.trim()}
+              className="text-xs px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40"
+            >Save &amp; refresh</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return <FlipCard front={front} back={back} flipped={isEditing} />;
 }
