@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { spawnSync } from "child_process";
 import { requireUser } from "@/lib/elements-auth";
 import { ALERT_SOURCES } from "@/lib/alert-sources";
+import { runUserClaude } from "@/lib/user-claude";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,19 +84,11 @@ ${JSON.stringify(currentAlert, null, 2)}
 ` : ""}═══ CONVERSATION SO FAR ═══
 ${transcript}`;
 
-  const CLAUDE_BIN = process.env.CLAUDE_BIN || "/home/nathan/.npm-global/bin/claude";
-  const result = spawnSync(CLAUDE_BIN, ["-p", "--model", "claude-sonnet-4-6"], {
-    input: systemPrompt,
-    encoding: "utf8",
-    timeout: 55000,
-    maxBuffer: 1024 * 1024,
-  });
-
-  const raw = (result.stdout || "").trim();
+  const result = runUserClaude({ prompt: systemPrompt, username: auth.username, model: "opus", timeoutMs: 55000 });
+  const raw = result.stdout;
   if (!raw) {
-    const stderr = (result.stderr || "").trim().slice(0, 300);
-    const code = result.status;
-    return NextResponse.json({ reply: `Sorry — the AI didn't respond (exit=${code}${stderr ? `, err: ${stderr}` : ""}). Try again.`, ready: false });
+    const stderr = result.stderr.slice(0, 300);
+    return NextResponse.json({ reply: `Sorry — the AI didn't respond (exit=${result.exitCode}${stderr ? `, err: ${stderr}` : ""}). Try again.`, ready: false });
   }
 
   let parsed: { reply?: string; ready?: boolean; alert?: Record<string, unknown> } | null = null;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { spawnSync } from "child_process";
 import { listAllDataAlerts, updateDataAlert } from "@/lib/data-alerts";
+import { runUserClaude } from "@/lib/user-claude";
 import { evaluateValue, evaluatePerBrand, readLatestPsiRows, compareValue } from "@/lib/alert-sources";
 import { postMessage } from "@/lib/inbox";
 
@@ -57,14 +57,8 @@ Respond with ONLY a single JSON object (no prose, no markdown fences):
   "sources": ["<url>", "<url>"]
 }`;
 
-        const CLAUDE_BIN = process.env.CLAUDE_BIN || "/home/nathan/.npm-global/bin/claude";
-        const r = spawnSync(CLAUDE_BIN, ["-p", "--model", "claude-sonnet-4-6"], {
-          input: sysPrompt,
-          encoding: "utf8",
-          timeout: 180000,
-          maxBuffer: 4 * 1024 * 1024,
-        });
-        const raw = (r.stdout || "").trim();
+        const r = runUserClaude({ prompt: sysPrompt, username: a.owner, model: "opus", timeoutMs: 180000 });
+        const raw = r.stdout;
         updateDataAlert(a.owner, a.id, { lastEvaluatedAt: new Date().toISOString() });
         let parsed: { found?: boolean; summary?: string; sources?: string[] } | null = null;
         if (raw) {
@@ -148,14 +142,8 @@ Respond with ONLY this JSON (no prose, no markdown fences):
   "reason": "<one short sentence explaining your decision either way>"
 }`;
 
-        const CLAUDE_BIN = process.env.CLAUDE_BIN || "/home/nathan/.npm-global/bin/claude";
-        const r = spawnSync(CLAUDE_BIN, ["-p", "--model", "claude-sonnet-4-6"], {
-          input: judgePrompt,
-          encoding: "utf8",
-          timeout: 90000,
-          maxBuffer: 2 * 1024 * 1024,
-        });
-        const raw = (r.stdout || "").trim();
+        const r = runUserClaude({ prompt: judgePrompt, username: a.owner, model: "opus", timeoutMs: 90000 });
+        const raw = r.stdout;
         let verdict: { shouldAlert?: boolean; subject?: string; body?: string; reason?: string } | null = null;
         if (raw) {
           try { verdict = JSON.parse(raw); }

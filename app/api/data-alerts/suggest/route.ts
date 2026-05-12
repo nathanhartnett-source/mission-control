@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { spawnSync } from "child_process";
 import { requireUser } from "@/lib/elements-auth";
 import { ALERT_SOURCES } from "@/lib/alert-sources";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { listElements } from "@/lib/elements";
+import { runUserClaude } from "@/lib/user-claude";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,14 +52,8 @@ Respond with ONLY this JSON (no prose, no markdown fences):
 
 ${ctx}`;
 
-  const CLAUDE_BIN = process.env.CLAUDE_BIN || "/home/nathan/.npm-global/bin/claude";
-  const result = spawnSync(CLAUDE_BIN, ["-p", "--model", "claude-sonnet-4-6"], {
-    input: systemPrompt,
-    encoding: "utf8",
-    timeout: 55000,
-    maxBuffer: 1024 * 1024,
-  });
-  const raw = (result.stdout || "").trim();
+  const result = runUserClaude({ prompt: systemPrompt, username: auth.username, model: "opus", timeoutMs: 55000 });
+  const raw = result.stdout;
   if (!raw) return NextResponse.json({ error: "AI didn't respond" }, { status: 500 });
 
   let parsed: { suggestions?: { title?: string; prompt?: string; kind?: string; why?: string }[] } | null = null;

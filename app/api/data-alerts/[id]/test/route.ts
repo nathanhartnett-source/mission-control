@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { spawnSync } from "child_process";
 import { requireUser } from "@/lib/elements-auth";
 import { getDataAlert } from "@/lib/data-alerts";
 import { postMessage } from "@/lib/inbox";
+import { runUserClaude } from "@/lib/user-claude";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,14 +32,8 @@ Respond with ONLY this JSON (no prose, no markdown fences):
   "body": "<inbox message body, markdown OK>"
 }`;
 
-  const CLAUDE_BIN = process.env.CLAUDE_BIN || "/home/nathan/.npm-global/bin/claude";
-  const r = spawnSync(CLAUDE_BIN, ["-p", "--model", "claude-sonnet-4-6"], {
-    input: prompt,
-    encoding: "utf8",
-    timeout: 55000,
-    maxBuffer: 1024 * 1024,
-  });
-  const raw = (r.stdout || "").trim();
+  const r = runUserClaude({ prompt, username: auth.username, model: "opus", timeoutMs: 55000 });
+  const raw = r.stdout;
   let parsed: { subject?: string; body?: string } | null = null;
   if (raw) {
     try { parsed = JSON.parse(raw); }
