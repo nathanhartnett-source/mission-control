@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import TrophyShelf from "./components/TrophyShelf";
+import HomeBentos from "./components/HomeBentos";
 
 const T = {
   pageBg:        "var(--bento-page-bg, #0a0a0a)",
@@ -126,6 +127,8 @@ export default function HomePage() {
               : "Your agent is ready when you are."}
           </p>
         </header>
+
+        <HomeBentos />
 
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
           <StatCard
