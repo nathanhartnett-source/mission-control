@@ -43,3 +43,8 @@ next-env.d.ts
 
 # auth audit log — host-local, never commit
 data/auth-audit.jsonl
+
+# backups / scratch
+.backups/
+*.bak
+*.bak-*

@@ -35,7 +35,7 @@ Also read `~/.openclaw/openclaw.json` for configured primary model:
   "agents": {
     "defaults": {
       "model": {
-        "primary": "anthropic/claude-sonnet-4-6"
+        "primary": "anthropic/claude-opus-4-7"
       }
     }
   }
@@ -70,7 +70,7 @@ Also sum across:
 ### Plan Limits Reference (STATIC DATA — hardcode this)
 ```
 Claude Pro ($20/month):
-- Model: claude-sonnet-4-6, claude-3-5-haiku, claude-opus-4
+- Model: claude-opus-4-7 (core platform default; never downgrade)
 - Context window: 200k tokens per request
 - Daily limit: ~5–10M tokens (no hard limit; Anthropic fair use)
 - Rate limit: ~500 requests/hour (approximate)
@@ -92,7 +92,7 @@ Returns JSON:
 {
   "currentModel": {
     "provider": "anthropic",
-    "modelId": "claude-sonnet-4-6",
+    "modelId": "claude-opus-4-7",
     "displayName": "Claude Sonnet 4.6",
     "source": "session"  // "session" | "config"
   },
@@ -125,7 +125,7 @@ Returns JSON:
 ### Row 1: Current API Card (full width)
 Big prominent card showing:
 - 🤖 Provider logo/icon (Anthropic = purple, OpenAI = green)
-- Model name (e.g. "claude-sonnet-4-6")
+- Model name (e.g. "claude-opus-4-7")
 - Provider (e.g. "Anthropic")
 - Source: "Active session" or "Config"
 - Session started: "2 hours ago"
@@ -154,7 +154,7 @@ A two-column comparison table:
 | Feature | Claude Pro | OpenAI Plus + Codex |
 |---------|------------|---------------------|
 | Price | $20/month | $20/month + credits |
-| Models | claude-sonnet-4-6, opus-4, haiku | gpt-5.2-codex, gpt-4o, mini |
+| Models | claude-opus-4-7 only (core platform) | gpt-5.2-codex, gpt-4o, mini |
 | Context | 200k tokens | 128k tokens |
 | Daily token budget | ~5–10M (fair use) | $5 free credits |
 | Rate limit | ~500 req/hr | 80 msg/3hr (ChatGPT) |
