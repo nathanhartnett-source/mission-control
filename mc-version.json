@@ -1,0 +1,5 @@
+{
+  "sdkVersion": 1,
+  "sdkVersionLabel": "1.0",
+  "notes": "Core AIOS contract version. Bump major when removing or breaking an export from lib/sdk/. Bump minor when adding new exports. Custom apps may declare a minSdk requirement; update panel warns on mismatch."
+}
