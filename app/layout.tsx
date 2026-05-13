@@ -99,10 +99,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en">
-      <head>
-        {userCss && <style dangerouslySetInnerHTML={{ __html: userCss }} />}
-      </head>
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${inter.className} min-h-screen bg-slate-900 mc-themed-body`}>
+        {userCss && <style dangerouslySetInnerHTML={{ __html: userCss }} />}
         <MeProvider initial={initialMe}>
           <ThemeApplier />
           {!isPublic && <Nav />}
