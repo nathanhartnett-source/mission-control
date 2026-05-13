@@ -30,16 +30,15 @@ let cached: SiteConfig | null = null;
 export function getSiteConfig(): SiteConfig {
   if (cached) return cached;
   const file = path.join(process.cwd(), "config", "site.json");
-  if (!fs.existsSync(file)) {
-    cached = DEFAULTS;
-    return cached;
+  let resolved: SiteConfig = DEFAULTS;
+  if (fs.existsSync(file)) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+      resolved = { ...DEFAULTS, ...raw };
+    } catch {
+      resolved = DEFAULTS;
+    }
   }
-  try {
-    const raw = JSON.parse(fs.readFileSync(file, "utf8"));
-    cached = { ...DEFAULTS, ...raw };
-    return cached;
-  } catch {
-    cached = DEFAULTS;
-    return cached;
-  }
+  cached = resolved;
+  return resolved;
 }

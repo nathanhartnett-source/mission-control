@@ -9,17 +9,17 @@ let cached: VersionFile | null = null;
 
 function load(): VersionFile {
   if (cached) return cached;
+  let resolved: VersionFile = { sdkVersion: 1, sdkVersionLabel: "1.0" };
   try {
     const raw = fs.readFileSync(path.join(process.cwd(), "mc-version.json"), "utf8");
     const v = JSON.parse(raw);
-    cached = {
+    resolved = {
       sdkVersion: typeof v.sdkVersion === "number" ? v.sdkVersion : 1,
       sdkVersionLabel: String(v.sdkVersionLabel || v.sdkVersion || "1"),
     };
-  } catch {
-    cached = { sdkVersion: 1, sdkVersionLabel: "1.0" };
-  }
-  return cached;
+  } catch { /* fall through to defaults */ }
+  cached = resolved;
+  return resolved;
 }
 
 export const SDK_VERSION = load().sdkVersion;

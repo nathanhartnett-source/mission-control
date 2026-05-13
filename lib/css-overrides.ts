@@ -12,19 +12,17 @@ export function readUserCssOverrides(): string {
   const dir = path.join(process.cwd(), "overrides", "css");
   let out = "";
   try {
-    if (!fs.existsSync(dir)) {
-      cached = "";
-      return cached;
-    }
-    const files = fs.readdirSync(dir)
-      .filter((f) => f.endsWith(".css"))
-      .sort();
-    for (const f of files) {
-      try {
-        out += "\n/* " + f + " */\n" + fs.readFileSync(path.join(dir, f), "utf8");
-      } catch { /* skip unreadable */ }
+    if (fs.existsSync(dir)) {
+      const files = fs.readdirSync(dir)
+        .filter((f) => f.endsWith(".css"))
+        .sort();
+      for (const f of files) {
+        try {
+          out += "\n/* " + f + " */\n" + fs.readFileSync(path.join(dir, f), "utf8");
+        } catch { /* skip unreadable */ }
+      }
     }
   } catch { /* skip */ }
   cached = out;
-  return cached;
+  return out;
 }
