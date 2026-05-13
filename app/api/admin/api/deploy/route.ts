@@ -57,6 +57,20 @@ else
 fi
 echo "==> regenerating core integrity manifest"
 node scripts/build-core-manifest.mjs 2>/dev/null || true
+echo "==> refreshing installed user-agent runner script"
+if [[ -f install/mc-user-agent-runner.sh ]]; then
+  install -m 0755 install/mc-user-agent-runner.sh /usr/local/bin/mc-user-agent-runner.sh 2>/dev/null || \
+    sudo install -m 0755 install/mc-user-agent-runner.sh /usr/local/bin/mc-user-agent-runner.sh 2>/dev/null || \
+    echo "(skipped — need root to refresh /usr/local/bin)"
+fi
+echo "==> migrating legacy agent paths if present (one-time)"
+mkdir -p data/agent-chat data/mc-agent-outbox 2>/dev/null || true
+if [[ -f "$HOME/legacy-workspace/mission-control/data/agent-chat/messages.jsonl" && ! -f data/agent-chat/messages.jsonl ]]; then
+  cp "$HOME/legacy-workspace/mission-control/data/agent-chat/messages.jsonl" data/agent-chat/messages.jsonl 2>/dev/null && echo "  migrated chat history"
+fi
+if [[ -d "$HOME/wiki/_outbox/mc-agent" ]]; then
+  cp -n "$HOME/wiki/_outbox/mc-agent/"*.json data/mc-agent-outbox/ 2>/dev/null && echo "  migrated outbox entries" || true
+fi
 echo "==> npm run build"
 npm run build
 echo "==> queuing detached restart"

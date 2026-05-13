@@ -25,11 +25,16 @@ MC_DATA_DIR="${MC_DATA_DIR:-$MC_HOME/data}"
 USERS_JSON="$MC_DATA_DIR/users.json"
 
 INBOX="$HOME/.claude/channels/user-${USERNAME}/inbox"
-# Must match OUTBOX_DIR + HISTORY_FILE in lib/agents.ts so the web UI sees the
-# runner's responses. Override via MC_OUTBOX_DIR / MC_HISTORY_FILE if those
-# constants ever move.
-OUTBOX="${MC_OUTBOX_DIR:-$HOME/wiki/_outbox/mc-agent}"
-HISTORY_FILE_PATH="${MC_HISTORY_FILE:-$HOME/legacy-workspace/mission-control/data/agent-chat/messages.jsonl}"
+# Must match OUTBOX_DIR + HISTORY_FILE in lib/agents.ts so the web UI sees
+# the runner's responses. The MC service resolves these as MC_DATA_ROOT
+# (or process.cwd()/data) — we mirror that here: prefer explicit overrides,
+# else MC_DATA_ROOT, else $MC_HOME/data, else $MC_DATA_DIR (legacy var),
+# else assume the runner was invoked from the MC install dir.
+_DATA_ROOT="${MC_DATA_ROOT:-${MC_HOME:+$MC_HOME/data}}"
+_DATA_ROOT="${_DATA_ROOT:-$MC_DATA_DIR}"
+_DATA_ROOT="${_DATA_ROOT:-$(pwd)/data}"
+OUTBOX="${MC_OUTBOX_DIR:-$_DATA_ROOT/mc-agent-outbox}"
+HISTORY_FILE_PATH="${MC_HISTORY_FILE:-$_DATA_ROOT/agent-chat/messages.jsonl}"
 STATE_DIR="$HOME/user-workspaces/${USERNAME}"
 USER_MEM="$HOME/.claude/projects/-home-${USERNAME}/memory"
 LOG="/tmp/mc-user-agent-runner-${USERNAME}.log"
