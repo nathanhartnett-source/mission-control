@@ -33,6 +33,8 @@ export default function OnboardingPage() {
   const [questionNumber, setQuestionNumber] = useState(0);
   const [agentSeed, setAgentSeed] = useState<string>(() => agentAvatarSeed("me"));
   const [done, setDone] = useState<null | { compiled: unknown }>(null);
+  const [suggestedApps, setSuggestedApps] = useState<{ name: string; description: string; why: string }[]>([]);
+  const [showAppPicker, setShowAppPicker] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -119,11 +121,26 @@ export default function OnboardingPage() {
         setError(d?.error || "Save failed.");
         return;
       }
-      // Brief breath, then redirect.
-      setTimeout(() => router.replace("/"), 1500);
+      const d = await r.json().catch(() => ({}));
+      const apps = Array.isArray(d?.suggestedApps) ? d.suggestedApps : [];
+      if (apps.length > 0) {
+        setSuggestedApps(apps);
+        setShowAppPicker(true);
+      } else {
+        setTimeout(() => router.replace("/"), 1500);
+      }
     } finally {
       setLoading(false);
     }
+  }
+
+  function buildApp(idea: { name: string; description: string }) {
+    const qs = new URLSearchParams({ description: idea.description }).toString();
+    router.replace(`/elements/new?${qs}`);
+  }
+
+  function skipAppPicker() {
+    router.replace("/");
   }
 
   return (
@@ -211,15 +228,37 @@ export default function OnboardingPage() {
                 </div>
               </div>
             )}
-            {done && (
+            {done && !showAppPicker && (
               <div className="rounded-xl border border-emerald-700/40 bg-emerald-900/20 px-4 py-3 text-sm text-emerald-200">
                 All set. Setting up your workspace…
+              </div>
+            )}
+            {showAppPicker && (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-emerald-700/40 bg-emerald-900/20 px-4 py-3 text-sm text-emerald-200">
+                  Workspace set up. Here are a few starter apps tailored to what you shared — pick one to build now, or skip and explore the dashboard.
+                </div>
+                {suggestedApps.map((app, i) => (
+                  <button
+                    key={i}
+                    onClick={() => buildApp(app)}
+                    className="w-full text-left rounded-xl border border-white/10 bg-slate-800/40 hover:border-indigo-500/50 hover:bg-slate-800/70 transition-colors px-4 py-3"
+                  >
+                    <div className="text-sm font-semibold text-slate-100">{app.name}</div>
+                    <div className="text-xs text-slate-300 mt-1 line-clamp-3">{app.description}</div>
+                    {app.why && <div className="text-[11px] text-slate-500 italic mt-1.5">Why: {app.why}</div>}
+                  </button>
+                ))}
+                <button
+                  onClick={skipAppPicker}
+                  className="w-full text-center text-xs text-slate-400 hover:text-slate-200 py-2"
+                >Skip — go to dashboard →</button>
               </div>
             )}
           </div>
 
           {/* Composer */}
-          {!done && (
+          {!done && !showAppPicker && (
             <div className="border-t border-white/5 bg-slate-950/40 px-3 py-3">
               <div className="flex items-end gap-2">
                 <textarea

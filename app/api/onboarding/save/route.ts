@@ -84,6 +84,13 @@ export async function POST(req: NextRequest) {
       mustDo: clampArr(raw.principles?.mustDo, 8),
     },
     summary: clampStr(raw.summary, 2000),
+    suggestedApps: Array.isArray(raw.suggestedApps)
+      ? raw.suggestedApps.slice(0, 5).map((s) => ({
+          name: clampStr((s as { name?: string }).name, 80),
+          description: clampStr((s as { description?: string }).description, 1200),
+          why: clampStr((s as { why?: string }).why, 240),
+        })).filter((s) => s.name && s.description)
+      : [],
   };
 
   try {
@@ -103,7 +110,7 @@ export async function POST(req: NextRequest) {
       formality,
       pillars: ["identity", "friction", "tools", "dashboard", "comms", "focus", "principles"],
     });
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, suggestedApps: plan.suggestedApps });
   } catch (e) {
     console.error("[onboarding/save]", e);
     return NextResponse.json({ ok: false, error: "Server error." }, { status: 500 });

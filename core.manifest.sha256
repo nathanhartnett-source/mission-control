@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-13T03:43:54.375Z",
+  "generatedAt": "2026-05-13T03:59:25.657Z",
   "fileCount": 104,
   "files": {
     "app/api/admin/api-token/route.ts": "74ebd676b81ff4c69cd85cf7cc760aaf747b1c545fc9611de1a2ecce0b6902f8",
@@ -90,7 +90,7 @@
     "lib/install-config.ts": "66044f71ee32181621bca922a653aff37b66d6d0f7dd9e8bb1aa8e89634c7a6e",
     "lib/mc-config.ts": "3eac1427ff462ec8d3d0c4561c9ebe70547a517a736bafbdd496f5db5fa70003",
     "lib/nav-prefs.ts": "64d5041f285fa75a8322ab7e145754464ab651914e32d6e98d91d8b74242c645",
-    "lib/onboarding-interview.ts": "96bf8f275c1f6ebd720d4e82ed413eb5d174b3a0e5b2b551ad7af429236fc4cb",
+    "lib/onboarding-interview.ts": "1105b407e3335280f449a15771d6ff2aa3084a1501bbaf96d18eb928b3a3564b",
     "lib/powered-by.ts": "5a9fb97736acf7310f35af3eec1158829028654dc1ff91a60efabd6124bed73c",
     "lib/rate-limit.ts": "dbd92d1fa5fae7f4bede714ce23a8d76455070d8d2a80e24f381ab39a1370aaa",
     "lib/sdk/index.ts": "1f5235624310800e333960bb8fb13fd21b0bd677920ae729b2ec0840ddceffbe",

@@ -16,11 +16,12 @@ export default function NewElement() {
   const router = useRouter();
   const search = useSearchParams();
   const editSlug = search?.get("slug") || "";
+  const prefill = search?.get("description") || "";
   const isEdit = !!editSlug;
   // Both create AND edit start in "describe" — for edit it's the change-request prompt.
   // User can skip to direct-field editing from the describe screen if they prefer.
   const [phase, setPhase] = useState<"describe"|"review">("describe");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(prefill);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [needsMoreInfo, setNeedsMoreInfo] = useState("");
