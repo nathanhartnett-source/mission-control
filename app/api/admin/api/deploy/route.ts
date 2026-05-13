@@ -44,11 +44,17 @@ unset NODE_ENV
 echo "==> stashing any local Tier 3 modifications (data/, config/, overrides/, apps/custom/, secrets/)"
 git stash push --include-untracked -m "auto-stash before update $(date -Iseconds)" -- data config overrides apps/custom secrets 2>/dev/null || true
 echo "==> git pull"
+LOCKBEFORE=$(sha1sum package-lock.json 2>/dev/null | cut -d' ' -f1)
 git pull --ff-only
 echo "==> restoring stashed Tier 3 files"
 git stash pop 2>/dev/null || true
-echo "==> npm install (incl devDeps)"
-npm install --include=dev --no-audit --no-fund
+LOCKAFTER=$(sha1sum package-lock.json 2>/dev/null | cut -d' ' -f1)
+if [[ "$LOCKBEFORE" != "$LOCKAFTER" ]] || [[ ! -d node_modules ]]; then
+  echo "==> package-lock changed (or node_modules missing) — running npm install"
+  npm install --include=dev --no-audit --no-fund
+else
+  echo "==> package-lock unchanged — skipping npm install"
+fi
 echo "==> regenerating core integrity manifest"
 node scripts/build-core-manifest.mjs 2>/dev/null || true
 echo "==> npm run build"
