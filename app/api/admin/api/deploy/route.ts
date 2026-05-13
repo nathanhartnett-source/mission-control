@@ -41,10 +41,16 @@ export async function POST(req: NextRequest) {
   const script = `set -euo pipefail
 cd '${cwd.replace(/'/g, "'\\''")}'
 unset NODE_ENV
+echo "==> stashing any local Tier 3 modifications (data/, config/, overrides/, apps/custom/, secrets/)"
+git stash push --include-untracked -m "auto-stash before update $(date -Iseconds)" -- data config overrides apps/custom secrets 2>/dev/null || true
 echo "==> git pull"
 git pull --ff-only
+echo "==> restoring stashed Tier 3 files"
+git stash pop 2>/dev/null || true
 echo "==> npm install (incl devDeps)"
 npm install --include=dev --no-audit --no-fund
+echo "==> regenerating core integrity manifest"
+node scripts/build-core-manifest.mjs 2>/dev/null || true
 echo "==> npm run build"
 npm run build
 echo "==> queuing detached restart"

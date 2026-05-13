@@ -57,7 +57,12 @@ export default function UpdateFromGitHubPanel() {
       const r = await fetch("/api/admin/api/deploy", { method: "POST" });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) {
-        setErr(d?.error || `HTTP ${r.status}`);
+        const parts: string[] = [];
+        if (d?.error) parts.push(d.error);
+        if (typeof d?.exitCode === "number") parts.push(`exit ${d.exitCode}`);
+        if (d?.stderr) parts.push("--- stderr ---\n" + d.stderr);
+        if (d?.stdout) parts.push("--- stdout ---\n" + d.stdout);
+        setErr(parts.join("\n\n") || `HTTP ${r.status}`);
       } else {
         setLog(d?.stdout || "Done — restart queued.");
         setTimeout(loadStatus, 3000);
