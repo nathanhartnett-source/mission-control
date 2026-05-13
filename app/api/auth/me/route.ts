@@ -10,11 +10,20 @@ export const runtime = "nodejs";
 
 function readAgentName(username: string): string | null {
   try {
-    const file = path.join(memoryDir(username.toLowerCase()), "persona.md");
-    if (!fs.existsSync(file)) return null;
-    const body = fs.readFileSync(file, "utf8");
-    const m = body.match(/\*\*Agent name:\*\*\s*(.+)/);
-    return m ? m[1].trim() : null;
+    const dir = memoryDir(username.toLowerCase());
+    const personaFile = path.join(dir, "persona.md");
+    if (fs.existsSync(personaFile)) {
+      const m = fs.readFileSync(personaFile, "utf8").match(/\*\*Agent name:\*\*\s*(.+)/);
+      if (m) return m[1].trim();
+    }
+    if (fs.existsSync(dir)) {
+      const hit = fs.readdirSync(dir).find((f) => /^user_agent_name_.+\.md$/.test(f));
+      if (hit) {
+        const slug = hit.replace(/^user_agent_name_/, "").replace(/\.md$/, "");
+        if (slug) return slug.charAt(0).toUpperCase() + slug.slice(1);
+      }
+    }
+    return null;
   } catch {
     return null;
   }
