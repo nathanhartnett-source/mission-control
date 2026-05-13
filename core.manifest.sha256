@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-13T03:59:25.657Z",
+  "generatedAt": "2026-05-13T05:01:21.291Z",
   "fileCount": 104,
   "files": {
     "app/api/admin/api-token/route.ts": "74ebd676b81ff4c69cd85cf7cc760aaf747b1c545fc9611de1a2ecce0b6902f8",
@@ -41,7 +41,7 @@
     "app/components/ConnectionHealthOverlay.tsx": "de2d293301bf773fab3fca885423431088a72ed08e09856e60ea0c1c1c2564da",
     "app/components/DynamicModuleCard.tsx": "f9c7ca5f54aa5d2a6e3b6fd36617b3cde228e6cec2c3487263da3284d0a7bc4d",
     "app/components/FitnessGamification.tsx": "8fa3515acc2bfdd4e32bbd772d8fb337a9fc1cfbe49d3d1f2ec4be08c6304833",
-    "app/components/FloatingChat.tsx": "5f7f534181807bb6f2f443d1f60a3b71c997000b384dc2ab0b616ad625833b6e",
+    "app/components/FloatingChat.tsx": "e09f9175115d6534edd25c769077ab63bf84e81e22e7eb47cf36dfc74e4ed7a5",
     "app/components/FloatingChatMount.tsx": "812eac8bf32cd8db728f5526ec834c4cf66f8ea71dcfcc2a3ceedbcc29c7e2d2",
     "app/components/HomeBentos.tsx": "e6829591f090c69f3fa1b027946348f9b2357c2ffef416e9a4910cb7a8b157ff",
     "app/components/IconPicker.tsx": "36ab94605cbd0c390f005a8ac3e3776db78d99277eb8c29d1364acd5f2bd2479",

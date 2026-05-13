@@ -211,7 +211,13 @@ export default function FloatingChat() {
                       [&_li]:my-0
                       [&_code]:text-amber-300 [&_code]:bg-slate-900/60 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
                       [&_pre]:bg-slate-900 [&_pre]:border [&_pre]:border-slate-700 [&_pre]:rounded [&_pre]:p-2 [&_pre]:overflow-x-auto [&_pre]:my-1.5 [&_pre>code]:bg-transparent [&_pre>code]:px-0
-                      [&_a]:text-indigo-300 hover:[&_a]:underline">
+                      [&_a]:text-indigo-300 hover:[&_a]:underline
+                      [&_table]:my-2 [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-md [&_table]:border [&_table]:border-slate-700
+                      [&_thead]:bg-slate-900/60
+                      [&_th]:text-left [&_th]:font-semibold [&_th]:text-slate-200 [&_th]:px-2 [&_th]:py-1.5 [&_th]:border-b [&_th]:border-slate-700
+                      [&_td]:px-2 [&_td]:py-1.5 [&_td]:border-t [&_td]:border-slate-800/80 [&_td]:align-top
+                      [&_tbody_tr:nth-child(even)]:bg-slate-900/30
+                      [&_blockquote]:border-l-2 [&_blockquote]:border-slate-600 [&_blockquote]:pl-3 [&_blockquote]:text-slate-300 [&_blockquote]:my-2">
                       {agentText
                         ? <span dangerouslySetInnerHTML={{ __html: marked.parse(agentText, { breaks: true, gfm: true }) as string }} />
                         : <span className="text-amber-300 tabular-nums">thinking…</span>}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { marked } from "marked";
 import PixelAvatar from "@/app/components/PixelAvatar";
 import { useMe } from "@/app/components/MeProvider";
 import { agentAvatarSeed } from "@/lib/avatar";
@@ -318,6 +319,28 @@ function linkify(text: string, keyPrefix: string): React.ReactNode {
   return out.length === 0 ? text : <>{out}</>;
 }
 
+// Tailwind selector bundle that styles whatever HTML marked emits for the
+// non-code-block, non-image text segments. Tables here are the headline —
+// previously rendered as raw "|---|" ASCII, now real <table>s.
+const MD_TAILWIND = "whitespace-normal break-words " +
+  "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 " +
+  "[&_p]:my-1.5 [&_strong]:font-semibold [&_em]:italic " +
+  "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-1.5 [&_li]:my-0 " +
+  "[&_code]:text-amber-300 [&_code]:bg-slate-900/60 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs " +
+  "[&_a]:text-indigo-300 hover:[&_a]:underline " +
+  "[&_blockquote]:border-l-2 [&_blockquote]:border-slate-600 [&_blockquote]:pl-3 [&_blockquote]:text-slate-300 [&_blockquote]:my-2 " +
+  "[&_h1]:text-base [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mt-2.5 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 " +
+  "[&_table]:my-2 [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-md [&_table]:border [&_table]:border-slate-700 " +
+  "[&_thead]:bg-slate-900/60 " +
+  "[&_th]:text-left [&_th]:font-semibold [&_th]:text-slate-200 [&_th]:px-2 [&_th]:py-1.5 [&_th]:border-b [&_th]:border-slate-700 " +
+  "[&_td]:px-2 [&_td]:py-1.5 [&_td]:border-t [&_td]:border-slate-800/80 [&_td]:align-top " +
+  "[&_tbody_tr:nth-child(even)]:bg-slate-900/30";
+
+function renderMarkdownSegment(seg: string, key: string): React.ReactNode {
+  const html = marked.parse(seg, { breaks: true, gfm: true, async: false }) as string;
+  return <div key={key} className={MD_TAILWIND} dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
 // Renders a plain-text segment (no fenced code) with inline markdown images.
 function renderPlainWithImages(text: string, keyPrefix: string): React.ReactNode[] {
   const re = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
@@ -329,9 +352,7 @@ function renderPlainWithImages(text: string, keyPrefix: string): React.ReactNode
     if (m.index > lastIdx) {
       const seg = text.slice(lastIdx, m.index);
       if (seg.trim().length > 0) {
-        parts.push(
-          <div key={`${keyPrefix}-t-${key++}`} className="whitespace-pre-wrap break-words">{linkify(seg, `${keyPrefix}-t${key}`)}</div>,
-        );
+        parts.push(renderMarkdownSegment(seg, `${keyPrefix}-t-${key++}`));
       }
     }
     const alt = m[1];
@@ -362,13 +383,11 @@ function renderPlainWithImages(text: string, keyPrefix: string): React.ReactNode
   if (lastIdx < text.length) {
     const seg = text.slice(lastIdx);
     if (seg.trim().length > 0) {
-      parts.push(
-        <div key={`${keyPrefix}-t-${key++}`} className="whitespace-pre-wrap break-words">{linkify(seg, `${keyPrefix}-t${key}`)}</div>,
-      );
+      parts.push(renderMarkdownSegment(seg, `${keyPrefix}-t-${key++}`));
     }
   }
   if (parts.length === 0) {
-    return [<div key={`${keyPrefix}-fallback`} className="whitespace-pre-wrap break-words">{linkify(text, `${keyPrefix}-fb`)}</div>];
+    return [renderMarkdownSegment(text, `${keyPrefix}-fallback`)];
   }
   return parts;
 }
