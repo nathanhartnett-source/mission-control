@@ -340,7 +340,7 @@ export default function WikiClient({ entries }: { entries: WikiEntry[] }) {
                   <span>{selected?.links.length || 0} links out</span>
                 </div>
                 <h2 className="mt-2 text-xl font-semibold text-white">{selected?.title}</h2>
-                <p className="mt-1 break-all text-xs text-slate-500">~/wiki/{selected?.path}</p>
+                <p className="mt-1 break-all text-xs text-slate-500">{selected?.path}</p>
               </div>
 
               <div className="scroll-pretty max-h-[52vh] overflow-y-auto p-4 xl:max-h-[calc(100vh-194px)]">
@@ -602,7 +602,7 @@ function NodeInfo({ selected, entries, backlinks, onSelect, compact = false }: {
         <span className="mt-1 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: styleFor(selected.type).dot, boxShadow: `0 0 0 4px ${styleFor(selected.type).ring}` }} />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-white">{selected.title}</div>
-          <div className="mt-0.5 break-all text-[11px] text-slate-500">~/wiki/{selected.path}</div>
+          <div className="mt-0.5 break-all text-[11px] text-slate-500">{selected.path}</div>
         </div>
       </div>
       {selected.summary ? <p className="mt-3 text-xs leading-5 text-slate-300">{selected.summary}</p> : null}

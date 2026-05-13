@@ -285,7 +285,7 @@ export async function bootstrapAdminIfEmpty(): Promise<void> {
   if (store.users.length > 0) return;
   const u = process.env.MC_USERNAME;
   const p = process.env.MC_PASSWORD;
-  const e = process.env.MC_ADMIN_EMAIL || "nathanhartnett@allhart.com.au";
+  const e = process.env.MC_ADMIN_EMAIL || "admin@example.com";
   if (!u || !p) return;
   const passwordHash = await bcrypt.hash(p, 12);
   store.users.push({

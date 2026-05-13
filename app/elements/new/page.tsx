@@ -109,7 +109,7 @@ export default function NewElement() {
             onChange={e => setDescription(e.target.value)}
             placeholder={isEdit
               ? 'e.g. "Add a field for budget cap" • "Change output to Excel" • "Make the tone more casual" • "Add a field for the customer\'s industry"'
-              : 'e.g. "Weekly stock-low report — pulls Woo stock data across our 5 sites, outputs a PDF with charts of low SKUs by site." Or: "New product PDP draft — I enter product name + material + price, get back Tessa-voice copy and an image brief."'}
+              : 'e.g. "Weekly stock-low report — pulls inventory data across our stores, outputs a PDF with charts of low SKUs by site." Or: "New product description draft — I enter product name + material + price, get back brand-voice copy and an image brief."'}
             className="w-full h-48 px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:border-indigo-500 focus:outline-none"
           />
           {needsMoreInfo && <div className="text-amber-400 text-sm bg-amber-950/30 border border-amber-900/50 rounded-lg p-3"><strong>Heads up:</strong> {needsMoreInfo}</div>}

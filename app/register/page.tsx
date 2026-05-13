@@ -81,7 +81,7 @@ export default function RegisterPage() {
             value={username}
             onChange={e => setUsername(e.target.value.toLowerCase())}
             className={inputCls}
-            placeholder="tessa"
+            placeholder="username"
           />
         </Field>
         <Field label="Email">

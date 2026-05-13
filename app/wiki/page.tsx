@@ -4,8 +4,10 @@ import { cookies } from "next/headers";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
 import WikiClient, { WikiEntry } from "./WikiClient";
+import { brandedTitle } from "@/lib/powered-by";
+import { getSiteConfig } from "@/lib/site-config";
 
-export const metadata = { title: "Wiki — Allhart AIOS" };
+export const metadata = { title: `Wiki — ${brandedTitle(getSiteConfig().name)}` };
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 

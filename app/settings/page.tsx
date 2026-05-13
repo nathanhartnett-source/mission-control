@@ -12,14 +12,6 @@ import UpdateFromGitHubPanel from "@/app/components/UpdateFromGitHubPanel";
 import MyAgentPanel from "@/app/components/MyAgentPanel";
 import { rollAvatarSeed, agentAvatarSeed } from "@/lib/avatar";
 
-const AGENTS: { slug: string; name: string }[] = [
-  { slug: "ava", name: "Ava" },
-  { slug: "mia", name: "Mia" },
-  { slug: "ash", name: "Ash" },
-  { slug: "overseer", name: "Overseer" },
-  { slug: "switchboard", name: "Switchboard" },
-];
-
 const STORAGE_KEY = "mc-theme-v1";
 
 const DEFAULTS = {
@@ -244,7 +236,7 @@ export default function SettingsPage() {
     <main className="p-6 md:p-10 max-w-2xl text-slate-200">
       <h1 className="text-2xl font-semibold mb-1">Dashboard Settings</h1>
       <p className="text-sm text-slate-400 mb-6">
-        Customise Allhart AIOS colours. Changes are stored locally in this browser.
+        Customise dashboard colours. Changes are stored locally in this browser.
       </p>
 
       <section className="mb-6 space-y-4 bg-slate-900/40 border border-slate-800/60 rounded-xl p-5">
@@ -276,9 +268,8 @@ export default function SettingsPage() {
       {isAdmin && <UpdateFromGitHubPanel />}
       <UserThemePanel />
 
-      {/* Multi-agent grid (Ava/Mia/Ash/Overseer/Switchboard) removed in
-          single-agent strip. Per-user agent rename + reroll lives in the
-          Agent panel rendered for all users. */}
+      {/* Multi-agent grid removed in single-agent strip. Per-user agent
+          rename + reroll lives in the Agent panel rendered for all users. */}
 
       {/* Legacy v1 "Theme presets" section removed — superseded by
           BrandingPanel theme detection + UserThemePanel advanced controls. */}

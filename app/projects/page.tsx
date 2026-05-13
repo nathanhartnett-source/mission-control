@@ -33,7 +33,7 @@ const SettingsIcon  = ({ size = 15 }: { size?: number }) => (
   </svg>
 );
 
-// ── Tokens (mirror BentoFrame) ────────────────────────────────────────────────
+// ── Tokens (bento theme) ─────────────────────────────────────────────────────
 const T = {
   pageBg:        "var(--bento-page-bg, #0a0a0a)",
   cardBg:        "var(--bento-card-bg, #131313)",
@@ -111,7 +111,7 @@ async function saveModules(mods: ProjectModule[]): Promise<void> {
   } catch {}
 }
 
-// Derive a full tinted palette from a hex (ported from BentoFrame's lib/palette.ts).
+// Derive a full tinted palette from a hex.
 // When accent is set, re-tint the whole card (bg, border, text) — not just the accent.
 function hexToHsl(hex: string): { h: number; s: number; l: number } {
   let h = hex.replace("#", "").trim();
@@ -572,7 +572,7 @@ export default function DashboardPage() {
     return () => { alive = false; };
   }, []);
 
-  // Poll every 10s so Hermes-side changes show up without a manual refresh.
+  // Poll every 10s so server-side changes show up without a manual refresh.
   useEffect(() => {
     if (!hydrated) return;
     const t = setInterval(async () => {
