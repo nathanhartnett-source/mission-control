@@ -46,6 +46,9 @@ export default function Nav() {
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
 
+  const displayName = (app: { slug: string; name: string }) =>
+    app.slug === "agents" && me?.agentName ? me.agentName : app.name;
+
   const persistPrefs = async (next: typeof navPrefs) => {
     setNavPrefs(next);
     try {
@@ -286,7 +289,7 @@ export default function Nav() {
                 }`}
               >
                 {renderAppIcon({ slug: app.slug, icon: navPrefs.appIcons?.[app.slug] || app.icon })}
-                <span className="flex-1">{app.name}</span>
+                <span className="flex-1">{displayName(app)}</span>
                 {app.slug === "agents" && hasUnreadAgent && (
                   <span aria-label="unread agent reply" title="Agent has replied" className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(74,222,128,0.8)]" />
                 )}
@@ -376,7 +379,7 @@ export default function Nav() {
                     }`}
                   >
                     <span className="text-base leading-none w-[18px] text-center">{app.icon}</span>
-                    <span className="truncate">{app.name}</span>
+                    <span className="truncate">{displayName(app)}</span>
                   </Link>
                 );
               })}
@@ -459,7 +462,7 @@ export default function Nav() {
                   <span aria-label={`${unreadInbox} unread`} className="absolute -top-1 -right-2 text-[9px] font-semibold px-1 rounded-full bg-rose-500 text-white min-w-[14px] h-[14px] flex items-center justify-center leading-none">{unreadInbox > 9 ? "9+" : unreadInbox}</span>
                 )}
               </div>
-              {app.name}
+              {displayName(app)}
             </Link>
           );
         })}
@@ -484,7 +487,7 @@ export default function Nav() {
               }`}
             >
               <span className="text-xl leading-none">{app.icon}</span>
-              <span className="truncate max-w-[64px]">{app.name}</span>
+              <span className="truncate max-w-[64px]">{displayName(app)}</span>
             </Link>
           );
         })}
