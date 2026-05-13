@@ -91,6 +91,10 @@ const ALLOW = new Map([
   // migrated. Untangling it without breaking the chat flow is a focused
   // session; whitelisted for now.
   ["app/agents/AgentsClient.tsx", "*"],
+  // Deploy script intentionally probes the LEGACY \$HOME/legacy-workspace
+  // chat-history path to migrate old messages forward on installs that
+  // updated from before the MC_DATA_ROOT path refactor. One-shot, idempotent.
+  ["app/api/admin/api/deploy/route.ts", ["legacy-workspace"]],
   // Install docs and shell scripts reference /root/mission-control (the
   // default MC_HOME) and obt.allhart.com.au (the canonical example for
   // PUBLIC_HOSTNAME). These are operator-facing examples + defaults that

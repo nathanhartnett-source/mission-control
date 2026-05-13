@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
     provisionWorkspace(user.username);
     writeOnboardingMemories(user.username, plan);
     await seedHomeBentos(user.username, plan.dashboard.wantsBentos);
+    await seedDemoAlertIfEmpty(user.username, plan);
     markPersonaCompleted(user.id);
     try { (await import("@/lib/achievements")).bump(user.username, "agent_trains"); } catch {}
     audit("onboarding_complete", {
@@ -110,14 +111,47 @@ export async function POST(req: NextRequest) {
 }
 
 async function seedHomeBentos(username: string, wantsBentos: string[]): Promise<void> {
-  if (wantsBentos.length === 0) return;
   try {
-    const { createBento } = await import("@/lib/home-bentos");
+    const { createBento, listBentos } = await import("@/lib/home-bentos");
+    if (listBentos(username).length > 0) return; // don't trample existing
+    // Seed up to 4 from the interview output.
     for (const prompt of wantsBentos.slice(0, 4)) {
       const title = prompt.split(/[.,!?]/)[0].slice(0, 60).trim() || "Bento";
       createBento(username, prompt, 12, title);
     }
+    // ALWAYS guarantee at least one demo bento exists so the home screen
+    // demonstrates the system on first visit. Generic enough to be useful
+    // to anyone; the user can edit, rename, or delete from the ⚙ menu.
+    if (listBentos(username).length === 0) {
+      createBento(
+        username,
+        "Give me a friendly 3-bullet briefing for today: one interesting thing in world news, one in tech, one quick wellbeing nudge. Keep it under 100 words total. This is a starter bento — edit the prompt or delete it once you have your own.",
+        12,
+        "Today's briefing",
+      );
+    }
   } catch (e) {
     console.warn("[onboarding/save] seed bentos skipped:", (e as Error).message);
+  }
+}
+
+async function seedDemoAlertIfEmpty(
+  username: string,
+  plan: { focus: { initialGoals: string[]; firstWeek: string }; agentName: string },
+): Promise<void> {
+  try {
+    const { listDataAlerts, createDataAlert } = await import("@/lib/data-alerts");
+    if (listDataAlerts(username).length > 0) return;
+    const goalsLine = plan.focus.initialGoals.slice(0, 3).join("; ") || "settling into the new dashboard";
+    createDataAlert(username, {
+      kind: "research",
+      prompt: `Check in on the user. Their focus this period: ${goalsLine}. Write a friendly weekly nudge: one question that helps them reflect on progress, one small concrete suggestion, and an offer to dig deeper if useful. Under 120 words.`,
+      frequencyHours: 168,
+      summary: `Weekly check-in nudge — fires every Monday-ish. Edit or disable any time on the Alerts page.`,
+      cooldownHours: 144,
+      active: true,
+    });
+  } catch (e) {
+    console.warn("[onboarding/save] seed alert skipped:", (e as Error).message);
   }
 }

@@ -90,6 +90,22 @@ export default function OnboardingPage() {
     await askNext(next);
   }
 
+  async function skip() {
+    if (loading) return;
+    const next: Message[] = [...messages, { role: "user", text: "Skip this one — move on to the next topic." }];
+    setMessages(next);
+    setInput("");
+    await askNext(next);
+  }
+
+  async function finishEarly() {
+    if (loading || !confirm("Wrap up the interview now? I'll save what I have and you can fine-tune anything later in Settings.")) return;
+    const next: Message[] = [...messages, { role: "user", text: "I'd like to wrap up the interview now. Please return the compiled plan for whatever you have so far; use sensible empty fallbacks for pillars we didn't cover." }];
+    setMessages(next);
+    setInput("");
+    await askNext(next);
+  }
+
   async function save(plan: unknown) {
     setLoading(true);
     try {
@@ -222,6 +238,20 @@ export default function OnboardingPage() {
                   disabled={loading || !input.trim()}
                   className="px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium disabled:opacity-40"
                 >Send</button>
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <button
+                  onClick={skip}
+                  disabled={loading || messages.length === 0}
+                  className="text-[11px] text-slate-400 hover:text-slate-200 disabled:opacity-40"
+                  title="Skip this question and move to the next topic"
+                >Skip this →</button>
+                <button
+                  onClick={finishEarly}
+                  disabled={loading || messages.length === 0 || pillarsComplete.length < 2}
+                  className="text-[11px] text-slate-400 hover:text-slate-200 disabled:opacity-40"
+                  title="Wrap up the interview with whatever you've shared so far"
+                >Wrap up now ✓</button>
               </div>
               {error && <p className="text-xs text-rose-300 mt-2">{error}</p>}
             </div>
