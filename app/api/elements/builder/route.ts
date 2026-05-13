@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
 import { requireUser } from "@/lib/elements-auth";
 import { slugify } from "@/lib/elements";
+import os from "os";
+import path from "path";
+import fs from "fs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -107,9 +110,16 @@ function runClaude(prompt: string, timeoutMs: number): Promise<string> {
     const isRoot = process.getuid?.() === 0;
     const args = ["-p", "--model", "claude-opus-4-7", "--output-format", "text"];
     if (!isRoot) args.push("--permission-mode", "bypassPermissions");
+    // Sandbox the builder spawn to an empty tmp dir so even with
+    // bypassPermissions it can't reach Tier 1 files. The builder only
+    // outputs JSON anyway; this is defense-in-depth.
+    const sandbox = path.join(os.tmpdir(), `mc-builder-${process.pid}-${Date.now()}`);
+    try { fs.mkdirSync(sandbox, { recursive: true }); } catch {}
     const child = spawn(claudeBin, args, {
       stdio: ["pipe", "pipe", "pipe"],
+      cwd: sandbox,
     });
+    child.on("close", () => { try { fs.rmSync(sandbox, { recursive: true, force: true }); } catch {} });
     let out = "", err = "";
     const t = setTimeout(() => { try { child.kill("SIGKILL"); } catch {} reject(new Error("builder timed out")); }, timeoutMs);
     child.stdout.on("data", d => { out += d.toString(); });

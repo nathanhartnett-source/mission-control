@@ -12,11 +12,13 @@ import ConnectionHealthOverlay from "./components/ConnectionHealthOverlay";
 import AchievementOverlay from "./components/AchievementOverlay";
 import FloatingChatMount from "./components/FloatingChatMount";
 import ToasterMount from "./components/ToasterMount";
+import PoweredByFooter from "./components/PoweredByFooter";
 import { MeProvider, type Me } from "./components/MeProvider";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
 import { getSiteConfig } from "@/lib/site-config";
 import { readUserCssOverrides } from "@/lib/css-overrides";
+import { brandedTitle, POWERED_BY } from "@/lib/powered-by";
 
 const site = getSiteConfig();
 
@@ -24,8 +26,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
 
 export const metadata: Metadata = {
-  title: site.name,
-  description: site.loginTagline,
+  title: brandedTitle(site.name),
+  description: `${site.loginTagline} — Powered by ${POWERED_BY}.`,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -113,6 +115,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ToasterMount />
           <div className={isPublic ? "mc-dashboard-shell" : "mc-dashboard-shell md:ml-52 pb-16 md:pb-0"}>
             {children}
+            <PoweredByFooter />
           </div>
         </MeProvider>
       </body>

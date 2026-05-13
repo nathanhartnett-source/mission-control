@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
+    "build:manifest": "node scripts/build-core-manifest.mjs",
     "start": "next start"
   },
   "dependencies": {

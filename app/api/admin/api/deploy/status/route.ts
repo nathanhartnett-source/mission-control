@@ -4,6 +4,7 @@ import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
 import { SDK_VERSION, SDK_VERSION_LABEL } from "@/lib/sdk/version";
 import { listIncompatibleCustomApps } from "@/lib/custom-apps";
+import { readTamperFlag } from "@/lib/core-integrity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,6 +60,8 @@ export async function GET(req: NextRequest) {
     reason: a.reason,
   }));
 
+  const tamper = readTamperFlag();
+
   return NextResponse.json({
     ok: true,
     sha,
@@ -69,5 +72,12 @@ export async function GET(req: NextRequest) {
     sdkVersion: SDK_VERSION,
     sdkVersionLabel: SDK_VERSION_LABEL,
     incompatibleApps: incompat,
+    tamper: tamper ? {
+      mismatchCount: tamper.mismatches.length,
+      missingCount: tamper.missing.length,
+      sampleMismatches: tamper.mismatches.slice(0, 10),
+      sampleMissing: tamper.missing.slice(0, 5),
+      checkedAt: tamper.checkedAt,
+    } : null,
   });
 }

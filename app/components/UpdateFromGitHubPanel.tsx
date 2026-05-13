@@ -11,6 +11,13 @@ type Status = {
   sdkVersion?: number;
   sdkVersionLabel?: string;
   incompatibleApps?: { name: string; slug: string; minSdk?: number; reason?: string }[];
+  tamper?: {
+    mismatchCount: number;
+    missingCount: number;
+    sampleMismatches: string[];
+    sampleMissing: string[];
+    checkedAt: string;
+  } | null;
 };
 
 function fmtDate(iso?: string | null): string {
@@ -98,6 +105,21 @@ export default function UpdateFromGitHubPanel() {
             {status.sdkVersionLabel && (
               <div className="text-[11px] text-slate-500 mt-1">
                 AIOS SDK <code className="text-slate-300">v{status.sdkVersionLabel}</code>
+              </div>
+            )}
+            {status.tamper && (
+              <div className="mt-2 rounded-lg border border-rose-800/60 bg-rose-950/40 p-2 text-[11px] text-rose-200">
+                <div className="font-semibold">⚠ Core integrity mismatch</div>
+                <div className="mt-1">
+                  {status.tamper.mismatchCount} file(s) modified, {status.tamper.missingCount} missing — running 'Update now' will restore them from origin/main.
+                </div>
+                {status.tamper.sampleMismatches.length > 0 && (
+                  <ul className="mt-1 space-y-0.5">
+                    {status.tamper.sampleMismatches.map((f) => (
+                      <li key={f}><code className="text-rose-100">{f}</code></li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
             {status.incompatibleApps && status.incompatibleApps.length > 0 && (
