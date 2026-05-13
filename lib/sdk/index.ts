@@ -55,5 +55,8 @@ export type { NavPrefs, NavFolder } from "../nav-prefs";
 export { getSiteConfig } from "../site-config";
 export type { SiteConfig } from "../site-config";
 
+// --- Custom-app manifest types ------------------------------------------
+export type { CustomAppManifest, LoadedCustomApp } from "../custom-apps";
+
 // --- Version ------------------------------------------------------------
 export { SDK_VERSION, SDK_VERSION_LABEL, checkMinSdk } from "./version";

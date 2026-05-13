@@ -3,6 +3,7 @@ import { spawn } from "child_process";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
 import { SDK_VERSION, SDK_VERSION_LABEL } from "@/lib/sdk/version";
+import { listIncompatibleCustomApps } from "@/lib/custom-apps";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,6 +52,13 @@ export async function GET(req: NextRequest) {
     }).slice(0, 20);
   }
 
+  const incompat = listIncompatibleCustomApps().map((a) => ({
+    name: a.manifest.name,
+    slug: a.manifest.slug,
+    minSdk: a.manifest.minSdk,
+    reason: a.reason,
+  }));
+
   return NextResponse.json({
     ok: true,
     sha,
@@ -60,5 +68,6 @@ export async function GET(req: NextRequest) {
     behindCommits,
     sdkVersion: SDK_VERSION,
     sdkVersionLabel: SDK_VERSION_LABEL,
+    incompatibleApps: incompat,
   });
 }

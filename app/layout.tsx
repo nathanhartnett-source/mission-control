@@ -15,18 +15,22 @@ import ToasterMount from "./components/ToasterMount";
 import { MeProvider, type Me } from "./components/MeProvider";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
+import { getSiteConfig } from "@/lib/site-config";
+import { readUserCssOverrides } from "@/lib/css-overrides";
+
+const site = getSiteConfig();
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
 
 export const metadata: Metadata = {
-  title: "Allhart AIOS",
-  description: "Allhart AIOS",
+  title: site.name,
+  description: site.loginTagline,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Mission Control",
+    title: site.shortName,
   },
   icons: {
     icon: [
@@ -89,8 +93,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     }
   }
 
+  const userCss = readUserCssOverrides();
+
   return (
     <html lang="en">
+      <head>
+        {userCss && <style dangerouslySetInnerHTML={{ __html: userCss }} />}
+      </head>
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${inter.className} min-h-screen bg-slate-900 mc-themed-body`}>
         <MeProvider initial={initialMe}>
           <ThemeApplier />

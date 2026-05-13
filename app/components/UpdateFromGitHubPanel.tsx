@@ -10,6 +10,7 @@ type Status = {
   behindCommits?: { sha: string; subject: string }[];
   sdkVersion?: number;
   sdkVersionLabel?: string;
+  incompatibleApps?: { name: string; slug: string; minSdk?: number; reason?: string }[];
 };
 
 function fmtDate(iso?: string | null): string {
@@ -97,6 +98,19 @@ export default function UpdateFromGitHubPanel() {
             {status.sdkVersionLabel && (
               <div className="text-[11px] text-slate-500 mt-1">
                 AIOS SDK <code className="text-slate-300">v{status.sdkVersionLabel}</code>
+              </div>
+            )}
+            {status.incompatibleApps && status.incompatibleApps.length > 0 && (
+              <div className="mt-2 rounded-lg border border-amber-800/60 bg-amber-950/40 p-2 text-[11px] text-amber-200">
+                <div className="font-semibold">⚠ Custom apps incompatible with this platform SDK</div>
+                <ul className="mt-1 space-y-0.5">
+                  {status.incompatibleApps.map((a) => (
+                    <li key={a.slug}>
+                      <code className="text-amber-100">{a.name}</code>
+                      {a.reason ? ` — ${a.reason}` : null}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
             {!upToDate && status.behindCommits && status.behindCommits.length > 0 && (
