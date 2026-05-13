@@ -8,6 +8,8 @@ type Status = {
   date?: string | null;
   behindCount?: number;
   behindCommits?: { sha: string; subject: string }[];
+  sdkVersion?: number;
+  sdkVersionLabel?: string;
 };
 
 function fmtDate(iso?: string | null): string {
@@ -91,6 +93,11 @@ export default function UpdateFromGitHubPanel() {
             </div>
             {status.subject && (
               <div className="text-slate-400 mt-1 truncate">{status.subject}</div>
+            )}
+            {status.sdkVersionLabel && (
+              <div className="text-[11px] text-slate-500 mt-1">
+                AIOS SDK <code className="text-slate-300">v{status.sdkVersionLabel}</code>
+              </div>
             )}
             {!upToDate && status.behindCommits && status.behindCommits.length > 0 && (
               <details className="mt-2">

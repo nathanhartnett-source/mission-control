@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
+import { SDK_VERSION, SDK_VERSION_LABEL } from "@/lib/sdk/version";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,5 +51,14 @@ export async function GET(req: NextRequest) {
     }).slice(0, 20);
   }
 
-  return NextResponse.json({ ok: true, sha, subject, date, behindCount, behindCommits });
+  return NextResponse.json({
+    ok: true,
+    sha,
+    subject,
+    date,
+    behindCount,
+    behindCommits,
+    sdkVersion: SDK_VERSION,
+    sdkVersionLabel: SDK_VERSION_LABEL,
+  });
 }
