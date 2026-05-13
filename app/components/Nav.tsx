@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useMe } from "./MeProvider";
+import { useSiteName } from "./SiteProvider";
 import { usePathname, useRouter } from "next/navigation";
 import { BUILTIN_APPS, findBuiltin, type BuiltinApp } from "@/lib/builtin-apps";
 
@@ -28,6 +29,7 @@ const ICONS: Record<string, string> = {
 const HIDDEN_PATHS = ["/login"];
 
 export default function Nav() {
+  const siteName = useSiteName();
   const pathname = usePathname();
   const router   = useRouter();
   const { me } = useMe();
@@ -266,7 +268,7 @@ export default function Nav() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoPath} alt="logo" className="max-h-10 max-w-[160px] object-contain" />
           ) : (
-            <span className="text-[11px] font-semibold tracking-widest uppercase text-slate-500">Allhart AIOS</span>
+            <span className="text-[11px] font-semibold tracking-widest uppercase text-slate-500">{siteName}</span>
           )}
         </div>
 
@@ -418,7 +420,7 @@ export default function Nav() {
             Sign out
           </button>
           <div className="text-[10px] text-gray-500 text-left px-3 select-none" data-mc-product-stamp>
-            Allhart AIOS v0.1
+            {siteName} v0.1
           </div>
         </div>
       </aside>

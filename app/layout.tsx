@@ -14,6 +14,7 @@ import FloatingChatMount from "./components/FloatingChatMount";
 import ToasterMount from "./components/ToasterMount";
 import PoweredByFooter from "./components/PoweredByFooter";
 import { MeProvider, type Me } from "./components/MeProvider";
+import { SiteProvider } from "./components/SiteProvider";
 import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
 import { getSiteConfig } from "@/lib/site-config";
@@ -101,6 +102,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${inter.className} min-h-screen bg-slate-900 mc-themed-body`}>
         {userCss && <style dangerouslySetInnerHTML={{ __html: userCss }} />}
+        <SiteProvider value={site}>
         <MeProvider initial={initialMe}>
           <ThemeApplier />
           {!isPublic && <Nav />}
@@ -116,6 +118,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PoweredByFooter />
           </div>
         </MeProvider>
+        </SiteProvider>
       </body>
     </html>
   );

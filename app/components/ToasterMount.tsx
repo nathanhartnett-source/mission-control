@@ -2,9 +2,9 @@
 import { Toaster } from "sonner";
 
 export default function ToasterMount() {
-  // Bright high-contrast toasts that work on both light and dark themes —
-  // richColors picks per-type accents, but we force white text so dark-on-dark
-  // (Allhart cream + slate-950 toast) doesn't become unreadable.
+  // Bright high-contrast toasts that work on both light and dark themes.
+  // richColors picks per-type accents; force white text so dark-on-dark
+  // (cream brand surfaces + slate-950 toast) doesn't become unreadable.
   return (
     <Toaster
       position="top-right"

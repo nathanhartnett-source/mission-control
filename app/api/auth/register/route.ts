@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     const adminEmails = findAdminEmails();
     if (adminEmails.length === 0) {
       // Fallback to known bootstrap admin email so the request isn't black-holed.
-      adminEmails.push(process.env.MC_ADMIN_EMAIL || "nathanhartnett@allhart.com.au");
+      adminEmails.push(process.env.MC_ADMIN_EMAIL || "admin@example.com");
     }
 
     audit("register", { username: user.username, email: user.email, ip, ua });

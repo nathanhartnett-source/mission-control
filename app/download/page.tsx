@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSiteName } from "../components/SiteProvider";
 
 type Platform = "windows" | "mac" | "android" | "iphone";
 
@@ -58,6 +59,7 @@ function DownloadButton({ asset, label }: { asset?: ReleaseAsset; label: string 
 }
 
 export default function DownloadPage() {
+  const siteName = useSiteName();
   const [active, setActive] = useState<Platform>("windows");
   const [release, setRelease] = useState<Release | null>(null);
 
@@ -75,8 +77,8 @@ export default function DownloadPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-10 text-slate-200">
-      <h1 className="text-2xl font-semibold mb-2">Get the Allhart AIOS app</h1>
-      <p className="text-slate-400 mb-2">Allhart AIOS runs in any browser, but installing it as an app gives you a dock/home-screen icon, fullscreen window, and faster startup.</p>
+      <h1 className="text-2xl font-semibold mb-2">Get the {siteName} app</h1>
+      <p className="text-slate-400 mb-2">{siteName} runs in any browser, but installing it as an app gives you a dock/home-screen icon, fullscreen window, and faster startup.</p>
       <p className="text-xs text-slate-500 mb-8">
         Latest desktop build: <span className="font-mono text-slate-300">{tagLine}</span>
         {release?.htmlUrl && <> · <a className="text-indigo-300 underline" target="_blank" rel="noopener noreferrer" href={release.htmlUrl}>release notes</a></>}
@@ -110,7 +112,7 @@ export default function DownloadPage() {
             <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-300 pt-2">
               <li>Click a button above to download the installer.</li>
               <li>The installer is unsigned for now — Windows SmartScreen will warn. Click <em>More info</em> → <em>Run anyway</em>.</li>
-              <li>Launch <strong>Allhart AIOS</strong> from the Start menu. First run asks for the dashboard URL.</li>
+              <li>Launch <strong>{siteName}</strong> from the Start menu. First run asks for the dashboard URL.</li>
             </ol>
           </>
         )}
@@ -123,7 +125,7 @@ export default function DownloadPage() {
             </div>
             <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-300 pt-2">
               <li>Open the <code className="bg-slate-800 px-1 rounded">.dmg</code> (universal — works on Intel + Apple Silicon).</li>
-              <li>Drag <strong>Allhart AIOS</strong> into Applications.</li>
+              <li>Drag <strong>{siteName}</strong> into Applications.</li>
               <li>Unsigned for now: first launch right-click → Open → Open to bypass Gatekeeper.</li>
             </ol>
           </>
@@ -135,7 +137,7 @@ export default function DownloadPage() {
               <li>Open this dashboard in <strong>Chrome</strong>.</li>
               <li>Tap the <strong>⋮</strong> menu (top right).</li>
               <li>Tap <strong>Install app</strong> (or <em>Add to Home screen</em>).</li>
-              <li>Confirm. Allhart AIOS appears on your home screen as a standalone app.</li>
+              <li>Confirm. {siteName} appears on your home screen as a standalone app.</li>
             </ol>
           </>
         )}
@@ -146,7 +148,7 @@ export default function DownloadPage() {
               <li>Open this dashboard in <strong>Safari</strong> (Apple blocks third-party browsers from installing apps).</li>
               <li>Tap the <strong>Share</strong> button (square with up-arrow).</li>
               <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-              <li>Tap <strong>Add</strong>. Allhart AIOS launches fullscreen from your home screen.</li>
+              <li>Tap <strong>Add</strong>. {siteName} launches fullscreen from your home screen.</li>
             </ol>
           </>
         )}

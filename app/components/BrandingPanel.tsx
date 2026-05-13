@@ -204,7 +204,7 @@ export default function BrandingPanel() {
             className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs"
           >{busy === "brand" ? "Saving…" : "Save"}</button>
         </div>
-        <p className="text-[11px] text-slate-500 mt-1">Shown on login & request-access pages. Leave empty to fall back to &ldquo;Allhart AIOS&rdquo;.</p>
+        <p className="text-[11px] text-slate-500 mt-1">Shown on login & request-access pages. Leave empty to fall back to the install&rsquo;s default name.</p>
       </div>
 
       <div className="mb-5">

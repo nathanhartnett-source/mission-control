@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSiteName } from "./SiteProvider";
 
 const POLL_MS = 3000;
 const FAIL_THRESHOLD = 3;
@@ -8,6 +9,7 @@ const FAIL_THRESHOLD = 3;
 type Phase = "ok" | "restarting";
 
 export default function ConnectionHealthOverlay() {
+  const siteName = useSiteName();
   const [phase, setPhase] = useState<Phase>("ok");
   const initialBuildIdRef = useRef<string | null>(null);
   const consecutiveFailsRef = useRef(0);
@@ -89,7 +91,7 @@ export default function ConnectionHealthOverlay() {
         <div className="mb-3 flex justify-center">
           <div className="h-8 w-8 rounded-full border-2 border-slate-600 border-t-amber-400 animate-spin" />
         </div>
-        <h2 className="text-lg font-semibold mb-1">Allhart AIOS restarting</h2>
+        <h2 className="text-lg font-semibold mb-1">{siteName} restarting</h2>
         <p className="text-sm text-slate-400">The dashboard is reloading. This usually takes 10–20 seconds.</p>
       </div>
     </div>

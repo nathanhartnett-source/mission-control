@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getSiteConfig } from "@/lib/site-config";
 
 type Props = { searchParams: Promise<{ kind?: string; status?: string; user?: string }> };
 
@@ -23,7 +24,7 @@ export default async function AuthResultPage({ searchParams }: Props) {
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Allhart AIOS</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{getSiteConfig().name}</h1>
         </div>
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl shadow-2xl p-8">
           <h2 className={`text-lg font-semibold mb-2 ${tone}`}>{msg.title}</h2>

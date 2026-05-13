@@ -3,8 +3,10 @@ import { verify, SESSION_COOKIE } from "@/lib/auth-session";
 import { findById } from "@/lib/users";
 import { readMessages, type MessageRow } from "@/lib/agents";
 import AgentsClient from "./AgentsClient";
+import { getSiteConfig } from "@/lib/site-config";
+import { brandedTitle } from "@/lib/powered-by";
 
-export const metadata = { title: "Agents — Allhart AIOS" };
+export const metadata = { title: `Agents — ${brandedTitle(getSiteConfig().name)}` };
 export const dynamic = "force-dynamic";
 
 // Server-render the first page of messages so chat is visible the instant
