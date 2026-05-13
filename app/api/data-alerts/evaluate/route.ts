@@ -100,9 +100,10 @@ Respond with ONLY a single JSON object (no prose, no markdown fences):
         let samples: { label: string; value: number | null }[] = [];
 
         if (isPsi) {
-          // Page-level granularity for PSI. Brand filter: map dim id to label.
-          const brandMap: Record<string, string> = { "mro-au": "MRO AU", "mro-nz": "MRO NZ", "fob-au": "FOB AU", "fob-nz": "FOB NZ", "bmo": "BMO", "helix": "Helix", "mo": "MO" };
-          const brandFilter = isAll ? null : (brandMap[a.dims?.brand || ""] || null);
+          // Page-level granularity for PSI. Brand filter: pass the dim id
+          // straight through; brand→label mapping is the custom source's
+          // job to handle if it registers a psi-* source.
+          const brandFilter = isAll ? null : (a.dims?.brand || null);
           const rows = readLatestPsiRows(strategy, brandFilter);
           samples = rows.map((r) => ({ label: `${r.brand} · ${r.page} · ${r.url}`, value: r.score }));
         } else if (isAll) {

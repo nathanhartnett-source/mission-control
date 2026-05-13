@@ -75,7 +75,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ agent: str
   // active runner command line that references this corr_id. This keeps Stop
   // from leaving a hidden heartbeat process that rewrites running.json forever.
   if (!killed) {
-    const matches = await pidsMatching(`/home/nathan/bin/mc-ash-run-once .*${corrId}`);
+    const matches = await pidsMatching(`mc-user-agent-runner.sh .*${corrId}`);
     for (const pid of matches) {
       await killTree(pid);
       killed = true;

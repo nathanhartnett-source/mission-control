@@ -7,18 +7,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const STAGING_ROOT = "/tmp/mc-staging";
-// Additional roots that agents (mostly Ash via ash-image) may write outputs to
-// and link to in their replies. Single-user local server behind auth, so a
-// permissive whitelist is fine — we still block path traversal via path.resolve.
-const ALLOWED_ROOTS = [
-  STAGING_ROOT,
-  "/tmp",
-  "/home/nathan/wiki",
-  "/home/nathan/social-videos",
-  "/home/nathan/.hermes",
-  "/home/nathan/Downloads",
-  "/home/nathan/legacy-workspace/mission-control/public",
-];
+// Additional roots that agents may write outputs to and link to in replies.
+// Per-install via MC_ATTACHMENT_ROOTS env (colon-separated absolute paths);
+// defaults to staging + /tmp only. Path-traversal is blocked via path.resolve.
+const EXTRA_ROOTS = (process.env.MC_ATTACHMENT_ROOTS || "")
+  .split(":")
+  .map((s) => s.trim())
+  .filter((s) => s.startsWith("/"));
+const ALLOWED_ROOTS = [STAGING_ROOT, "/tmp", ...EXTRA_ROOTS];
 
 // Image-only extensions allowed outside the staging root. Keeps the wider
 // whitelist from being a generic file-leak surface.

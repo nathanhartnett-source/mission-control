@@ -16,10 +16,11 @@ export const runtime = "nodejs";
  * Idempotent first-run scaffold:
  *   - creates ~/.claude/projects/-home-${user}/memory/  (if missing)
  *   - writes persona.md  (only if missing — never overwrite)
- *   - creates ~/wiki/  (if missing) + writes welcome.md and using-mission-control.md (only if missing)
+ *   - creates the wiki dir (if missing) + writes welcome.md and
+ *     using-mission-control.md (only if missing)
  *   - creates ~/.claude/channels/user-${user}/inbox/
- *   - creates ~/wiki/_outbox/mc-agent/
- *   - creates the agent-chat history dir
+ *   - creates the wiki _outbox/mc-agent/ dir
+ *   - creates the agent-chat history dir under MC_DATA_ROOT
  *   - writes branding.json with brand name + description if provided
  *   - writes data/install-complete marker
  */
@@ -83,8 +84,8 @@ Be direct, conversational, and helpful. When something is uncertain, say so.
     created.push(personaPath + " (overwritten)");
   }
 
-  // Wiki — operator may have picked an existing dir (e.g. ~/obt-wiki) in the wizard.
-  // Validate input is absolute and reasonable, else fall back to ~/wiki.
+  // Wiki — operator may have picked an existing dir (e.g. ~/team-wiki) in the wizard.
+  // Validate input is absolute and reasonable, else fall back to the default.
   console.log(`[scaffold] received body.wikiPath=${JSON.stringify(body.wikiPath)}`);
   let wikiPath = path.join(HOME, "wiki");
   if (body.wikiPath && typeof body.wikiPath === "string") {
@@ -109,8 +110,9 @@ Be direct, conversational, and helpful. When something is uncertain, say so.
 
   // Channels + outbox + history
   ensureDir(path.join(HOME, ".claude", "channels", `user-${username}`, "inbox"));
-  ensureDir(path.join(HOME, "wiki", "_outbox", "mc-agent"));
-  ensureDir(path.join(HOME, "legacy-workspace", "mission-control", "data", "agent-chat"));
+  ensureDir(path.join(wikiPath, "_outbox", "mc-agent"));
+  const dataRoot = path.resolve(process.env.MC_DATA_ROOT || path.join(process.cwd(), "data"));
+  ensureDir(path.join(dataRoot, "agent-chat"));
 
   // Branding — persist the operator-provided brand name + apply Slate as
   // default theme if none set yet (no logo/URL detection during wizard).

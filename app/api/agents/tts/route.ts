@@ -10,17 +10,20 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const STAGING = path.join(os.tmpdir(), "mc-tts");
-const ASH_TTS = "/home/nathan/bin/ash-tts";
-const DEFAULT_VOICE = "en-GB-SoniaNeural";  // matches the ash-tts default per memory
+// Text-to-speech binary. Configured per-install via MC_TTS_BIN env;
+// no default — voice output is off until a host wires one up.
+const TTS_BIN = process.env.MC_TTS_BIN || "";
+const DEFAULT_VOICE = process.env.MC_TTS_VOICE || "en-GB-SoniaNeural";
 
 function synthesize(text: string, outPath: string, voice: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(ASH_TTS, ["-o", outPath, "-v", voice, text], { env: process.env });
+    if (!TTS_BIN) return reject(new Error("TTS not configured (set MC_TTS_BIN env)"));
+    const proc = spawn(TTS_BIN, ["-o", outPath, "-v", voice, text], { env: process.env });
     let err = "";
     proc.stderr.on("data", (d) => { err += d.toString(); });
     proc.on("close", (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`ash-tts exit ${code}: ${err.slice(0, 400)}`));
+      else reject(new Error(`tts exit ${code}: ${err.slice(0, 400)}`));
     });
     proc.on("error", reject);
     setTimeout(() => { proc.kill("SIGKILL"); reject(new Error("tts timeout (45s)")); }, 45_000);

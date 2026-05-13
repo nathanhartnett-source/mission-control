@@ -32,13 +32,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ agent: str
     }, { status: 403 });
   }
 
-  const valid = ["ava", "mia", "ash", "overseer", "me"];
-  if (!valid.includes(agent)) {
-    if (agent === "switchboard") {
-      return NextResponse.json({
-        error: "switchboard is voice-only — use POST /api/agents/switchboard/stream-call",
-      }, { status: 400 });
-    }
+  // Clean MC is single-agent only — the per-user "me" agent. Multi-agent
+  // installs (named agents driven by external runners) are a Tier-3
+  // custom-app responsibility.
+  if (agent !== "me") {
     return NextResponse.json({ error: "unknown agent" }, { status: 400 });
   }
   type Attachment = { name: string; path: string; mime?: string; size?: number };
@@ -89,49 +86,25 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ agent: str
       user_id: sessionUser.id,
     });
 
-    // Kick the agent's runner immediately so the user doesn't wait up to 60s
-    // for the cron tick. Cron remains the fallback.
-    if (agent === "me") {
-      // Resolve runner location: env override → /usr/local/bin (install kit's
-      // canonical destination) → ~/bin/ (Nathan's WSL dev box). First match wins.
-      let runnerPath = process.env.MC_USER_AGENT_RUNNER || "";
-      if (!runnerPath) {
-        const candidates = [
-          "/usr/local/bin/mc-user-agent-runner.sh",
-          path.join(os.homedir(), "bin", "mc-user-agent-runner.sh"),
-        ];
-        for (const c of candidates) { try { if (require("fs").existsSync(c)) { runnerPath = c; break; } } catch {} }
-      }
-      if (!runnerPath) runnerPath = "/usr/local/bin/mc-user-agent-runner.sh"; // fall through, will surface ENOENT loudly
-      const child = spawn(runnerPath, [sessionUser.username], {
-        detached: true,
-        stdio: "ignore",
-        env: { ...process.env, HOME: os.homedir() },
-      });
-      child.unref();
-    } else if (agent === "ash") {
-      const envPath = path.join(os.homedir(), "wiki", "_inbox", `mc-agent-ash-${env.corr_id}.json`);
-      const child = spawn("/home/nathan/bin/mc-ash-run-once", [envPath], {
-        detached: true,
-        stdio: "ignore",
-        env: { ...process.env, HOME: os.homedir() },
-      });
-      child.unref();
-    } else {
-      // ava | mia | overseer — same idea, generic runner
-      const inboxBase = agent === "mia"
-        ? path.join(os.homedir(), ".claude", "channels", "discord-b", "inbox")
-        : agent === "overseer"
-        ? path.join(os.homedir(), ".claude", "channels", "discord-os", "inbox")
-        : path.join(os.homedir(), ".claude", "channels", "discord", "inbox");
-      const envPath = path.join(inboxBase, `mc-agent-${agent}-${env.corr_id}.json`);
-      const child = spawn("/home/nathan/bin/mc-cc-run-once", [agent, envPath], {
-        detached: true,
-        stdio: "ignore",
-        env: { ...process.env, HOME: os.homedir() },
-      });
-      child.unref();
+    // Kick the user agent's runner immediately so the user doesn't wait up
+    // to 60s for the cron tick. Cron remains the fallback. Runner is resolved
+    // via env override → /usr/local/bin (install kit's canonical destination)
+    // → ~/bin/ (dev box). First match wins.
+    let runnerPath = process.env.MC_USER_AGENT_RUNNER || "";
+    if (!runnerPath) {
+      const candidates = [
+        "/usr/local/bin/mc-user-agent-runner.sh",
+        path.join(os.homedir(), "bin", "mc-user-agent-runner.sh"),
+      ];
+      for (const c of candidates) { try { if (require("fs").existsSync(c)) { runnerPath = c; break; } } catch {} }
     }
+    if (!runnerPath) runnerPath = "/usr/local/bin/mc-user-agent-runner.sh"; // surface ENOENT loudly if missing
+    const child = spawn(runnerPath, [sessionUser.username], {
+      detached: true,
+      stdio: "ignore",
+      env: { ...process.env, HOME: os.homedir() },
+    });
+    child.unref();
 
     let achievementsNewly: ReturnType<typeof bump> = [];
     try { achievementsNewly = bump(sessionUser.username, "messages"); } catch {}

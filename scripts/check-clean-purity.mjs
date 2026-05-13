@@ -85,6 +85,12 @@ const ALLOW = new Map([
   // OBT-specific runner under install/runners/obt/. The dir name is
   // historical — it's the same shape every install ends up with. Skip.
   ["install/runners/obt/mc-user-agent-runner.sh", "*"],
+  // AgentsClient is the legacy multi-agent shell. Clean MC is single-agent
+  // (the "me" agent); the file still carries the wider AgentName type +
+  // selector UI for backward compatibility with installs that haven't
+  // migrated. Untangling it without breaking the chat flow is a focused
+  // session; whitelisted for now.
+  ["app/agents/AgentsClient.tsx", "*"],
   // Install docs and shell scripts reference /root/mission-control (the
   // default MC_HOME) and obt.allhart.com.au (the canonical example for
   // PUBLIC_HOSTNAME). These are operator-facing examples + defaults that

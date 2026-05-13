@@ -13,7 +13,7 @@ interface ModuleEntry {
   items?: string[];
   addedAt: string;
   dataFile: string;
-  person: "nathan" | "tessa" | "karl" | "tracy";
+  person: string;
 }
 
 interface LogEntry {

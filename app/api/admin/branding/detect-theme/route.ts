@@ -10,16 +10,17 @@ export const runtime = "nodejs";
 export const maxDuration = 240;
 
 function findClaudeBin(): string {
-  // Try MC_CLAUDE_BIN, then common install paths used by Nathan's WSL and the
-  // OBT VPS. Falling back to a bare "claude" only works if /etc/systemd/.../*
-  // PATH is set, which it usually isn't — so we resolve explicitly.
+  // Try MC_CLAUDE_BIN, then common install paths. Falling back to a bare
+  // "claude" only works if the service unit's PATH is set, which it usually
+  // isn't — so we resolve explicitly.
   if (process.env.MC_CLAUDE_BIN && fs.existsSync(process.env.MC_CLAUDE_BIN)) return process.env.MC_CLAUDE_BIN;
+  const home = process.env.HOME || "";
   const candidates = [
-    "/home/nathan/.npm-global/bin/claude",
+    home ? `${home}/.npm-global/bin/claude` : "",
     "/root/.npm-global/bin/claude",
     "/usr/local/bin/claude",
     "/usr/bin/claude",
-  ];
+  ].filter(Boolean);
   for (const c of candidates) if (fs.existsSync(c)) return c;
   return "claude"; // last-ditch — relies on PATH
 }
@@ -34,7 +35,7 @@ function runClaude(prompt: string): Promise<string> {
       env: {
         ...process.env,
         IS_SANDBOX: "1",
-        PATH: `/home/nathan/.npm-global/bin:/root/.npm-global/bin:/usr/local/bin:/usr/bin:${process.env.PATH || ""}`,
+        PATH: `${process.env.HOME || ""}/.npm-global/bin:/root/.npm-global/bin:/usr/local/bin:/usr/bin:${process.env.PATH || ""}`,
       },
     });
     let out = "";

@@ -17,11 +17,10 @@ export async function GET() {
   // Claude binary
   const claudeCandidates = [
     process.env.MC_CLAUDE_BIN || "",
-    "/home/nathan/.npm-global/bin/claude",
+    `${HOME}/.npm-global/bin/claude`,
     "/root/.npm-global/bin/claude",
     "/usr/local/bin/claude",
     "/usr/bin/claude",
-    `${HOME}/.npm-global/bin/claude`,
   ].filter(Boolean);
   let claudeBin: string | null = null;
   for (const c of claudeCandidates) if (fs.existsSync(c)) { claudeBin = c; break; }
@@ -54,7 +53,7 @@ export async function GET() {
   }
 
   // Wiki — scan HOME for any dir whose name contains "wiki" so existing
-  // wikis like ~/obt-wiki / ~/team-wiki get detected, not just ~/wiki.
+  // wikis (e.g. team-wiki) get detected, not just the default wiki dir.
   const countMd = (dir: string): number => {
     try {
       const walk = (d: string, depth = 0): number => {

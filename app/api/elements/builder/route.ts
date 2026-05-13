@@ -14,9 +14,9 @@ const BUILDER_SYSTEM = `You design a personal "app" — a workflow shortcut for 
 
 Examples that fit:
 - "Weekly stock-low report" — no inputs, one Run button, outputs a PDF of low SKUs across our sites with charts
-- "Draft a new product PDP" — inputs: product name, material, price; outputs Tessa-voice copy + suggested image brief
+- "Draft a new product PDP" — inputs: product name, material, price; outputs brand-voice copy + suggested image brief
 - "Customer complaint reply" — inputs: customer name, order #, issue; outputs draft reply in the right brand voice
-- "Monthly ad-spend recap" — no inputs, pulls Google Ads + Meta data, outputs PDF with charts per campaign
+- "Monthly ad-spend recap" — no inputs, pulls ad-platform data, outputs PDF with charts per campaign
 
 The form fields are the bits that CHANGE each run. Everything else (the prompt, the data sources, the output format, brand voice, letterhead) is baked in once.
 
@@ -98,7 +98,13 @@ function findClaudeBin(): string {
   const fs = require("fs");
   if (process.env.MC_CLAUDE_BIN && fs.existsSync(process.env.MC_CLAUDE_BIN)) return process.env.MC_CLAUDE_BIN;
   if (process.env.CLAUDE_BIN && fs.existsSync(process.env.CLAUDE_BIN)) return process.env.CLAUDE_BIN;
-  for (const c of ["/home/nathan/.npm-global/bin/claude", "/root/.npm-global/bin/claude", "/usr/local/bin/claude", "/usr/bin/claude"]) {
+  const home = process.env.HOME || "";
+  for (const c of [
+    home ? `${home}/.npm-global/bin/claude` : "",
+    "/root/.npm-global/bin/claude",
+    "/usr/local/bin/claude",
+    "/usr/bin/claude",
+  ].filter(Boolean)) {
     if (fs.existsSync(c)) return c;
   }
   return "claude";

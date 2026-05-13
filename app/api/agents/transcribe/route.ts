@@ -9,18 +9,21 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const STAGING = path.join(os.tmpdir(), "mc-stt");
-const ASH_STT = "/home/nathan/bin/ash-stt";
+// Speech-to-text binary. Configured per-install via MC_STT_BIN env;
+// no default — the voice-mic feature is off until a host wires it up.
+const STT_BIN = process.env.MC_STT_BIN || "";
 
 function transcribe(audioPath: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(ASH_STT, [audioPath], { env: process.env });
+    if (!STT_BIN) return reject(new Error("STT not configured (set MC_STT_BIN env)"));
+    const proc = spawn(STT_BIN, [audioPath], { env: process.env });
     let out = "";
     let err = "";
     proc.stdout.on("data", (d) => { out += d.toString(); });
     proc.stderr.on("data", (d) => { err += d.toString(); });
     proc.on("close", (code) => {
       if (code === 0) resolve(out.trim());
-      else reject(new Error(`ash-stt exit ${code}: ${err.trim().slice(0, 400)}`));
+      else reject(new Error(`stt exit ${code}: ${err.trim().slice(0, 400)}`));
     });
     proc.on("error", reject);
     setTimeout(() => { proc.kill("SIGKILL"); reject(new Error("transcribe timeout (60s)")); }, 60_000);
