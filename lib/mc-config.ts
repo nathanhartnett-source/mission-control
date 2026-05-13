@@ -103,7 +103,5 @@ export function clientOutboxDir(): string {
 }
 
 export function agentHistoryDir(): string {
-  return mcConfig.clientMode
-    ? path.join(mcConfig.dataRoot, "agent-chat")
-    : path.join(process.env.HOME || "/home/nathan", "legacy-workspace", "mission-control", "data", "agent-chat");
+  return path.join(mcConfig.dataRoot, "agent-chat");
 }

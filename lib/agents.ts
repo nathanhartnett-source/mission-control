@@ -94,8 +94,9 @@ export function userInboxDir(username: string): string {
   return path.join(HOME, ".claude", "channels", `user-${u}`, "inbox");
 }
 
-export const OUTBOX_DIR = path.join(HOME, "wiki", "_outbox", "mc-agent");
-export const HISTORY_DIR = path.join(HOME, "legacy-workspace", "mission-control", "data", "agent-chat");
+const DATA_ROOT = path.resolve(process.env.MC_DATA_ROOT || path.join(process.cwd(), "data"));
+export const OUTBOX_DIR = path.join(DATA_ROOT, "mc-agent-outbox");
+export const HISTORY_DIR = path.join(DATA_ROOT, "agent-chat");
 export const HISTORY_FILE = path.join(HISTORY_DIR, "messages.jsonl");
 export const HISTORY_ARCHIVE_DIR = path.join(HISTORY_DIR, "archive");
 const HISTORY_ACTIVE_DAYS = 90;
