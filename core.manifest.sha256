@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-13T03:10:53.885Z",
-  "fileCount": 103,
+  "generatedAt": "2026-05-13T03:28:14.273Z",
+  "fileCount": 104,
   "files": {
     "app/api/admin/api-token/route.ts": "74ebd676b81ff4c69cd85cf7cc760aaf747b1c545fc9611de1a2ecce0b6902f8",
     "app/api/admin/api/deploy/route.ts": "434d033538a20293486514b9dd96b7edfca68b6b699f887110e813e63f512837",
@@ -90,6 +90,7 @@
     "lib/install-config.ts": "66044f71ee32181621bca922a653aff37b66d6d0f7dd9e8bb1aa8e89634c7a6e",
     "lib/mc-config.ts": "3eac1427ff462ec8d3d0c4561c9ebe70547a517a736bafbdd496f5db5fa70003",
     "lib/nav-prefs.ts": "64d5041f285fa75a8322ab7e145754464ab651914e32d6e98d91d8b74242c645",
+    "lib/onboarding-interview.ts": "caa69b603f9020fb7d994e861fb8b6d0eac6c00f174ec6feb35dcaa6d27da213",
     "lib/powered-by.ts": "5a9fb97736acf7310f35af3eec1158829028654dc1ff91a60efabd6124bed73c",
     "lib/rate-limit.ts": "dbd92d1fa5fae7f4bede714ce23a8d76455070d8d2a80e24f381ab39a1370aaa",
     "lib/sdk/index.ts": "1f5235624310800e333960bb8fb13fd21b0bd677920ae729b2ec0840ddceffbe",
@@ -99,7 +100,7 @@
     "lib/theme-presets.ts": "fa18c71dd0d3761725f03ee2714f26c3704cca981d01e466501bbd5541153113",
     "lib/user-claude.ts": "ae1f29b3f6579590b32fe356031ed0ec198c4273826b258d275884a33bc0b14d",
     "lib/users.ts": "2b3d181fef0ca0adb9013bca72e16b8509d171673f845d32483169bbefe3959a",
-    "lib/workspace.ts": "f8c76ef210f52bbcd45992060f886283a570af83657e7fd67050863e10e93320",
+    "lib/workspace.ts": "9218fd92d00808ae732ac9f9868cbbce40a1c10706ff435b5f922c17d237fd6f",
     "mc-version.json": "eb7f24a765ca182efd88478857d02d2b7283555c1fd278272bd49d2dd4a7d550",
     "middleware.ts": "ad32627210fa68b889060c70c5b5e181ffc17a22c67bc224598039ef77041b47",
     "next.config.ts": "92af45c93c504e35422901eacb7327f042ada3fe6351222227364541b8f969ce"
