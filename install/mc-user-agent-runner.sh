@@ -44,6 +44,23 @@ CLAUDE="${CLAUDE_BIN:-$HOME/.npm-global/bin/claude}"
 
 export PATH="$HOME/bin:$HOME/.npm-global/bin:$PATH"
 
+# Feature-detect --effort flag once and cache by claude binary path. Older
+# claude CLIs (pre ~Apr 2026) exit 1 when given --effort, which broke the
+# runner on installs that hadn't upgraded — see 2026-05-14 incident on Karl's
+# VPS. Cache is invalidated automatically if the claude binary path changes.
+EFFORT_ARGS=()
+if [[ -x "$CLAUDE" ]]; then
+    _EFFORT_CACHE="/tmp/.mc-claude-effort-$(echo -n "$CLAUDE" | md5sum | cut -c1-12)"
+    if [[ ! -f "$_EFFORT_CACHE" ]]; then
+        if "$CLAUDE" --help 2>&1 | grep -q -- "--effort"; then
+            echo "1" > "$_EFFORT_CACHE"
+        else
+            echo "0" > "$_EFFORT_CACHE"
+        fi
+    fi
+    [[ "$(cat "$_EFFORT_CACHE" 2>/dev/null)" == "1" ]] && EFFORT_ARGS=(--effort medium)
+fi
+
 mkdir -p "$INBOX" "$OUTBOX" "$STATE_DIR" "$USER_MEM"
 
 # Resolve role from users.json (default: client = most restrictive).
@@ -237,7 +254,7 @@ JSON
     # the live thinking/doing/Stop pillbox in /agents.
     (cd "$STATE_DIR" 2>/dev/null; IS_SANDBOX=1 timeout 600 "$CLAUDE" -p \
         --model claude-opus-4-7 \
-        --effort medium \
+        "${EFFORT_ARGS[@]}" \
         "${ADD_DIR_ARGS[@]}" \
         "${ALLOWED_TOOLS_ARGS[@]}" \
         --permission-mode "$PERMISSION_MODE" \
