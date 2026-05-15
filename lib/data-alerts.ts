@@ -10,12 +10,63 @@ import crypto from "crypto";
 import { mcConfig } from "./mc-config";
 import type { AlertSourceId } from "./alert-sources";
 
+const TIME_RE = /^\d{2}:\d{2}$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+export function validateSchedule(s: unknown): ScheduleSpec | null {
+  if (!s || typeof s !== "object") return null;
+  const o = s as Record<string, unknown>;
+  const time = typeof o.time === "string" && TIME_RE.test(o.time) ? o.time : null;
+  if (!time) return null;
+  if (o.type === "once" && typeof o.date === "string" && DATE_RE.test(o.date)) return { type: "once", date: o.date, time };
+  if (o.type === "daily") return { type: "daily", time };
+  if (o.type === "weekly" && Array.isArray(o.daysOfWeek)) {
+    const days = o.daysOfWeek.filter((d): d is number => Number.isInteger(d) && (d as number) >= 0 && (d as number) <= 6);
+    if (days.length > 0) return { type: "weekly", daysOfWeek: days, time };
+  }
+  if (o.type === "monthly" && Number.isInteger(o.dayOfMonth) && (o.dayOfMonth as number) >= 1 && (o.dayOfMonth as number) <= 31) {
+    return { type: "monthly", dayOfMonth: o.dayOfMonth as number, time };
+  }
+  if (o.type === "monthly_nth_dow" && [1,2,3,4,-1].includes(o.week as number) && Number.isInteger(o.dayOfWeek) && (o.dayOfWeek as number) >= 0 && (o.dayOfWeek as number) <= 6) {
+    return { type: "monthly_nth_dow", week: o.week as 1|2|3|4|-1, dayOfWeek: o.dayOfWeek as number, time };
+  }
+  return null;
+}
+
+export function describeSchedule(s: ScheduleSpec | undefined, legacyTime?: string, legacyDows?: number[]): string {
+  if (!s) {
+    if (legacyTime) {
+      const dows = legacyDows && legacyDows.length > 0 && legacyDows.length < 7
+        ? ` (${legacyDows.map(d => ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d]).join(", ")})`
+        : "";
+      return `Daily at ${legacyTime} AEST${dows}`;
+    }
+    return "(no schedule)";
+  }
+  const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const WEEK_LABELS: Record<number,string> = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", [-1]: "last" };
+  switch (s.type) {
+    case "once": return `Once at ${s.time} AEST on ${s.date}`;
+    case "daily": return `Every day at ${s.time} AEST`;
+    case "weekly": return `${s.daysOfWeek.map(d => DOW[d]).join(", ")} at ${s.time} AEST`;
+    case "monthly": return `Day ${s.dayOfMonth} of each month at ${s.time} AEST`;
+    case "monthly_nth_dow": return `${WEEK_LABELS[s.week]} ${DOW[s.dayOfWeek]} of each month at ${s.time} AEST`;
+  }
+}
+
+export type ScheduleSpec =
+  | { type: "once"; date: string; time: string }                                    // one-off, never repeats
+  | { type: "daily"; time: string }                                                  // every day
+  | { type: "weekly"; daysOfWeek: number[]; time: string }                           // chosen weekdays (Sun=0..Sat=6)
+  | { type: "monthly"; dayOfMonth: number; time: string }                            // e.g. 15th of each month
+  | { type: "monthly_nth_dow"; week: 1 | 2 | 3 | 4 | -1; dayOfWeek: number; time: string }; // e.g. last Friday
+
 export type DataAlert = {
   id: string;
   owner: string;
   // kind=data uses source+dims+op+threshold (rule-based threshold alert).
   // kind=research uses prompt+frequencyHours (Claude web-research run on a schedule).
-  kind?: "data" | "research";
+  // kind=reminder uses cronTime + daysOfWeek (fires a fixed message on a schedule).
+  kind?: "data" | "research" | "reminder";
   source?: AlertSourceId;
   dims?: Record<string, string>;
   op?: "<" | "<=" | ">" | ">=";
@@ -23,6 +74,12 @@ export type DataAlert = {
   // research-specific
   prompt?: string;
   frequencyHours?: number;
+  // reminder-specific
+  reminderText?: string;   // The message to deliver on schedule
+  schedule?: ScheduleSpec; // Rich schedule. All times Brisbane (no DST).
+  // Legacy fields kept for backward-compatibility with v1 reminders.
+  cronTime?: string;       // legacy: "HH:MM" in Australia/Brisbane
+  daysOfWeek?: number[];   // legacy: 0=Sun..6=Sat. Empty/undefined => all 7
   lastEvaluatedAt?: string;
   lastFindingSummary?: string;
   // The user's original natural-language brief. When present, the evaluator

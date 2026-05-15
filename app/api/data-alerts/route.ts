@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/elements-auth";
-import { listDataAlerts, createDataAlert } from "@/lib/data-alerts";
+import { listDataAlerts, createDataAlert, validateSchedule } from "@/lib/data-alerts";
 import { ALERT_SOURCES } from "@/lib/alert-sources";
 
 export const runtime = "nodejs";
@@ -19,7 +19,29 @@ export async function POST(req: NextRequest) {
   const auth = requireUser(req);
   if (auth instanceof NextResponse) return auth;
   const body = await req.json().catch(() => ({}));
-  const kind = body.kind === "research" ? "research" : "data";
+  const kind = body.kind === "research" ? "research" : body.kind === "reminder" ? "reminder" : "data";
+
+  if (kind === "reminder") {
+    const reminderText = typeof body.reminderText === "string" ? body.reminderText.slice(0, 1000) : "";
+    if (reminderText.length < 1) return NextResponse.json({ error: "reminderText required" }, { status: 400 });
+    const schedule = validateSchedule(body.schedule);
+    if (!schedule && !body.cronTime) return NextResponse.json({ error: "schedule required" }, { status: 400 });
+    const alert = createDataAlert(auth.username, {
+      kind: "reminder",
+      reminderText,
+      schedule: schedule || undefined,
+      // legacy fallback (still supported by the evaluator)
+      cronTime: !schedule && typeof body.cronTime === "string" && /^\d{2}:\d{2}$/.test(body.cronTime) ? body.cronTime : undefined,
+      daysOfWeek: !schedule && Array.isArray(body.daysOfWeek)
+        ? body.daysOfWeek.filter((d: unknown): d is number => Number.isInteger(d) && (d as number) >= 0 && (d as number) <= 6)
+        : undefined,
+      label: typeof body.label === "string" ? body.label.slice(0, 120) : undefined,
+      summary: typeof body.summary === "string" ? body.summary.slice(0, 400) : undefined,
+      active: body.active !== false,
+      cooldownHours: 1,
+    });
+    return NextResponse.json({ ok: true, alert });
+  }
 
   if (kind === "research") {
     const prompt = typeof body.prompt === "string" ? body.prompt.slice(0, 2000) : "";

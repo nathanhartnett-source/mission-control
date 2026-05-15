@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/elements-auth";
-import { updateDataAlert, deleteDataAlert } from "@/lib/data-alerts";
+import { updateDataAlert, deleteDataAlert, validateSchedule } from "@/lib/data-alerts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +28,14 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     for (const [k, v] of Object.entries(body.dims as Record<string, unknown>)) if (typeof v === "string") d[k] = v;
     patch.dims = d;
   }
-  if (body.kind === "data" || body.kind === "research") patch.kind = body.kind;
+  if (body.kind === "data" || body.kind === "research" || body.kind === "reminder") patch.kind = body.kind;
+  if (typeof body.cronTime === "string" && /^\d{2}:\d{2}$/.test(body.cronTime)) patch.cronTime = body.cronTime;
+  if (typeof body.reminderText === "string") patch.reminderText = body.reminderText.slice(0, 1000);
+  if (Array.isArray(body.daysOfWeek)) patch.daysOfWeek = body.daysOfWeek.filter((d: unknown): d is number => Number.isInteger(d) && (d as number) >= 0 && (d as number) <= 6);
+  if (body.schedule !== undefined) {
+    const sched = validateSchedule(body.schedule);
+    if (sched) patch.schedule = sched;
+  }
   const updated = updateDataAlert(auth.username, id, patch);
   if (!updated) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json({ ok: true, alert: updated });

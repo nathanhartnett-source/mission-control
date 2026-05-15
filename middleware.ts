@@ -24,6 +24,11 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith('/_next/')) return true;
   if (pathname === '/favicon.ico') return true;
   if (pathname.startsWith('/downloads/')) return true;
+  // /api/data-alerts/evaluate is fired by the local `mc-alerts-eval.sh` cron;
+  // it has its own loopback check (rejects non-127.0.0.1 hosts) so it's safe
+  // to skip cookie auth here. Without this, the cron 401s and no alert ever
+  // fires. Discovered 2026-05-15.
+  if (pathname === '/api/data-alerts/evaluate') return true;
   // /api/admin/api/* is the remote-ops surface used by mc-remote. Each route
   // under it does its own Bearer-token verification (verifyAdminApiToken),
   // so external operators can reach it without the mc_auth cookie. The

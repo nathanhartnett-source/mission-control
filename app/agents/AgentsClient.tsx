@@ -832,6 +832,24 @@ function AdminAgentsClient({ userSeed, username, agentSeedOverrides, initialRows
     try { window.localStorage.setItem("mc-agents-last-selected", a); } catch { /* ignore */ }
   }, []);
   const [text, setText] = useState("");
+  // Pre-fill the composer from ?prompt=... once on first mount (inbox action
+  // buttons deep-link here with a ready-to-send prompt). Strip the query
+  // afterwards so reloading doesn't re-fill.
+  const prefillAppliedRef = useRef(false);
+  useEffect(() => {
+    if (prefillAppliedRef.current) return;
+    try {
+      const u = new URL(window.location.href);
+      const p = u.searchParams.get("prompt");
+      if (p && p.length > 0) {
+        setText(p);
+        prefillAppliedRef.current = true;
+        u.searchParams.delete("prompt");
+        u.searchParams.delete("thread");
+        window.history.replaceState({}, "", u.pathname + (u.search ? `?${u.searchParams.toString()}` : ""));
+      }
+    } catch {}
+  }, []);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);

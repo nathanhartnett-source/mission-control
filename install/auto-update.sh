@@ -22,6 +22,15 @@ cd "$MC_HOME"
 ts() { date -u +%FT%TZ; }
 log() { echo "[$(ts)] $*"; }
 
+# ── Alerts evaluator tick ────────────────────────────────────────────────────
+# Fires the local /api/data-alerts/evaluate endpoint every cron tick so
+# scheduled reminders + research/data alerts actually fire. The endpoint is
+# loopback-gated, no auth needed. Silent on failure so a transient hiccup
+# doesn't pollute the log. Added 2026-05-15 with the alerts upgrade.
+MC_PORT="${MC_PORT:-3000}"
+curl -sS -m 60 -X POST "http://127.0.0.1:${MC_PORT}/api/data-alerts/evaluate" \
+    -H "Content-Type: application/json" --data '{}' >/dev/null 2>&1 || true
+
 # Bail if a git operation is in progress (prevents stomping on a hand-edit).
 if [[ -e .git/index.lock || -e .git/MERGE_HEAD || -e .git/REBASE_HEAD ]]; then
     log "git busy (lock/merge/rebase in progress) — skipping this tick"

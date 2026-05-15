@@ -6,6 +6,8 @@ import "./globals.css";
 import Nav from "./components/Nav";
 import ThemeApplier from "./components/ThemeApplier";
 import NotificationPoller from "./components/NotificationPoller";
+import AgentSound from "./components/AgentSound";
+import InboxSound from "./components/InboxSound";
 import OnboardingGate from "./components/OnboardingGate";
 import SessionWatcher from "./components/SessionWatcher";
 import ConnectionHealthOverlay from "./components/ConnectionHealthOverlay";
@@ -107,6 +109,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ThemeApplier />
           {!isPublic && <Nav />}
           {!isPublic && <NotificationPoller />}
+          {!isPublic && <AgentSound />}
+          {!isPublic && <InboxSound />}
           {!isPublic && <OnboardingGate />}
           {!isPublic && <SessionWatcher />}
           {!isPublic && <ConnectionHealthOverlay />}

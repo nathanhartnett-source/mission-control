@@ -87,6 +87,76 @@ Respond with ONLY a single JSON object (no prose, no markdown fences):
         continue;
       }
 
+      // ─── Reminder alert (scheduled message, no judge) ───────────────────
+      if (a.kind === "reminder") {
+        // Resolve a ScheduleSpec from new schedule field OR legacy cronTime+daysOfWeek.
+        type SS = NonNullable<typeof a.schedule>;
+        const schedule: SS | null = a.schedule
+          ? a.schedule
+          : (a.cronTime
+              ? (a.daysOfWeek && a.daysOfWeek.length > 0 && a.daysOfWeek.length < 7
+                  ? { type: "weekly", daysOfWeek: a.daysOfWeek, time: a.cronTime }
+                  : { type: "daily", time: a.cronTime })
+              : null);
+        if (!schedule) { errs.push({ id: a.id, reason: "reminder missing schedule" }); continue; }
+
+        // Brisbane wall-clock components.
+        const bne = new Date(Date.now() + 10 * 3600 * 1000);
+        const bneY = bne.getUTCFullYear();
+        const bneM = bne.getUTCMonth();
+        const bneD = bne.getUTCDate();
+        const bneDow = bne.getUTCDay();
+        const bneDate = `${bneY}-${String(bneM + 1).padStart(2, "0")}-${String(bneD).padStart(2, "0")}`;
+        const weekOfMonth = Math.floor((bneD - 1) / 7) + 1;
+        // last-week test: any date where (date + 7) > days-in-month
+        const lastDayOfMonth = new Date(Date.UTC(bneY, bneM + 1, 0)).getUTCDate();
+        const isLastWeek = (bneD + 7) > lastDayOfMonth;
+
+        const [hh, mm] = schedule.time.split(":").map(Number);
+        const bneFire = new Date(Date.UTC(bneY, bneM, bneD, hh, mm, 0));
+        const delta = Math.abs(bne.getTime() - bneFire.getTime());
+
+        // Day-match per schedule type.
+        let dayMatches = false;
+        if (schedule.type === "once") {
+          dayMatches = schedule.date === bneDate;
+        } else if (schedule.type === "daily") {
+          dayMatches = true;
+        } else if (schedule.type === "weekly") {
+          dayMatches = schedule.daysOfWeek.includes(bneDow);
+        } else if (schedule.type === "monthly") {
+          dayMatches = schedule.dayOfMonth === bneD;
+        } else if (schedule.type === "monthly_nth_dow") {
+          dayMatches = bneDow === schedule.dayOfWeek
+            && (schedule.week === -1 ? isLastWeek : weekOfMonth === schedule.week);
+        }
+        if (!dayMatches) continue;
+        // Cron fires every 5 min; allow ±3min slop so the closest tick wins
+        // without firing for adjacent ticks (would only matter if our schedule
+        // time is off-grid like 11:17, in which case 11:15 tick fires).
+        if (delta > 3 * 60 * 1000) continue;
+
+        // Don't double-fire on the same day.
+        if (a.lastFiredAt) {
+          const lastBne = new Date(new Date(a.lastFiredAt).getTime() + 10 * 3600 * 1000);
+          if (lastBne.getUTCFullYear() === bneY && lastBne.getUTCMonth() === bneM && lastBne.getUTCDate() === bneD) continue;
+        }
+
+        postMessage(a.owner, {
+          from: "Alerts",
+          subject: a.label || "Reminder",
+          body: a.reminderText || a.label || "(no message)",
+          level: "info",
+          href: "/alerts",
+        });
+        const patch: Partial<typeof a> = { lastFiredAt: new Date().toISOString() };
+        // Auto-deactivate one-off reminders after they fire.
+        if (schedule.type === "once") patch.active = false;
+        updateDataAlert(a.owner, a.id, patch);
+        fired.push({ id: a.id, owner: a.owner, value: 1 });
+        continue;
+      }
+
       // ─── Data alert (AI-judged when intent is present) ───────────────────
       if (!a.source) { errs.push({ id: a.id, reason: "no source" }); continue; }
 
@@ -135,17 +205,22 @@ If you decide to fire, craft a short inbox message body (markdown OK) that:
 - Tells them WHY it matters (per their brief)
 - Includes any extra analysis/recommendations the user asked for in their brief
 
+ALSO: if the alert body suggests follow-up investigation, fixes, or deeper analysis that the agent could help with, propose up to 3 "actions" — buttons that will open the agent's General thread with a ready-to-send prompt pre-filled. Each action = a concrete next step the user would actually want to take, phrased AS the user asking the agent (e.g. "Investigate why home mobile PSI dropped to 60 and propose 3 concrete fixes I can ship today"). Skip actions if the alert is purely informational with no obvious follow-up.
+
 Respond with ONLY this JSON (no prose, no markdown fences):
 {
   "shouldAlert": <true|false>,
   "subject": "<short alert subject if firing, else empty>",
   "body": "<inbox message body if firing, else empty>",
-  "reason": "<one short sentence explaining your decision either way>"
+  "reason": "<one short sentence explaining your decision either way>",
+  "actions": [
+    { "label": "<short button text, max 40 chars>", "prompt": "<ready-to-send prompt to the agent, complete sentence>" }
+  ]
 }`;
 
         const r = runUserClaude({ prompt: judgePrompt, username: a.owner, model: "opus", timeoutMs: 90000 });
         const raw = r.stdout;
-        let verdict: { shouldAlert?: boolean; subject?: string; body?: string; reason?: string } | null = null;
+        let verdict: { shouldAlert?: boolean; subject?: string; body?: string; reason?: string; actions?: { label?: string; prompt?: string }[] } | null = null;
         if (raw) {
           try { verdict = JSON.parse(raw); }
           catch {
@@ -162,12 +237,19 @@ Respond with ONLY this JSON (no prose, no markdown fences):
         if (!triggered) continue;
         if (nextCount < minSamples) continue;
 
+        const actions = Array.isArray(verdict.actions)
+          ? verdict.actions
+              .filter((x): x is { label: string; prompt: string } => !!x && typeof x.label === "string" && typeof x.prompt === "string" && x.label.trim().length > 0 && x.prompt.trim().length > 0)
+              .slice(0, 3)
+              .map((x) => ({ label: x.label.slice(0, 60), prompt: x.prompt.slice(0, 1500) }))
+          : undefined;
         postMessage(a.owner, {
           from: "Alerts",
           subject: verdict.subject?.slice(0, 200) || a.label || "Alert",
           body: verdict.body || verdict.reason || "Alert fired.",
           level: "warn",
           href: "/alerts",
+          ...(actions && actions.length > 0 ? { actions } : {}),
         });
         updateDataAlert(a.owner, a.id, { lastFiredAt: new Date().toISOString(), consecutiveCount: 0 });
         fired.push({ id: a.id, owner: a.owner, value: nextCount });

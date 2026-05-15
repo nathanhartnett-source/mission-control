@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { marked } from "marked";
 
+type InboxAction = { label: string; prompt: string };
 type Msg = {
   id: string;
   from: string;
@@ -13,6 +14,7 @@ type Msg = {
   level?: "info" | "warn" | "error" | "success";
   read: boolean;
   ts: string;
+  actions?: InboxAction[];
 };
 
 const LEVEL_DOT: Record<string, string> = {
@@ -63,13 +65,38 @@ export default function InboxPage() {
     return () => clearTimeout(t);
   }, []);
 
-  const del = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const del = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     await fetch(`/api/inbox/${id}`, { method: "DELETE" });
     setMessages(m => m.filter(x => x.id !== id));
     if (openId === id) setOpenId(null);
     toast.success("Deleted");
   };
+
+  // Swipe-to-dismiss state per row
+  const swipeState = useRef<{ id: string | null; startX: number; dx: number }>({ id: null, startX: 0, dx: 0 });
+  const [swipeDx, setSwipeDx] = useState<{ id: string; dx: number } | null>(null);
+  const SWIPE_THRESHOLD = 100;
+
+  function onTouchStart(id: string, e: React.TouchEvent) {
+    if (e.touches.length !== 1) return;
+    swipeState.current = { id, startX: e.touches[0].clientX, dx: 0 };
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (!swipeState.current.id || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - swipeState.current.startX;
+    if (dx < 0) return; // only swipe-right dismisses
+    swipeState.current.dx = dx;
+    setSwipeDx({ id: swipeState.current.id, dx });
+  }
+  function onTouchEnd(id: string) {
+    const dx = swipeState.current.dx;
+    swipeState.current = { id: null, startX: 0, dx: 0 };
+    setSwipeDx(null);
+    if (dx > SWIPE_THRESHOLD) {
+      void del(id);
+    }
+  }
 
   return (
     <main className="max-w-3xl mx-auto px-3 sm:px-6 py-6 sm:py-10 text-slate-200">
@@ -90,8 +117,24 @@ export default function InboxPage() {
         <ul className="divide-y divide-slate-800 border border-slate-800 rounded-xl overflow-hidden bg-slate-900/30">
           {messages.map((m) => {
             const isOpen = openId === m.id;
+            const rowDx = swipeDx && swipeDx.id === m.id ? swipeDx.dx : 0;
+            const swipeOpacity = rowDx > 0 ? Math.max(0, 1 - rowDx / 300) : 1;
             return (
-              <li key={m.id}>
+              <li key={m.id} className="relative group">
+                {/* swipe-right hint underlay */}
+                {rowDx > 20 && (
+                  <div className="absolute inset-0 flex items-center pl-4 bg-rose-900/40 text-rose-200 text-sm font-medium select-none pointer-events-none">
+                    {rowDx > SWIPE_THRESHOLD ? "✓ Release to delete" : "Swipe to delete →"}
+                  </div>
+                )}
+                <div
+                  style={{ transform: `translateX(${rowDx}px)`, opacity: swipeOpacity, transition: rowDx === 0 ? "transform 0.2s" : undefined }}
+                  onTouchStart={(e) => onTouchStart(m.id, e)}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={() => onTouchEnd(m.id)}
+                  onTouchCancel={() => onTouchEnd(m.id)}
+                  className="relative"
+                >
                 <button
                   onClick={() => setOpenId(isOpen ? null : m.id)}
                   className={`w-full text-left px-3 py-3 sm:px-4 sm:py-3 transition-colors ${isOpen ? "bg-slate-900/60" : m.read ? "hover:bg-slate-900/40" : "bg-indigo-950/15 hover:bg-indigo-950/25"}`}
@@ -101,7 +144,9 @@ export default function InboxPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <div className={`text-sm truncate ${m.read ? "text-slate-200" : "font-semibold text-white"}`}>{m.subject}</div>
-                        <div className="text-[11px] text-slate-500 shrink-0">{fmtAest(m.ts)}</div>
+                        <div className="text-[11px] text-slate-500 shrink-0 flex items-center gap-2">
+                          <span>{fmtAest(m.ts)}</span>
+                        </div>
                       </div>
                       <div className="text-[11px] text-slate-500 mt-0.5">{m.from}</div>
                       {!isOpen && (
@@ -110,6 +155,14 @@ export default function InboxPage() {
                     </div>
                   </div>
                 </button>
+                {/* always-present close button — visible on hover (desktop), tappable on mobile */}
+                <button
+                  onClick={(e) => del(m.id, e)}
+                  aria-label="Dismiss"
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full text-slate-500 hover:text-rose-300 hover:bg-slate-800/80 flex items-center justify-center text-base leading-none opacity-60 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                  style={{ touchAction: "manipulation" }}
+                >×</button>
+                </div>
                 {isOpen && (
                   <div className="px-3 sm:px-4 pb-4 -mt-1">
                     <div
@@ -131,6 +184,19 @@ export default function InboxPage() {
                         [&_blockquote]:border-l-2 [&_blockquote]:border-slate-700 [&_blockquote]:pl-3 [&_blockquote]:text-slate-400 [&_blockquote]:italic"
                       dangerouslySetInnerHTML={{ __html: marked.parse(m.body || "", { breaks: true, gfm: true }) as string }}
                     />
+                    {m.actions && m.actions.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-800/60">
+                        <span className="text-[10px] uppercase tracking-wider text-slate-500 mr-1">Ask Ava:</span>
+                        {m.actions.map((a, i) => (
+                          <a
+                            key={i}
+                            href={`/agents?thread=general&prompt=${encodeURIComponent(a.prompt)}`}
+                            className="text-xs px-3 py-1.5 rounded-md bg-indigo-600/80 text-white hover:bg-indigo-500 transition-colors"
+                            title={a.prompt}
+                          >{a.label}</a>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 mt-3">
                       {m.href && <a href={m.href} className="text-xs px-3 py-1.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-500">Open</a>}
                       <button onClick={(e) => del(m.id, e)} className="text-xs px-3 py-1.5 rounded-md bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-rose-300 ml-auto">Delete</button>

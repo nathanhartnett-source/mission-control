@@ -6,9 +6,20 @@ import { toast } from "sonner";
 // MediaRecorder is browser-only, type-cast safely
 type MR = MediaRecorder;
 
+type ScheduleSpec =
+  | { type: "once"; date: string; time: string }
+  | { type: "daily"; time: string }
+  | { type: "weekly"; daysOfWeek: number[]; time: string }
+  | { type: "monthly"; dayOfMonth: number; time: string }
+  | { type: "monthly_nth_dow"; week: 1|2|3|4|-1; dayOfWeek: number; time: string };
+
 type Alert = {
   id: string;
-  kind?: "data" | "research";
+  kind?: "data" | "research" | "reminder";
+  cronTime?: string;
+  reminderText?: string;
+  daysOfWeek?: number[];
+  schedule?: ScheduleSpec;
   source?: string;
   dims?: Record<string, string>;
   op?: string;
@@ -27,6 +38,27 @@ type Alert = {
 };
 
 type Msg = { role: "user" | "assistant"; content: string };
+
+function describeReminder(a: Alert): string {
+  const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const WEEK_LABELS: Record<number, string> = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", [-1]: "last" };
+  const s = a.schedule;
+  if (s) {
+    switch (s.type) {
+      case "once": return `Once at ${s.time} AEST on ${s.date}`;
+      case "daily": return `Every day at ${s.time} AEST`;
+      case "weekly": return `${s.daysOfWeek.map((d) => DOW[d]).join(", ")} at ${s.time} AEST`;
+      case "monthly": return `Day ${s.dayOfMonth} of each month at ${s.time} AEST`;
+      case "monthly_nth_dow": return `${WEEK_LABELS[s.week]} ${DOW[s.dayOfWeek]} of each month at ${s.time} AEST`;
+    }
+  }
+  // legacy
+  const time = a.cronTime || "?";
+  if (a.daysOfWeek && a.daysOfWeek.length > 0 && a.daysOfWeek.length < 7) {
+    return `${a.daysOfWeek.map((d) => DOW[d]).join(", ")} at ${time} AEST`;
+  }
+  return `Every day at ${time} AEST`;
+}
 
 export default function MyAlertsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -284,9 +316,9 @@ export default function MyAlertsPage() {
             <div key={a.id} className={`border rounded-xl p-3 sm:p-4 ${a.active ? "border-slate-800 bg-slate-900/40" : "border-slate-800/40 bg-slate-900/20 opacity-60"}`}>
               <div className="min-w-0">
                 {a.label && <div className="text-sm font-semibold text-slate-100">{a.label}</div>}
-                <div className="text-sm text-slate-300 mt-0.5 line-clamp-3">{a.summary || a.intent || a.prompt || "(no description)"}</div>
+                <div className="text-sm text-slate-300 mt-0.5 line-clamp-3">{a.summary || a.intent || a.prompt || a.reminderText || "(no description)"}</div>
                 <div className="text-[11px] text-slate-500 mt-2">
-                  Checked {a.kind === "research" ? `every ${a.frequencyHours || 24}h` : "every 30 min"}
+                  {a.kind === "reminder" ? describeReminder(a) : `Checked ${a.kind === "research" ? `every ${a.frequencyHours || 24}h` : "every 30 min"}`}
                   {a.lastFiredAt && <> · Last fired {new Date(a.lastFiredAt).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</>}
                   {a.lastEvaluatedAt && !a.lastFiredAt && <> · Last checked {new Date(a.lastEvaluatedAt).toLocaleString("en-AU", { timeZone: "Australia/Brisbane", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</>}
                 </div>

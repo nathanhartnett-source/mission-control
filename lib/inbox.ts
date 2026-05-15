@@ -6,6 +6,11 @@ import path from "path";
 import crypto from "crypto";
 import { mcConfig } from "./mc-config";
 
+export type InboxAction = {
+  label: string;            // button text, e.g. "Investigate Helix PSI"
+  prompt: string;           // text pre-filled into /agents (General thread) on click
+};
+
 export type InboxMessage = {
   id: string;
   from: string;             // sender label (e.g. "Ava", "Mia", "Overseer")
@@ -15,6 +20,7 @@ export type InboxMessage = {
   level?: "info" | "warn" | "error" | "success";
   read: boolean;
   ts: string;               // ISO timestamp
+  actions?: InboxAction[];  // optional follow-up actions (opens /agents with prompt prefilled)
 };
 
 const ROOT = path.join(mcConfig.dataRoot, "inbox");
