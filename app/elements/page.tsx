@@ -272,13 +272,24 @@ export default function MyAppsPage() {
     }
   };
 
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/settings/features").then(async (r) => {
+      if (!r.ok) return;
+      const data = await r.json().catch(() => ({}));
+      if (alive && data?.flags) setFeatureFlags(data.flags);
+    });
+    return () => { alive = false; };
+  }, []);
   const visibleForUser = useMemo(() => {
     return BUILTIN_APPS.filter((a) => {
       if (a.adminOnly && isAdmin !== true) return false;
       if (a.nonAdminOnly && isAdmin === true) return false;
+      if (a.requiresFeature && !featureFlags[a.requiresFeature]) return false;
       return true;
     });
-  }, [isAdmin]);
+  }, [isAdmin, featureFlags]);
   const purgedSet = useMemo(() => new Set(prefs.purgedBuiltins || []), [prefs.purgedBuiltins]);
   const visibleBuiltins = useMemo(() => visibleForUser.filter((a) => a.surface !== "custom"), [visibleForUser]);
   const customSurfaceApps = useMemo(
