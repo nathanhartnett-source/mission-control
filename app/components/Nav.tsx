@@ -96,6 +96,17 @@ export default function Nav() {
     return () => { alive = false; };
   }, []);
 
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/settings/features").then(async (r) => {
+      if (!r.ok) return;
+      const data = await r.json().catch(() => ({}));
+      if (alive && data?.flags) setFeatureFlags(data.flags);
+    });
+    return () => { alive = false; };
+  }, []);
+
   useEffect(() => {
     let alive = true;
     const loadPinnedElements = () => fetch("/api/elements/pinned").then(async (r) => {
@@ -208,14 +219,17 @@ export default function Nav() {
   };
 
   const hiddenSet = new Set(navPrefs.hiddenSystem);
+  const featureGated = (a: BuiltinApp) => a.requiresFeature ? !!featureFlags[a.requiresFeature] : true;
   const visibleLocked: BuiltinApp[] = BUILTIN_APPS.filter((a) => {
     if (a.adminOnly && isAdmin !== true) return false;
     if (a.nonAdminOnly && isAdmin === true) return false;
+    if (!featureGated(a)) return false;
     return a.kind === "locked";
   });
   const visibleSystem: BuiltinApp[] = BUILTIN_APPS.filter((a) => {
     if (a.adminOnly && isAdmin !== true) return false;
     if (a.nonAdminOnly && isAdmin === true) return false;
+    if (!featureGated(a)) return false;
     return a.kind === "system" && !hiddenSet.has(a.slug);
   });
   const pinnedFlatApps: AppEntry[] = navPrefs.pinnedOrder

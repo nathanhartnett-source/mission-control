@@ -7,6 +7,7 @@ import BrandingPanel from "@/app/components/BrandingPanel";
 import UserThemePanel from "@/app/components/UserThemePanel";
 import WikiPathPanel from "@/app/components/WikiPathPanel";
 import TimezonePanel from "@/app/components/TimezonePanel";
+import BetaFeaturesPanel from "@/app/components/BetaFeaturesPanel";
 import AdminApiTokenPanel from "@/app/components/AdminApiTokenPanel";
 import UpdateFromGitHubPanel from "@/app/components/UpdateFromGitHubPanel";
 import MyAgentPanel from "@/app/components/MyAgentPanel";
@@ -266,6 +267,7 @@ export default function SettingsPage() {
       {isAdmin && <TimezonePanel />}
       {isAdmin && <AdminApiTokenPanel />}
       {isAdmin && <UpdateFromGitHubPanel />}
+      {isAdmin && <BetaFeaturesPanel />}
       <UserThemePanel />
 
       {/* Multi-agent grid removed in single-agent strip. Per-user agent

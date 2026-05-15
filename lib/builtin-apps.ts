@@ -16,6 +16,10 @@ export type BuiltinApp = {
   nonAdminOnly?: boolean;
   adminOnly?: boolean;
   surface?: "builtin" | "custom";
+  // Hide this app unless the named feature flag is enabled in /settings →
+  // Beta features. Used to keep the Build-an-App framework off by default
+  // on fresh installs (admins explicitly opt in).
+  requiresFeature?: "buildAnApp";
 };
 
 export const BUILTIN_APPS: BuiltinApp[] = [
@@ -25,7 +29,7 @@ export const BUILTIN_APPS: BuiltinApp[] = [
   { slug: "wiki",         name: "Wiki",         description: "Shared knowledge + session logs.", href: "/wiki",         icon: "📚", kind: "system", category: "core" },
   { slug: "inbox", name: "Inbox", description: "Alerts + messages from your agent.", href: "/inbox", icon: "📬", kind: "system", category: "core" },
   { slug: "alerts", name: "My Alerts", description: "Watch metrics + the web; AI judges when to ping you.", href: "/alerts", icon: "🔔", kind: "system", category: "core" },
-  { slug: "elements-hub", name: "Build an App", description: "Build a custom app with AI.",      href: "/elements/new", icon: "🛠️", kind: "system",    category: "work" },
+  { slug: "elements-hub", name: "Build an App", description: "Build a custom app with AI. (Beta)", href: "/elements/new", icon: "🛠️", kind: "system",    category: "work", requiresFeature: "buildAnApp" },
 ];
 
 export function findBuiltin(slug: string): BuiltinApp | undefined {
