@@ -58,7 +58,11 @@ if [[ -x "$CLAUDE" ]]; then
             echo "0" > "$_EFFORT_CACHE"
         fi
     fi
-    [[ "$(cat "$_EFFORT_CACHE" 2>/dev/null)" == "1" ]] && EFFORT_ARGS=(--effort medium)
+    # Opus needs --effort high. Anything lower under-thinks and produces
+    # hallucinated "On it, doing X" replies without firing the tool call.
+    # The runner pins Opus (--model claude-opus-4-7 below), so high is the
+    # only safe choice here. (2026-05-18.)
+    [[ "$(cat "$_EFFORT_CACHE" 2>/dev/null)" == "1" ]] && EFFORT_ARGS=(--effort high)
 fi
 
 mkdir -p "$INBOX" "$OUTBOX" "$STATE_DIR" "$USER_MEM"
